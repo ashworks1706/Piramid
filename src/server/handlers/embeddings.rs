@@ -25,7 +25,7 @@ pub async fn search_by_text(
     Extension(request_id): Extension<RequestId>,
     Json(req): Json<TextSearchRequest>,
 ) -> Result<Json<SearchResponse>> {
-    embedding::search_by_text(&state, collection, request_id, req)
+    embedding::search_by_text(&state, collection, request_id.0.as_str(), req)
         .await
         .map(Json)
 }

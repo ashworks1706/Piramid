@@ -3,7 +3,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::error::{Result, ServerError};
 use crate::metrics::record_lock_read;
 use crate::runtime::SharedState;
-use crate::server::types::*;
+use crate::services::types::*;
 
 fn ensure_available(state: &SharedState) -> Result<()> {
     if state

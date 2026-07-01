@@ -4,10 +4,9 @@ use std::time::Instant;
 use crate::error::{Result, ServerError};
 use crate::metrics::{record_lock_read, record_lock_write};
 use crate::runtime::SharedState;
-use crate::server::helpers::{json_to_metadata, EMBEDDING_NOT_CONFIGURED};
-use crate::server::request_id::RequestId;
-use crate::server::types::*;
+use crate::services::metadata::{json_to_metadata, EMBEDDING_NOT_CONFIGURED};
 use crate::services::search::{apply_search_overrides, hit_to_response, parse_metric};
+use crate::services::types::*;
 use crate::Document;
 
 fn ensure_available(state: &SharedState) -> Result<()> {
@@ -142,7 +141,7 @@ pub async fn embed_text(
 pub async fn search_by_text(
     state: &SharedState,
     collection: String,
-    request_id: RequestId,
+    request_id: &str,
     req: TextSearchRequest,
 ) -> Result<SearchResponse> {
     ensure_available(state)?;
@@ -204,7 +203,7 @@ pub async fn search_by_text(
         tracing::warn!(
             target: "piramid::search",
             collection=%collection,
-            request_id = request_id.0.as_str(),
+            request_id = request_id,
             elapsed_ms = duration.as_millis(),
             "slow_text_search"
         );

@@ -357,6 +357,9 @@ fn init_tracing(cfg: LoggingConfig) -> std::io::Result<()> {
     if !cfg.inference {
         env_filter = add_directive(env_filter, "piramid::inference=off");
     }
+    if !cfg.http {
+        env_filter = add_directive(env_filter, "piramid::http=off");
+    }
 
     let subscriber = tracing_subscriber::fmt()
         .with_env_filter(env_filter)

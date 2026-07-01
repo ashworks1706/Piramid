@@ -27,6 +27,8 @@ pub struct LoggingConfig {
     pub writes: bool,
     #[serde(default = "default_true")]
     pub inference: bool,
+    #[serde(default = "default_true")]
+    pub http: bool,
     #[serde(default)]
     pub slow_query_ms: Option<u64>,
 }
@@ -41,6 +43,7 @@ impl Default for LoggingConfig {
             search: true,
             writes: true,
             inference: true,
+            http: true,
             slow_query_ms: Some(500),
         }
     }

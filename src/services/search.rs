@@ -2,7 +2,8 @@ use crate::config::SearchConfig;
 use crate::error::{Result, ServerError};
 use crate::metrics::Metric;
 use crate::search::Hit;
-use crate::server::{helpers::metadata_to_json, types::HitResponse};
+use crate::services::metadata::metadata_to_json;
+use crate::services::types::HitResponse;
 
 pub fn parse_metric(metric: Option<String>) -> Result<Metric> {
     match metric.as_deref() {

@@ -1,6 +1,10 @@
-//! Cluster boundary.
+//! Cluster boundary for local-first and distributed routing.
 //!
-//! This module is intentionally a scaffold until Piramid has real distributed-system code to move
-//! here. Future work should keep membership, node capability discovery, shard ownership,
-//! replication policy, fan-out routing, and partial-result handling behind this boundary instead
-//! of mixing them into runtime state, services, storage, or search.
+//! Current runtime behavior is local-only. The routing abstraction exists so distributed
+//! placement/fan-out can be added without leaking network concerns into services or storage.
+
+mod node;
+mod routing;
+
+pub use node::{NodeCapabilities, NodeId, NodeRuntimeState};
+pub use routing::{ClusterRouter, LocalClusterRouter, RouteDecision};

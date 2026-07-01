@@ -54,7 +54,7 @@ pub async fn search_vectors(
     Extension(request_id): Extension<RequestId>,
     Json(req): Json<SearchRequest>,
 ) -> Result<Json<SearchResultsResponse>> {
-    vector::search_vectors(&state, collection, request_id, req).map(Json)
+    vector::search_vectors(&state, collection, request_id.0.as_str(), req).map(Json)
 }
 
 pub async fn upsert_vector(
@@ -71,5 +71,5 @@ pub async fn range_search_vectors(
     Extension(request_id): Extension<RequestId>,
     Json(req): Json<RangeSearchRequest>,
 ) -> Result<Json<SearchResponse>> {
-    vector::range_search_vectors(&state, collection, request_id, req).map(Json)
+    vector::range_search_vectors(&state, collection, request_id.0.as_str(), req).map(Json)
 }

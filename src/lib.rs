@@ -8,6 +8,7 @@ pub mod compute;
 pub mod config;
 pub mod embeddings;
 pub mod error;
+pub mod gpu;
 pub mod index;
 pub mod inference;
 pub mod metadata;

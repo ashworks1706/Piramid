@@ -338,6 +338,9 @@ impl AppConfig {
         if let Ok(val) = std::env::var("LOG_INFERENCE") {
             self.logging.inference = parse_bool_env("LOG_INFERENCE", &val)?;
         }
+        if let Ok(val) = std::env::var("LOG_HTTP") {
+            self.logging.http = parse_bool_env("LOG_HTTP", &val)?;
+        }
         Ok(())
     }
 

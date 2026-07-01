@@ -9,7 +9,7 @@ This is the working roadmap for contributors. If you want to help, start here an
 - [ ] remove the HNSW vector cache eviction bug by making delete/update graph semantics explicit: either tombstone deleted IDs until rebuild, or rebuild/repair HNSW whenever stale graph nodes can be returned.
 - [ ] remove or redesign the metadata cache so filtered search and re-ranking have one explicit consistency model instead of silently reading stale metadata.
 - [ ] the quantization module already has PQ (Product Quantization) implemented -- it splits vectors into sub-blocks and compresses each independently, but it's not wired into search yet
-- [ ] **FP16/BF16 vector precision:** promote `QuantizationLevel::Float16` from a stub to a real implementation -- store and serve vectors in native half-precision without upcasting to FP32, eliminating a costly precision-conversion step on the hot search path.
+- [ ] fp16/bf16 vector precision: promote `QuantizationLevel::Float16` from a stub to a real implementation -- store and serve vectors in native half-precision without upcasting to FP32, eliminating a costly precision-conversion step on the hot search path.
 - [ ] Add Binary Quantization (BQ): Turning vectors into 1s and 0s for 32x speedups
 - [ ] Add `GET /api/collections/:name/vectors/export?format=safetensors` that serializes the vector store in `.safetensors` format for interoperability with other tools.
 

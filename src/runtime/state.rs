@@ -7,6 +7,9 @@ use std::sync::{
 };
 use std::time::{SystemTime, UNIX_EPOCH};
 
+use crate::cluster::{
+    ClusterRouter, LocalClusterRouter, NodeCapabilities, NodeId, NodeRuntimeState, RouteDecision,
+};
 use crate::collections::{CollectionHandle, CollectionManager};
 use crate::config::AppConfig;
 use crate::embeddings::Embedder;
@@ -36,6 +39,7 @@ pub struct RebuildJobStatus {
 pub struct AppState {
     pub collection_manager: CollectionManager,
     pub data_dir: String, // Base directory for collection files, e.g. "./data"
+    pub cluster_router: Arc<dyn ClusterRouter>,
     pub embedder: Option<Arc<dyn Embedder>>, // Optional embedder, if configured. Wrapped in Arc for shared ownership.
     pub shutting_down: Arc<AtomicBool>, // Flag to indicate server is shutting down, used to reject new requests gracefully
     pub read_only: Arc<AtomicBool>,     // Flag for disk-pressure read-only mode
@@ -57,11 +61,22 @@ impl AppState {
         disk_readonly_on_low_space: bool,
     ) -> Result<Self> {
         std::fs::create_dir_all(data_dir)?;
+        let cluster_router: Arc<dyn ClusterRouter> =
+            Arc::new(LocalClusterRouter::new(NodeRuntimeState {
+                id: NodeId::default(),
+                capabilities: NodeCapabilities {
+                    cpu_threads: app_config.hardware.cpu_threads,
+                    memory_budget_bytes: app_config.hardware.memory_budget_bytes,
+                    gpu_enabled: app_config.hardware.gpu_enabled,
+                },
+                healthy: true,
+            }));
         let app_config = Arc::new(RwLock::new(app_config));
 
         Ok(Self {
             collection_manager: CollectionManager::new(data_dir.to_string(), app_config.clone()),
             data_dir: data_dir.to_string(),
+            cluster_router,
             embedder: None,
             shutting_down: Arc::new(AtomicBool::new(false)),
             read_only: Arc::new(AtomicBool::new(false)),
@@ -90,11 +105,22 @@ impl AppState {
         disk_readonly_on_low_space: bool,
     ) -> Result<Self> {
         std::fs::create_dir_all(data_dir)?;
+        let cluster_router: Arc<dyn ClusterRouter> =
+            Arc::new(LocalClusterRouter::new(NodeRuntimeState {
+                id: NodeId::default(),
+                capabilities: NodeCapabilities {
+                    cpu_threads: app_config.hardware.cpu_threads,
+                    memory_budget_bytes: app_config.hardware.memory_budget_bytes,
+                    gpu_enabled: app_config.hardware.gpu_enabled,
+                },
+                healthy: true,
+            }));
         let app_config = Arc::new(RwLock::new(app_config));
 
         Ok(Self {
             collection_manager: CollectionManager::new(data_dir.to_string(), app_config.clone()),
             data_dir: data_dir.to_string(),
+            cluster_router,
             embedder: Some(embedder),
             shutting_down: Arc::new(AtomicBool::new(false)),
             read_only: Arc::new(AtomicBool::new(false)),
@@ -117,6 +143,12 @@ impl AppState {
         if self.shutting_down.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
         }
+        if let RouteDecision::Remote(node_id) = self.cluster_router.route_collection(name) {
+            return Err(ServerError::ServiceUnavailable(format!(
+                "collection '{name}' is assigned to remote node '{node_id}', but remote routing is not implemented"
+            ))
+            .into());
+        }
         self.collection_manager.get_existing(name)
     }
 
@@ -124,6 +156,12 @@ impl AppState {
     pub fn get_or_create_collection(&self, name: &str) -> Result<CollectionHandle> {
         if self.shutting_down.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
+        }
+        if let RouteDecision::Remote(node_id) = self.cluster_router.route_collection(name) {
+            return Err(ServerError::ServiceUnavailable(format!(
+                "collection '{name}' is assigned to remote node '{node_id}', but remote routing is not implemented"
+            ))
+            .into());
         }
         self.collection_manager.get_or_create(name)
     }
