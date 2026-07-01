@@ -72,7 +72,8 @@ flowchart TD
     Collections --> CollectionOps[collections/operations/<br/>read, write, metadata, limits]
     Storage --> Wal[storage/wal/<br/>write-ahead log]
     Storage --> Persistence[storage/persistence/<br/>sidecar and mmap helpers]
-    Server --> Types[server/types/<br/>API DTOs]
+    Services --> ServiceTypes[services/types/<br/>canonical API DTOs]
+    Server --> Types[server/types/<br/>compatibility re-exports]
     Server --> Handlers[server/handlers/<br/>HTTP handlers]
 ```
 
@@ -82,13 +83,15 @@ Top-level folders should not be collapsed just because one layer depends on anot
 
 ### `server/`
 
-HTTP transport. This is where routes, handlers, request helpers, request IDs, and API DTOs live.
+HTTP transport. This is where routes, handlers, request helpers, and request IDs live. `server/types/` exists as a compatibility surface that re-exports DTOs from `services/types/`.
 
 Handlers should stay thin: parse request data, call a service, and serialize the response. They should not mutate collections, plan searches, manage WAL, or own cache/index logic.
 
 ### `services/`
 
 Application orchestration. This layer coordinates user-facing operations: collection lifecycle, vector writes, search, embedding requests, admin views, health checks, and readiness checks.
+
+Services also own canonical transport-adjacent DTOs in `services/types/` and metadata JSON translation helpers in `services/metadata.rs`, so transport does not become a hidden dependency of domain orchestration.
 
 Services know about runtime state and domain objects. They should not know about low-level file formats or mmap implementation details.
 
@@ -301,7 +304,7 @@ The codebase uses manager naming where a type owns lifecycle or policy for anoth
 
 ## Future Boundaries
 
-Two boundaries exist before full implementations: `inference/`, `cluster/`. These should stay empty or minimal until there is real code to move into them. When those systems land, they should integrate through services and runtime state rather than bypassing the existing layers.
+Two boundaries exist before full implementations: `inference/`, `cluster/`. These should stay small until there is real code to move into them. The current `cluster/` module already includes local-first routing and node metadata scaffolding; `inference/` is still an explicit placeholder boundary.
 
 Expected direction:
 
@@ -318,6 +321,19 @@ flowchart TD
     Cluster -. optional routing .-> Retrieval
     Cluster -. optional routing .-> Inference
 ```
+
+## GPU and Inference Backend Direction
+
+Current implementation direction is:
+
+- NVIDIA GPU systems/backend work under `gpu/` should use `cudarc` as the baseline host/runtime boundary (device/stream/memory management and CUDA library bindings).
+- Custom kernel experimentation can use `cuda-oxide` under `gpu/` while keeping orchestration and ownership boundaries unchanged.
+- Transformer runtime work under `inference/` should use `candle` as the model execution layer.
+- `cluster/` should remain transport/routing ownership, not model or kernel ownership.
+
+Alternative Rust GPU projects can still be explored in isolated experiments, but the production path should stay converged on this split so service/runtime boundaries remain stable.
+
+For scaffold-level file/layout planning, see `docs/gpu-stack.md`.
 
 ## Development Rules
 

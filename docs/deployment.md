@@ -141,10 +141,12 @@ http://localhost:6333/api/health
 Useful runtime endpoints:
 
 ```text
-/healthz
-/readyz
 /api/health
+/api/readyz
 /api/metrics
+/api/v1/health
+/api/v1/readyz
+/api/v1/metrics
 ```
 
 Use readiness for traffic routing and health for process/container supervision.

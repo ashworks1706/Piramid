@@ -15,6 +15,7 @@
   <a href="#overview">Overview</a> •
   <a href="#usage">Usage</a> •
   <a href="docs/architecture.md">Architecture</a> •
+  <a href="docs/gpu-stack.md">GPU Stack</a> •
   <a href="docs/setup.md">Setup</a> •
   <a href="docs/deployment.md">Deployment</a> •
   <a href="https://piramiddb.com/blogs/contributions">Contributing</a>
@@ -58,6 +59,7 @@ flowchart TD
 ```
 
 For the full codebase guide, see [docs/architecture.md](docs/architecture.md).
+For GPU/inference boundary and stack scaffolding, see [docs/gpu-stack.md](docs/gpu-stack.md).
 
 ## Get Started
 
@@ -96,7 +98,7 @@ curl -X POST http://localhost:6333/api/collections/docs/vectors \
 # Embed text (single or batch) and store
 curl -X POST http://localhost:6333/api/collections/docs/embed \
   -H "Content-Type: application/json" \
-  -d '{"text": ["hello", "bonjour"], "metadata": [{"lang": "en"}, {"lang": "fr"}]}'
+  -d '{"texts": ["hello", "bonjour"], "metadata_list": [{"lang": "en"}, {"lang": "fr"}]}'
 
 # Search
 curl -X POST http://localhost:6333/api/collections/docs/search \
@@ -104,7 +106,7 @@ curl -X POST http://localhost:6333/api/collections/docs/search \
   -d '{"vector": [0.1, 0.2, 0.3, 0.4], "k": 5}'
 ```
 
-Health and metrics: `/healthz`, `/readyz`, `/api/metrics`.
+Health and metrics: `/api/health`, `/api/readyz`, `/api/metrics`.
 
 ## License
 
