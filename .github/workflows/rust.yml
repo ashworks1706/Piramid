@@ -25,8 +25,8 @@ jobs:
     - name: Cache cargo registry and target
       uses: Swatinem/rust-cache@v2
 
-    - name: Install cargo-audit
-      run: cargo install --locked cargo-audit
+    - name: Install cargo-nextest
+      run: cargo install --locked cargo-nextest
 
     - name: Run full checks
       run: ./scripts/check.sh

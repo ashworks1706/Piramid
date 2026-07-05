@@ -15,8 +15,8 @@ if ! cargo clippy --version >/dev/null 2>&1; then
     missing_tools="${missing_tools} clippy"
 fi
 
-if ! cargo audit --version >/dev/null 2>&1; then
-    missing_tools="${missing_tools} cargo-audit"
+if ! cargo nextest --version >/dev/null 2>&1; then
+    missing_tools="${missing_tools} cargo-nextest"
 fi
 
 if [ -n "$missing_tools" ]; then
@@ -26,12 +26,11 @@ if [ -n "$missing_tools" ]; then
         echo "Install Rust with rustup first: https://rustup.rs/" >&2
     fi
     echo "  rustup component add rustfmt clippy" >&2
-    echo "  cargo install --locked cargo-audit" >&2
+    echo "  cargo install --locked cargo-nextest" >&2
     exit 1
 fi
 
 cargo fmt --all -- --check
 cargo clippy --all-targets -- -D warnings
-cargo test --all-targets
+cargo nextest run --all-targets
 cargo build --all-targets
-cargo audit

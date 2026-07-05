@@ -16,7 +16,8 @@ It runs:
 
 - `cargo fmt --all -- --check`
 - `cargo clippy --all-targets -- -D warnings`
-- `cargo test --all-targets`
+- `cargo nextest run --all-targets`
+- `cargo build --all-targets`
 
 The website check script is:
 
@@ -38,15 +39,24 @@ This is meant to catch formatting, lint, Rust tests, and website issues before C
 
 The Rust workflow runs on pushes and pull requests to `main`.
 
-It installs stable Rust with `rustfmt` and `clippy`, then runs the same Rust check script used locally.
+It installs stable Rust with `rustfmt` and `clippy`, installs `cargo-nextest`, then runs the same Rust check script used locally.
 
 ### Security
 
 The security workflow runs on pushes and pull requests to `main`, plus a weekly schedule.
 
-It runs `cargo audit` against `Cargo.lock`. Dependency review only runs on pull requests because GitHub's dependency review action is PR-focused.
+It runs `cargo deny check advisories bans licenses sources` against `Cargo.lock` with repository policy from `deny.toml`. Dependency review only runs on pull requests because GitHub's dependency review action is PR-focused.
 
 Security warnings are not all equal. A blocking vulnerability should stop a release. A known warning can be accepted temporarily, but it should be tracked and cleaned up intentionally.
+
+### Release-plz
+
+The `release-plz` workflow is enabled as a scaffold:
+
+- Pushes to `main` open/update a release PR (`release-plz release-pr`).
+- Publishing (`release-plz release`) is manual-only through workflow dispatch with `publish=true`.
+
+This keeps automated version/changelog PRs without forcing an immediate migration away from the existing `releases` branch release pipeline.
 
 ### Docker
 
@@ -112,21 +122,19 @@ Linux arm64 is cross-compiled from Ubuntu. The workflow installs the ARM64 linke
 
 The binaries are uploaded as workflow artifacts first. The GitHub release is created later after publishing succeeds.
 
+Each binary artifact is also attested with GitHub Artifact Attestations (`actions/attest-build-provenance`) so you can verify provenance from workflow run to release asset.
+
 ## crates.io Publishing
 
-The crate is published with:
+The crate is published with OIDC Trusted Publishing:
 
 ```bash
-cargo publish --locked --token $CARGO_REGISTRY_TOKEN
+cargo publish --locked
 ```
 
-GitHub Actions expects the secret to be named:
+The workflow exchanges an OIDC token using `rust-lang/crates-io-auth-action@v1` and does not require a long-lived `CARGO_REGISTRY_TOKEN` secret.
 
-```text
-CARGO_REGISTRY_TOKEN
-```
-
-If the `crates-io` environment is enabled in GitHub, the secret must be available to that environment or the publish step will fail with authentication errors.
+If the `crates-io` environment is enabled in GitHub, make sure the job has `id-token: write` permission and that your crate is configured for trusted publishing in crates.io settings.
 
 ## Docker Publishing
 
@@ -142,6 +150,7 @@ The release workflow publishes:
 The image includes OCI metadata for title, description, source, URL, and license.
 
 The release workflow also generates an SBOM for the pushed image and uploads it as a workflow artifact.
+It also attests pushed image provenance with `actions/attest-build-provenance`.
 
 ## GitHub Release
 
@@ -165,13 +174,15 @@ The repository needs Actions write permissions so the workflow can push tags and
 Settings -> Actions -> General -> Workflow permissions -> Read and write permissions
 ```
 
-Required secrets:
+GHCR publishing uses `GITHUB_TOKEN`, so it usually does not need a separate token.
+
+Trusted publishing also requires crates.io configuration per crate:
 
 ```text
-CARGO_REGISTRY_TOKEN
+crates.io -> Crate Settings -> Trusted Publishing
 ```
 
-GHCR publishing uses `GITHUB_TOKEN`, so it usually does not need a separate token.
+Set this repository/workflow as a trusted publisher before removing legacy API-token publishing.
 
 ## Why Checks Show On Multiple Branches
 
