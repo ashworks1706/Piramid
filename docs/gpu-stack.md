@@ -19,14 +19,14 @@ It is intentionally implementation-light: it explains where code should go befor
 
 ## Stack Direction
 
-- Baseline GPU host/runtime layer: `cudarc`.
-- Optional custom-kernel toolchain: `cuda-oxide`.
+- Primary GPU toolchain: `cuda-oxide`.
+- Optional host/runtime interop layer: `cudarc`.
 - Transformer inference runtime: `candle`.
 
 This means:
 
-- `cuda-oxide` is allowed for kernel authoring.
-- `cudarc` remains the stable host/runtime integration layer unless a full migration is explicitly planned.
+- `cuda-oxide` is the default path for kernel authoring and host-side GPU integration.
+- `cudarc` is optional and should be added only for specific interoperability or CUDA-library needs.
 - `candle` remains scoped to `inference/` and should not leak into retrieval/index code paths.
 
 ## Planned Scaffold Layout
@@ -39,8 +39,8 @@ src/
     mod.rs
     backends/
       mod.rs
-      cudarc.rs            # baseline runtime adapter
-      cuda_oxide.rs        # optional kernel path adapter
+      cuda_oxide.rs        # default kernel/runtime adapter
+      cudarc.rs            # optional interop adapter
     kernels/
       mod.rs
       distance/            # cosine/dot/euclidean kernels
@@ -57,8 +57,8 @@ src/
 
 Use additive feature flags so experiments stay isolated:
 
-- `gpu-cudarc`
 - `gpu-cuda-oxide`
+- `gpu-cudarc`
 - `inference-candle`
 
 Keep default builds CPU-safe unless GPU flags are enabled.
