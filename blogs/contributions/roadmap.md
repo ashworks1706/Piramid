@@ -2,183 +2,150 @@
 
 This is the working roadmap for contributors. If you want to help, start here and pick one scoped task. If your idea is not listed but adjacent, open an issue first and propose it before implementation.
 
+---
+
+## Phase 1 — Retrieval-Fused Inference (v0.3.0)
+
+**Chunked Cross-Attention (the fusion layer):**
+
+- [ ] implement RETRO-style chunked cross-attention in Candle: retrieved neighbor chunks encoded by a shallow retrieval encoder, then attended to by decoder layers via cross-attention
+- [ ] implement the retrieval encoder (2-layer bidirectional transformer) that encodes retrieved neighbors into dense representations for cross-attention
+- [ ] wire the retrieval trigger: at each chunk boundary during the forward pass, query the index, encode neighbors, feed into cross-attention
+- [ ] benchmark fusion vs naive prompt-stuffing on Natural Questions and TriviaQA — latency, recall, token cost
+
+**RETROfit Training:**
+
+- [ ] implement the retrofit finetuning loop: freeze base model weights, train only cross-attention + retrieval encoder params (~10% of total)
+- [ ] retrofit Qwen 1.5B as the first target model — validate that it converges with retrieval on a standard QA dataset
+- [ ] retrofit a second model (Llama 3B or Qwen 3B) to prove the pipeline generalizes
+- [ ] publish retrofitted weights to HuggingFace as safetensors
+
+**Serving:**
+
+- [ ] `piramid pull <model>` — download a pre-retrofitted model
+- [ ] `piramid serve --model qwen-1.5b-retro --data-dir ./data` — serve retrieval-fused inference
+- [ ] add streaming token output (SSE)
+- [ ] add OpenAI-compatible `/v1/chat/completions` endpoint that runs retrieval-fused inference transparently
 
 ---
 
-**Quantization (1.1.0)**
-- [ ] remove the HNSW vector cache eviction bug by making delete/update graph semantics explicit: either tombstone deleted IDs until rebuild, or rebuild/repair HNSW whenever stale graph nodes can be returned.
-- [ ] remove or redesign the metadata cache so filtered search and re-ranking have one explicit consistency model instead of silently reading stale metadata.
-- [ ] the quantization module already has PQ (Product Quantization) implemented -- it splits vectors into sub-blocks and compresses each independently, but it's not wired into search yet
-- [ ] fp16/bf16 vector precision: promote `QuantizationLevel::Float16` from a stub to a real implementation -- store and serve vectors in native half-precision without upcasting to FP32, eliminating a costly precision-conversion step on the hot search path.
-- [ ] Add Binary Quantization (BQ): Turning vectors into 1s and 0s for 32x speedups
-- [ ] Add `GET /api/collections/:name/vectors/export?format=safetensors` that serializes the vector store in `.safetensors` format for interoperability with other tools.
+## Phase 2 — GPU Kernels + Custom Indexing (v0.4.0)
+
+**Custom CUDA Kernels:**
+
+- [ ] define GPU backend struct and traits (cudarc)
+- [ ] fused cross-attention kernel: combine retrieval encoding + cross-attention into a single kernel launch, eliminate intermediate materializations
+- [ ] benchmark fused kernel vs naive Candle ops — target 2-3x speedup on the cross-attention step
+- [ ] GPU-accelerated ANN search (distance computation on device, avoid CPU-GPU transfer on the hot path)
+
+**Custom Indexing:**
+
+- [ ] design Piramid's indexing algorithm co-optimized for the cross-attention access pattern — the index isn't just returning top-k, it's feeding an attention layer, so relevance scoring can be jointly learned
+- [ ] experiment with learned index routing: the retrieval encoder's query representation selects index partitions, not a separate ANN lookup
+- [ ] benchmark against standard HNSW/IVF on retrieval-fused inference quality (not just recall@k — end-to-end answer quality)
+
+**Quantization (for inference, not just storage):**
+
+- [ ] fp16/bf16 for both model weights and stored vectors — no upcasting on the hot path
+- [ ] wire existing PQ implementation into search
+- [ ] add binary quantization for candidate pre-filtering before full-precision reranking
 
 ---
 
-### GPU Acceleration patch
+## Phase 3 — Piramid Models (v0.5.0)
 
-**GPU backend:**
+**Model Zoo:**
 
-- [ ] decide what library to use
-- [ ] create definite GPU struct and traits
-- [ ] modularized service
+- [ ] publish 1.5B, 3B, 7B retrofitted models on HuggingFace
+- [ ] each model co-optimized with Piramid's indexing algorithm
+- [ ] benchmark suite: Natural Questions, TriviaQA, HotpotQA — compare against naive RAG (same base model + Qdrant + prompt stuffing)
+- [ ] add model cards documenting training data, retrofit procedure, and known limitations
 
-**Introduce Custom GPU Kernels trait:**
+**Training Pipeline:**
 
-- [ ] use the custom GPU kernels on quantizations, indexings, searchings, wherever required.
-- [ ] Add a query optimizer that switches to Flat Search + Bitmaps when metadata filters are highly selective (>90% reduction)
-
----
-
-### Transformer Inference Patch
-
-**Introduce Transformer:**
-
-- [ ] add support for running small transformer models.
-- [ ] add kvcaching, batching and async support to the transformer inference module.
-- [ ] add paged attention support for long contexts.
-- [ ] add support for quantization.
-- [ ] add streaming api.
-- [ ] add an OpenAI-compatible chat/completions surface.
+- [ ] add dataset generation workflows for retrofit finetuning on custom domains
+- [ ] `piramid retrofit <base-model> --data-dir ./data` — let users retrofit their own base model against their own index
+- [ ] document compute requirements per model size (single GPU feasibility matrix)
 
 ---
 
-### Piramid Indexing and Searching Mechanism
+## Phase 4 — Production Hardening (v0.6.0)
 
-- [ ] decide how this Transformer x Database Attention Fusion will work and experiemnt with latent attention
-- [ ] identify what can be improved and develop better indexing + searching algorithm
-- [ ] add dataset generation/fine-tuning workflows for better piramid transformer 
-- [ ] add a WebSocket or SSE endpoint for continuous query submission so a client can push queries one at a time and receive results as they complete, enabling continuous batching without pre-grouping queries.
-- [ ] add context-packing policies: max tokens, diversity, source caps, recency weighting, metadata constraints, and citation-preserving chunk joins.
-- [ ] add this as default indexing + searching method for piramid, always have an option to switch to piramid as a normal database
+**Crash Safety & Durability:**
 
----
+- [ ] WAL version fields and checksums; handle partial writes and format mismatches
+- [ ] automatic index rebuild from WAL on detected corruption
+- [ ] dry-run config validation on startup
 
-### RAG Support
+**Write Path:**
 
-- [ ] add popular reranking mechanisms support for the pipeline, users should be able to toggle how and where they want what, already prebuilt by piramid
-- [ ] add sparse/BM25 indexes alongside dense vectors as option.
-- [ ] evaludate piramid indexing on benchmarks
-- [ ] add RAG evals: retrieval recall, answer faithfulness, citation correctness, latency, memory, and cost per query.
-- [ ] experiment with hybrid retrieval techniques: dense ANN + sparse/BM25 scoring + rerank, GraphRAG, RAPTOR, Cross-Encoders for our platform, completely abstracted and better
- 
----
-
-### Optimizations
-
-**CLI and Logs**
-
-- [ ] piramid init should automatically detect system's computational resources etc and setup the config accordingly
-- [ ] adaptive index tuning: auto-adjust `ef`, `nprobe`, `filter_overfetch` based on per-collection latency/recall budgets and density
-- [ ] add hardware profiles (`8gb`, `16gb`, `32gb`, `cpu-only`, `gpu`) that choose index type, quantization, cache size, and search depth automatically.
-
-
-**Query Features (1.1.3)**
-
-- [ ] metadata-only search (no vector similarity)
-- [ ] add `/query` and `/chat`-oriented APIs
-- [ ] query result caching (LRU, TTL-based)
-
-**Blocked / Future (Systems Optimization):**
-
-- [ ] Automatically hydrate frequently accessed index clusters into memory on startup.
-- [ ] Group multiple search requests into a single compute batch.
-
-
-**Server & API (1.0.3)**
-
-- [ ] read endpoints (GET collection, GET vector, search) silently create a new empty collection on disk if the name doesn't exist, instead of returning a 404. only write endpoints should be allowed to create collections.
-- [ ] the embedding cache uses a blocking mutex inside async request handlers, which can stall the async runtime under load. should use an async-aware lock or be restructured to avoid holding it across await points.
-
-**Filter & Cache Acceleration (1.1.2)**
-
-- [ ] the collection map in AppState keeps every opened collection in memory forever with no eviction -- a server that opens many collections will grow unbounded. `cache_max_bytes` config exists but nothing enforces it. needs an LRU eviction policy so idle collections can be closed and their memory (vector cache, metadata cache, mmap) released.
-- [ ] IVF prefiltering with metadata posting lists to avoid full-scan overfetch on filtered queries
-- [ ] bitmap/roaring filters for post-filter paths; filter selectivity stats
-- [ ] collection preloading on startup: optionally pre-open a configured list of collections rather than waiting for the first request
-- [ ] Add LSH (Locality Sensitive Hashing) as a high-speed, low-RAM alternative to HNSW.
-- [ ] IVF uses random centroid initialisation (first K vectors) -- k-means++ would sample proportionally to distance from the nearest existing centroid, producing better spread and fewer iterations to convergence
-
-**Metadata Filters**
-
-- [ ] metadata indexing for fast pre-filtering
-- [ ] range queries on numeric fields
-- [ ] regex/pattern matching on string fields
-- [ ] date range filters
-- [ ] array membership checks
-- [ ] vector count per metadata filter
-- [ ] complex boolean filters (AND/OR/NOT combinations)
-
----
-
-### Write Path & Durability
-
-**Async I/O (1.1.4)**
-
-- [ ] non-blocking writes via `tokio-fs`
-- [ ] async write pipeline: batching/coalescing, buffered writes, background flush worker
+- [ ] async write pipeline via `tokio-fs`: batching, buffered writes, background flush
 - [ ] prefetching for sequential reads
 - [ ] background job queue for long-running storage operations
 
-**Crash Safety & Recovery (1.1.5)**
+**Bugs to Fix (blocking stability, not features):**
 
-- [ ] WAL and all persistence file formats need version fields and checksums; recovery paths must handle partial writes and format mismatches safely
-- [ ] dry-run config validation on startup; fail-fast on mismatched config between what's stored and what's loaded
-- [ ] automatic index rebuild from WAL on detected corruption
-
----
-
-### Operations & Reliability (1.1.9)
-
-- [ ] set up benchmarks for latency, index strategies, memory usage across collection sizes
-- [ ] publish benchmark profiles for consumer machines: laptop CPU-only, integrated GPU, 16GB RAM, 32GB RAM, and small home server.
-- [ ] add regression gates for p95/p99 search latency, recall@k, WAL recovery time, compaction time, and memory ceiling.
-- [ ] add end-to-end RAG benchmark reports comparing Piramid against a strong baseline stack (vector DB + BM25 + reranker + local LLM).
+- [ ] remove the HNSW vector cache eviction bug: make delete/update graph semantics explicit (tombstone or rebuild)
+- [ ] remove or redesign the metadata cache: filtered search and re-ranking need one explicit consistency model
+- [ ] fix the embedding cache blocking mutex in async handlers — use async-aware lock or restructure
+- [ ] fix read endpoints silently creating empty collections instead of returning 404
 
 ---
 
-### Distributed Systems & Inference Patch
+## Phase 5 — Retrieval Pipeline (v0.7.0)
 
-**Distributed Runtime:**
+**Hybrid Retrieval:**
 
-- [ ] add a node runtime abstraction with stable node IDs, advertised capabilities, heartbeat state, and graceful shutdown semantics.
-- [ ] add cluster membership for small trusted deployments first: static config, explicit join/leave, health checks, and no automatic rebalancing until failure semantics are tested.
-- [ ] define placement policies for consumer hardware: CPU-only node, integrated GPU node, discrete GPU node, storage-heavy node, and mixed laptop/home-server profiles.
-- [ ] add request routing that chooses local execution by default and only crosses the network when the latency budget justifies it.
+- [ ] sparse/BM25 indexes alongside dense vectors
+- [ ] reranking mechanisms (cross-encoder, ColBERT-style late interaction)
+- [ ] context-packing policies: max tokens, diversity, source caps, recency weighting, metadata constraints
 
-**Distributed Search & Storage:**
+**Evaluation:**
 
-- [ ] shard collections by vector ID or partition key, with deterministic routing and a clear single-node fallback path.
-- [ ] add replicated read-only shards for hot collections before adding distributed writes; correctness should not depend on consensus in the first version.
-- [ ] add fan-out search across shards with top-k merge, timeout budgets, partial-result reporting, and per-shard latency attribution.
-- [ ] add snapshot shipping and mmap-friendly shard loading so a second node can serve a collection without rebuilding the index from scratch.
+- [ ] end-to-end RAG benchmarks: Piramid (retrieval-fused) vs baseline stack (vector DB + BM25 + reranker + prompt-stuffed LLM)
+- [ ] retrieval recall, answer faithfulness, citation correctness, latency, memory, cost per query
+- [ ] publish benchmark profiles for consumer hardware
 
-**Distributed Inference:**
+**Filter & Query Features:**
 
-- [ ] add model placement metadata: model name, quantization, context length, KV-cache capacity, backend, GPU memory, and supported batch sizes.
-- [ ] add distributed inference routing for prompt-RAG first: retrieve locally or remotely, pack context, send to the best available inference node, and stream tokens back.
-- [ ] add continuous batching across clients on each inference node, but keep admission control explicit so one long generation cannot starve short RAG queries.
-- [ ] add KV-cache locality policies so follow-up chat turns route to the node that already owns the session cache when possible.
-- [ ] prototype tensor/pipeline parallel inference only after single-node inference is benchmarked; reject it unless it beats simpler model replication on consumer networks.
-
-**Reliability & Observability:**
-
-- [ ] add distributed tracing across retrieve, rerank, context-pack, inference-prefill, inference-decode, and response-stream phases.
-- [ ] expose cluster metrics: node health, shard ownership, queue depth, GPU memory, KV-cache usage, network fan-out time, and partial-result rates.
-- [ ] add failure-mode tests for node loss, slow shard, stale replica, interrupted stream, duplicated request, and model-node overload.
-- [ ] document the distributed-system boundary clearly: Piramid should scale from single binary to small trusted clusters before attempting internet-scale database semantics.
+- [ ] metadata indexing for fast pre-filtering
+- [ ] range queries, regex matching, date filters, array membership, boolean filters (AND/OR/NOT)
+- [ ] metadata-only search (no vector similarity)
+- [ ] query result caching (LRU, TTL-based)
 
 ---
 
-### Documentation & Testing
+## Phase 6 — Distributed (v1.0.0)
 
-**Documentation**
+**Cluster Runtime:**
 
-- [ ] Separate API docs to `docs.piramiddb.com` (Mintlify)
-- [ ] document rust sdk with examples, link blogs from /blogs
-- [ ] add an architecture note explaining Piramid's distinction from model-as-database systems: Piramid is database-as-inference-memory, not model-weight decompilation.
-- [ ] add a research log for failed fusion experiments and kill-test results so contributors know which paths are dead ends.
+- [ ] node runtime abstraction: stable IDs, capabilities, heartbeat, graceful shutdown
+- [ ] static cluster membership for small trusted deployments first
+- [ ] hardware-aware placement: CPU-only, iGPU, discrete GPU, storage-heavy, mixed profiles
+- [ ] request routing: local by default, cross-network only when latency budget justifies it
 
-**Platform**
+**Distributed Search & Inference:**
 
-- [ ] add python pypi
+- [ ] shard collections by vector ID or partition key with single-node fallback
+- [ ] fan-out search with top-k merge, timeout budgets, partial-result reporting
+- [ ] distributed inference routing: retrieve locally or remotely, pack context, route to best inference node, stream back
+- [ ] continuous batching across clients per inference node with admission control
+- [ ] KV-cache locality: route follow-up turns to the node that owns the session cache
+
+**Observability:**
+
+- [ ] distributed tracing across retrieve → rerank → context-pack → prefill → decode → stream
+- [ ] cluster metrics: node health, shard ownership, queue depth, GPU memory, KV-cache usage
+- [ ] failure-mode tests: node loss, slow shard, stale replica, interrupted stream, model overload
+
+---
+
+## Ongoing — Docs, SDKs, Platform
+
+- [ ] separate API docs to `docs.piramiddb.com`
+- [ ] document Rust SDK with examples
+- [ ] publish Python SDK to PyPI
+- [ ] add architecture note: Piramid is database-as-inference-memory, not model-weight decompilation
+- [ ] add research log for failed fusion experiments so contributors know dead ends
+- [ ] `piramid init` auto-detects system resources and configures accordingly
+- [ ] hardware profiles (`8gb`, `16gb`, `32gb`, `cpu-only`, `gpu`) auto-select index type, quantization, cache size, search depth
