@@ -1,7 +1,7 @@
 <img width="1114" height="191" alt="Piramid Logo" src="https://github.com/user-attachments/assets/efaa4c47-62d1-4397-9899-8bd58d400fc6" />
 
 <p align="center">
-    <b>Inference Engine for Retrieval-Augmented Systems</b>
+    <b>Inference Engine for Retreival Systems</b>
 </p>
 
 <p align="center">
