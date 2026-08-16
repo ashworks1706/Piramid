@@ -12,14 +12,22 @@ export default function Home() {
         {/* Hero */}
         <section className="space-y-7">
           <h1 className="text-4xl sm:text-5xl font-semibold leading-[1.15] tracking-tight text-white">
-            Inference Engine for Retrieval Augmented Systems
+            Inference Engine for Retrieval-Augmented Systems
           </h1>
+
           <p className="text-lg text-slate-400 leading-relaxed max-w-xl">
-            Inspired from google deepmind&apos;s RETRO project, Piramid is meant to
-            convert traditional RAG applications involving separate LLM and
-            Database connections into one single hosted binary to serve and fuse
-            transformer&apos;s attention with database queries.
+            Standard RAG stuffs retrieved text into the prompt. Piramid feeds it
+            into the model&apos;s attention. One Rust binary runs retrieval and
+            inference in a single process&mdash;retrieved neighbors attend
+            through cross-attention layers during the forward pass, not as
+            concatenated context tokens.
           </p>
+
+          <p className="text-sm text-slate-500 leading-relaxed max-w-xl">
+            Built on custom models that already know
+            how to attend over your knowledge base.
+          </p>
+
           <div className="flex flex-wrap gap-3 pt-1">
             <Link
               href="/blogs"
@@ -36,6 +44,66 @@ export default function Home() {
             <code className="rounded-full border border-white/10 bg-white/[0.04] px-5 py-2 text-sm font-mono text-slate-400 select-all tracking-tight">
               cargo install piramid
             </code>
+          </div>
+        </section>
+
+        {/* How it works */}
+        <section className="space-y-5">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
+            How it works
+          </h2>
+
+          <div className="grid gap-6 sm:grid-cols-3">
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-white">Retrieve</p>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Query hits the built-in vector index. ANN search returns the
+                nearest neighbor chunks.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-white">Fuse</p>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                Retrieved chunks are encoded and injected into the
+                transformer&apos;s cross-attention layers during the forward
+                pass.
+              </p>
+            </div>
+            <div className="space-y-2">
+              <p className="text-sm font-semibold text-white">Generate</p>
+              <p className="text-sm text-slate-400 leading-relaxed">
+                The model generates grounded in retrieved knowledge without
+                burning context window on stuffed text.
+              </p>
+            </div>
+          </div>
+        </section>
+
+        {/* Why */}
+        <section className="space-y-5">
+          <h2 className="text-sm font-semibold uppercase tracking-widest text-slate-500">
+            Why
+          </h2>
+
+          <div className="space-y-4 text-sm text-slate-400 leading-relaxed">
+            <p>
+              <span className="text-white font-medium">No prompt stuffing.</span>{" "}
+              An 8k context model can reason over a million-vector knowledge base
+              because retrieval goes through attention, not through the context
+              window.
+            </p>
+            <p>
+              <span className="text-white font-medium">Single process.</span>{" "}
+              No network hop between retrieval and generation. Index and model
+              live in one Rust binary.
+            </p>
+            <p>
+              <span className="text-white font-medium">
+                Pre-built models.
+              </span>{" "}
+              Ships with models already retrofitted for retrieval-augmented
+              inference. Bring your data, not your training pipeline.
+            </p>
           </div>
         </section>
 
