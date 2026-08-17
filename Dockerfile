@@ -1,5 +1,5 @@
 # Build Rust server
-FROM rust:1.85-slim AS rust-builder
+FROM rust:1.97-slim AS rust-builder
 
 WORKDIR /app
 
