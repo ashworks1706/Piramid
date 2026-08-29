@@ -1,6 +1,6 @@
 # piramid-observability
 
-Telemetry export. `piramid-core::telemetry` measures; this crate ships.
+Telemetry export. `piramid_core::stats` measures; this crate ships.
 
 | Exporter | Feature | Variable | Default |
 |---|---|---|---|

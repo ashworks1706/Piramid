@@ -32,8 +32,9 @@ One repo, one binary. Library layers are `apps/engine/`; the only deployable is 
 Language is never a folder. Hardware is never a folder.
 
 ```
-apps/engine/core                  errors, config, metadata + filters, validation, telemetry
-apps/engine/observability         tracing subscriber, OTLP, Sentry, Prometheus rendering
+apps/engine/core                  errors, config, metadata + filters, validation, self-measurement
+apps/engine/observability         where those measurements go: subscriber, OTLP, Sentry,
+                                  Prometheus encoding
 apps/engine/hardware/compute      distance kernels + backend registry    (leaf: no workspace deps)
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels (leaf: no workspace deps)
 apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quantization

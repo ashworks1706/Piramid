@@ -16,8 +16,8 @@ edge that is not in the law below.
 ```text
 apps/                     everything first-party
   engine/                 the library crates
-    core/                 shared vocabulary — errors, config, metadata, validation
-    observability/        telemetry export — subscriber, OTLP, Sentry, Prometheus
+    core/                 shared vocabulary — errors, config, metadata, validation, stats
+    observability/        where measurements go — subscriber, OTLP, Sentry, Prometheus
     hardware/             code that cares what machine it runs on
       compute  gpu
     data/                 where vectors live and who owns them
@@ -60,7 +60,14 @@ The groups answer "what is this for", and each cut is a real one:
 `core` and `observability` sit flat because they are cross-cutting rather than a layer: `core` is
 the vocabulary everything shares, and `observability` is used both by `server` (which renders
 metrics) and directly by `apps/cli` (which installs the tracing subscriber before any server
-exists). `server` and `inference` are flat because each is a single crate; a group of one earns
+exists).
+
+They also split one concern that is easy to read as two names for the same thing.
+`core::stats` is what the engine measures about itself — latency, lock contention, embedding
+throughput — as plain atomics, with no dependency on `tracing` or any exporter, so `collections`
+and `server` can record into it freely. `observability` is where those measurements *go*, and it
+carries `tracing-subscriber`, OpenTelemetry, and Sentry. Merging them would link an exporter stack
+into every crate that times a lock. `server` and `inference` are flat because each is a single crate; a group of one earns
 nothing.
 
 Groups are for navigation, not stratification. They deliberately do **not** line up with the
@@ -110,7 +117,7 @@ flowchart TD
 
 | Crate | Owns | Must not |
 |---|---|---|
-| `core` | Errors, configuration, metadata + filters, validation, telemetry | Know about HTTP, or end the process |
+| `core` | Errors, configuration, metadata + filters, validation, self-measurement | Know about HTTP, or end the process |
 | `compute` | Distance math, backend selection | Depend on anything in the workspace |
 | `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics; leak vendor types |
 | `storage` | Records, WAL, sidecars, mmap, vector layout, quantization | Decide API behavior or collection lifecycle |

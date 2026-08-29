@@ -10,7 +10,7 @@ use crate::services::types::{
     InsertResultsResponse, MultiDeleteResponse, MultiInsertResponse, UpsertRequest, UpsertResponse,
 };
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::record_lock_write;
+use piramid_core::stats::record_lock_write;
 use piramid_core::validation;
 use piramid_storage::Document;
 

@@ -1,6 +1,6 @@
 [package]
 name = "piramid-core"
-description = "Shared foundation for Piramid: errors, configuration, metadata, validation, telemetry."
+description = "Shared foundation for Piramid: errors, configuration, metadata, validation, and self-measurement."
 readme = "README.md"
 version.workspace = true
 edition.workspace = true

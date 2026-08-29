@@ -1,9 +1,13 @@
 //! Telemetry export.
 //!
-//! `piramid_core::telemetry` *measures* — latency, lock contention, embedding throughput. This
-//! crate *exports*: it builds the tracing subscriber and, when configured, ships spans over OTLP
-//! and errors to Sentry. Keeping the two apart means adding an exporter never touches the code
-//! that records a measurement.
+//! `piramid_core::stats` holds what the engine measures about itself — latency, lock contention,
+//! embedding throughput — as plain atomics with no dependency on `tracing` or any exporter. This
+//! crate is where those measurements *go*: it builds the tracing subscriber and, when configured,
+//! ships spans over OTLP and errors to Sentry.
+//!
+//! The split is load-bearing, not cosmetic. Recording is cheap and happens in `collections`,
+//! `server`, and anywhere else; exporting pulls in `tracing-subscriber`, OpenTelemetry, and
+//! Sentry. Merging them would link all of that into every crate that times a lock.
 //!
 //! # Exporters
 //!
@@ -22,7 +26,7 @@
 //! OTLP is the wire format rather than any vendor's SDK, so Axiom, Grafana Tempo, Honeycomb, and
 //! Jaeger all work from one configuration.
 //!
-//! Metrics are separate: [`prometheus`] renders what `piramid_core::telemetry` already aggregates,
+//! Metrics are separate: [`prometheus`] renders what `piramid_core::stats` already aggregates,
 //! served at `/metrics`. For a database, a scrape endpoint matters more than distributed tracing,
 //! which is why it has no feature gate and no dependency.
 

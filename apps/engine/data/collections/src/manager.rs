@@ -7,7 +7,7 @@ use crate::Collection;
 use crate::CollectionOpenOptions;
 use piramid_core::config::AppConfig;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::LatencyTracker;
+use piramid_core::stats::LatencyTracker;
 
 pub type CollectionHandle = Arc<RwLock<Collection>>;
 

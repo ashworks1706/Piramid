@@ -7,7 +7,7 @@ use crate::services::types::{
     MultiSearchResponse, SearchRequest, SearchResponse, SearchResultsResponse,
 };
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::record_lock_read;
+use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
 
 use super::{ensure_available, MAX_BATCH_SIZE};

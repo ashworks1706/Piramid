@@ -1,7 +1,7 @@
 //! Prometheus text exposition.
 //!
 //! Hand-rolled rather than pulling in a metrics framework: Piramid already aggregates its own
-//! counters in `piramid_core::telemetry`, so a client would mean maintaining two parallel metric
+//! counters in `piramid_core::stats`, so a client would mean maintaining two parallel metric
 //! registries. This module only renders what already exists.
 //!
 //! Format reference: <https://prometheus.io/docs/instrumenting/exposition_formats/>

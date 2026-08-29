@@ -7,7 +7,7 @@ use crate::services::convert::metadata_to_json;
 use crate::services::types::{ListVectorsQuery, VectorResponse};
 use crate::services::VECTOR_NOT_FOUND;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::record_lock_read;
+use piramid_core::stats::record_lock_read;
 
 use super::ensure_available;
 

@@ -20,8 +20,9 @@
 //! | [`storage`] | Records, WAL, sidecars, mmap, vector layout, quantization |
 //! | [`compute`] | Distance math and CPU/GPU backend dispatch |
 //! | [`gpu`] | Device runtime: contexts, buffers, streams, kernels |
-//! | [`observability`] | Tracing subscriber, OTLP export, Sentry, Prometheus rendering |
-//! | [`config`], [`error`], [`mod@metadata`], [`telemetry`], [`validation`] | `piramid-core` |
+//! | [`stats`] | What the engine measures about itself |
+//! | [`observability`] | Where those measurements go: subscriber, OTLP, Sentry, Prometheus |
+//! | [`config`], [`error`], [`mod@metadata`], [`stats`], [`validation`] | `piramid-core` |
 //!
 //! Two rules worth knowing before adding code:
 //!
@@ -32,7 +33,7 @@
 //! inside `gpu/backends/`. That is what lets retrieval and generation share one
 //! [`Device`] so vectors and model weights sit in the same address space.
 
-pub use piramid_core::{config, error, metadata, telemetry, validation};
+pub use piramid_core::{config, error, metadata, stats, validation};
 
 pub use piramid_collections as collections;
 pub use piramid_collections::cache;

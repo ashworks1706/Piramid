@@ -13,7 +13,7 @@ use crate::cluster::{
 use piramid_collections::{CollectionHandle, CollectionManager};
 use piramid_core::config::AppConfig;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::EmbedMetrics;
+use piramid_core::stats::EmbedMetrics;
 use piramid_embeddings::Embedder;
 
 #[derive(Clone, Copy, PartialEq, Eq)]

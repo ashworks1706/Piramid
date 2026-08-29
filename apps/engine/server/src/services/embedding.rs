@@ -7,7 +7,7 @@ use crate::services::convert::{apply_search_overrides, hit_to_response, parse_me
 use crate::services::types::*;
 use crate::services::EMBEDDING_NOT_CONFIGURED;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::{record_lock_read, record_lock_write};
+use piramid_core::stats::{record_lock_read, record_lock_write};
 use piramid_storage::Document;
 
 fn ensure_available(state: &SharedState) -> Result<()> {

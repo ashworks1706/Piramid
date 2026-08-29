@@ -3,7 +3,7 @@ use std::time::{Instant, SystemTime, UNIX_EPOCH};
 use crate::runtime::{RebuildJobStatus, RebuildState, SharedState};
 use crate::services::types::*;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::telemetry::record_lock_read;
+use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
 
 fn ensure_available(state: &SharedState) -> Result<()> {
