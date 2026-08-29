@@ -326,8 +326,7 @@ flowchart TD
 
 Current implementation direction is:
 
-- NVIDIA GPU systems/backend work under `gpu/` should use `cuda-oxide` as the primary Rust-native kernel/runtime toolchain.
-- `cudarc` is optional for interoperability with mature host/runtime helpers or CUDA library integration paths when needed.
+- NVIDIA GPU systems/backend work under `gpu/` should use `cudarc` as the primary CUDA runtime and kernel launch toolchain.
 - Transformer runtime work under `inference/` should use `candle` as the model execution layer.
 - `cluster/` should remain transport/routing ownership, not model or kernel ownership.
 

@@ -1,12 +1,9 @@
 //! Backend adapters for GPU execution.
 //!
-//! `cuda_oxide` is the default scaffold path. `cudarc` remains available as an optional
-//! interoperability adapter.
+//! `cudarc` is the default scaffold path for NVIDIA CUDA runtime and kernel integration.
 
-mod cuda_oxide;
 mod cudarc;
 
-pub use cuda_oxide::CudaOxideBackend;
-pub use cudarc::CudarcInteropBackend;
+pub use cudarc::CudarcBackend;
 
-pub type DefaultGpuBackend = CudaOxideBackend;
+pub type DefaultGpuBackend = CudarcBackend;

@@ -8,5 +8,5 @@ pub mod backends;
 pub mod kernels;
 mod types;
 
-pub use backends::{CudaOxideBackend, CudarcInteropBackend, DefaultGpuBackend};
+pub use backends::{CudarcBackend, DefaultGpuBackend};
 pub use types::{GpuBackend, GpuError};

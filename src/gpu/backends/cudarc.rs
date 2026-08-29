@@ -1,21 +1,21 @@
 use crate::gpu::{GpuBackend, GpuError};
 
 #[derive(Debug, Default)]
-pub struct CudarcInteropBackend;
+pub struct CudarcBackend;
 
-impl CudarcInteropBackend {
+impl CudarcBackend {
     pub fn new() -> Self {
         Self
     }
 
     fn unavailable() -> GpuError {
         GpuError::Unavailable(
-            "cudarc interop backend scaffold exists but is not wired yet".to_string(),
+            "cudarc backend scaffold exists but kernels are not wired yet".to_string(),
         )
     }
 }
 
-impl GpuBackend for CudarcInteropBackend {
+impl GpuBackend for CudarcBackend {
     fn name(&self) -> &'static str {
         "cudarc"
     }
