@@ -6,12 +6,12 @@ cd "$(git rev-parse --show-toplevel)"
 
 changed=$(git diff --cached --name-only)
 
-if grep -qE '^(crates/|apps/|Cargo\.(toml|lock)|clippy\.toml|rustfmt\.toml|scripts/)' <<<"$changed"; then
+if grep -qE '^(engine/|apps/cli/|Cargo\.(toml|lock)|clippy\.toml|rustfmt\.toml|scripts/)' <<<"$changed"; then
   echo "pre-commit: just check-rust"
   just check-rust
 fi
 
-if grep -qE '^website/' <<<"$changed"; then
+if grep -qE '^apps/website/' <<<"$changed"; then
   echo "pre-commit: just check-website"
   just check-website
 fi

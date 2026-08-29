@@ -1,5 +1,9 @@
 # 0002 — Split the crate into a workspace
 
+> Folder naming superseded by [0008](0008-engine-and-apps.md). The crate boundaries and the
+> dependency law established here are unchanged.
+
+
 **Context.** The codebase was a single library with nineteen modules. The module dependency graph
 contained six cycles — `config` ↔ `index`, `storage` ↔ `collections`, `index` ↔ `search`, among
 others — and `compute` had grown a dependency on `config`. Nothing prevented a layer from reaching

@@ -36,19 +36,19 @@ is a design conversation — open an issue first.
 
 | If it is… | It belongs in |
 |---|---|
-| HTTP-specific | `crates/server/src/http` |
-| A user-facing operation | `crates/server/src/services` |
-| One collection's state | `crates/collections` |
-| Bytes, mmap, WAL, sidecars | `crates/storage` |
-| An ANN implementation detail | `crates/index` |
-| Distance math or backend dispatch | `crates/compute` |
-| Device memory, streams, kernels | `crates/gpu` |
-| Model execution | `crates/inference` |
-| Shared vocabulary | `crates/core` |
+| HTTP-specific | `engine/service/server/src/http` |
+| A user-facing operation | `engine/service/server/src/services` |
+| One collection's state | `engine/retrieval/collections` |
+| Bytes, mmap, WAL, sidecars | `engine/retrieval/storage` |
+| An ANN implementation detail | `engine/retrieval/index` |
+| Distance math or backend dispatch | `engine/hardware/compute` |
+| Device memory, streams, kernels | `engine/hardware/gpu` |
+| Model execution | `engine/inference/runtime` |
+| Shared vocabulary | `engine/foundation/core` |
 
 ## Adding a compute backend
 
-One file in `crates/compute/src/backends/` implementing `DistanceKernels`, one arm in the registry
+One file in `engine/hardware/compute/src/backends/` implementing `DistanceKernels`, one arm in the registry
 in `backends/mod.rs`. Nothing else changes — that is the point of the trait.
 
 The batch methods take a contiguous row-major slab and a caller-owned `out`. Do not change that
@@ -72,5 +72,9 @@ both self-contained.
 
 ## Reporting bugs
 
-Include the `piramid --version` output, your `EXECUTION_MODE` and index type, and the smallest
-reproduction you can manage. For a search-correctness bug, the collection size and `k` matter.
+Run `piramid support-bundle` and attach the file. It collects version, platform, build features,
+resolved configuration, and collection state in one pass, with credential-shaped values redacted —
+read it before sharing.
+
+Add the smallest reproduction you can manage. For a search-correctness bug, the collection size
+and `k` matter.

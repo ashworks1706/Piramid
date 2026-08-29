@@ -3,8 +3,9 @@ import fs from "fs";
 import path from "path";
 import GithubSlugger from "github-slugger";
 
-// Blog posts are read directly from the repo root ../blogs
-const BLOGS_DIR = path.join(process.cwd(), "..", "blogs");
+// Blog content lives inside this app so the site builds and deploys standalone. It used to be
+// read from the repo root, which meant the website could not be built on its own.
+const BLOGS_DIR = path.join(process.cwd(), "content", "blogs");
 const SIDEBAR_CONFIG = path.join(BLOGS_DIR, "_sidebar.json");
 
 export type BlogMeta = {

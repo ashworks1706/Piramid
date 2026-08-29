@@ -1,6 +1,6 @@
 # Piramid tasks. `just` lists them; `just <recipe>`.
-# Crates: core, compute, gpu, storage, index, search, collections, embeddings,
-# inference, server (crates/) · piramid CLI (apps/cli) · website (TypeScript)
+# engine/ holds the library crates, grouped by subsystem: foundation, hardware, retrieval,
+# inference, service. apps/ holds what we ship: cli (the binary), website, sdk.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
@@ -29,7 +29,7 @@ bootstrap: env hooks setup
 # Fetch dependencies for every unit
 setup:
     cargo fetch
-    cd website && npm ci
+    cd apps/website && npm ci
 
 # ---------- the gate ----------
 
@@ -45,12 +45,12 @@ check-rust:
     ./scripts/check-deps.sh
 
 check-website:
-    cd website && npm run lint
+    cd apps/website && npm run lint
 
 # Format every unit in place
 fmt:
     cargo fmt --all
-    cd website && npx eslint . --fix
+    cd apps/website && npx eslint . --fix
 
 # ---------- feature matrices ----------
 
@@ -121,4 +121,4 @@ images:
 
 clean:
     cargo clean
-    rm -rf website/node_modules website/.next
+    rm -rf apps/website/node_modules apps/website/.next

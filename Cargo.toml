@@ -1,17 +1,20 @@
 [workspace]
 resolver = "2"
+# The engine is the library tree, grouped by subsystem. `apps/` holds what we ship: the binary
+# that fuses the engine together, the site, and the client SDKs.
 members = [
-    "crates/core",
-    "crates/compute",
-    "crates/gpu",
-    "crates/storage",
-    "crates/index",
-    "crates/search",
-    "crates/collections",
-    "crates/embeddings",
-    "crates/inference",
-    "crates/observability",
-    "crates/server",
+    "engine/foundation/core",
+    "engine/hardware/compute",
+    "engine/hardware/gpu",
+    "engine/retrieval/storage",
+    "engine/retrieval/index",
+    "engine/retrieval/search",
+    "engine/retrieval/collections",
+    "engine/retrieval/embeddings",
+    "engine/inference/fusion",
+    "engine/inference/runtime",
+    "engine/service/observability",
+    "engine/service/server",
     "apps/cli",
 ]
 
@@ -26,17 +29,18 @@ rust-version = "1.87"  # `usize::is_multiple_of` / `next_multiple_of`, used by c
 
 [workspace.dependencies]
 # in-repo crates — every internal dependency goes through here so versions stay in lockstep
-piramid-core = { path = "crates/core", version = "0.2.0" }
-piramid-compute = { path = "crates/compute", version = "0.2.0" }
-piramid-gpu = { path = "crates/gpu", version = "0.2.0" }
-piramid-storage = { path = "crates/storage", version = "0.2.0" }
-piramid-index = { path = "crates/index", version = "0.2.0" }
-piramid-search = { path = "crates/search", version = "0.2.0" }
-piramid-collections = { path = "crates/collections", version = "0.2.0" }
-piramid-embeddings = { path = "crates/embeddings", version = "0.2.0" }
-piramid-inference = { path = "crates/inference", version = "0.2.0" }
-piramid-observability = { path = "crates/observability", version = "0.2.0" }
-piramid-server = { path = "crates/server", version = "0.2.0" }
+piramid-core = { path = "engine/foundation/core", version = "0.2.0" }
+piramid-compute = { path = "engine/hardware/compute", version = "0.2.0" }
+piramid-gpu = { path = "engine/hardware/gpu", version = "0.2.0" }
+piramid-storage = { path = "engine/retrieval/storage", version = "0.2.0" }
+piramid-index = { path = "engine/retrieval/index", version = "0.2.0" }
+piramid-search = { path = "engine/retrieval/search", version = "0.2.0" }
+piramid-collections = { path = "engine/retrieval/collections", version = "0.2.0" }
+piramid-embeddings = { path = "engine/retrieval/embeddings", version = "0.2.0" }
+piramid-fusion = { path = "engine/inference/fusion", version = "0.2.0" }
+piramid-inference = { path = "engine/inference/runtime", version = "0.2.0" }
+piramid-observability = { path = "engine/service/observability", version = "0.2.0" }
+piramid-server = { path = "engine/service/server", version = "0.2.0" }
 
 # serialization
 serde = { version = "1.0", features = ["derive"] }

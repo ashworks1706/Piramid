@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 piramid-core.workspace = true
+piramid-fusion.workspace = true
 piramid-gpu.workspace = true
 
 [dev-dependencies]

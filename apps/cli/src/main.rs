@@ -8,6 +8,7 @@ use std::time::Duration;
 
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
+mod support;
 use piramid::config::{self, AppConfig, LogLevel, LoggingConfig};
 use piramid::runtime::AppState;
 use piramid::{config::loader::RuntimeConfig, embeddings, server};
@@ -51,6 +52,22 @@ enum Commands {
     Show {
         #[command(subcommand)]
         command: ShowCommands,
+    },
+
+    /// Write a diagnostic bundle to attach to a bug report
+    ///
+    /// Collects version, platform, build features, resolved configuration, and collection state
+    /// into one file. Credential-shaped values are redacted; review before sharing.
+    SupportBundle {
+        /// Where to write the bundle
+        #[arg(long, short, default_value = "piramid-support-bundle.md")]
+        output: PathBuf,
+        /// Optional config file to load (overrides CONFIG_FILE)
+        #[arg(long)]
+        config: Option<PathBuf>,
+        /// Data directory to inspect (overrides DATA_DIR)
+        #[arg(long)]
+        data_dir: Option<PathBuf>,
     },
 
     /// Deprecated alias for `show config`
@@ -108,6 +125,16 @@ fn main() {
                 std::process::exit(1);
             }
             println!("Wrote config to {}", path.display());
+        }
+        Some(Commands::SupportBundle {
+            output,
+            config,
+            data_dir,
+        }) => {
+            if let Err(e) = support_bundle(output, config, data_dir) {
+                eprintln!("Failed to write support bundle: {e}");
+                std::process::exit(1);
+            }
         }
         Some(Commands::Show { command }) => {
             if let Err(e) = handle_show_command(command) {
@@ -177,6 +204,41 @@ fn show_config(args: ShowConfigArgs) -> std::io::Result<()> {
     }
     let cfg = config::loader::load_app_config().unwrap_or_else(exit_on_config_error);
     print_serialized(&cfg, args.format)
+}
+
+fn support_bundle(
+    output: PathBuf,
+    config: Option<PathBuf>,
+    data_dir: Option<PathBuf>,
+) -> std::io::Result<()> {
+    if let Some(path) = config {
+        std::env::set_var("CONFIG_FILE", path);
+    }
+    if let Some(dir) = data_dir {
+        std::env::set_var("DATA_DIR", dir);
+    }
+
+    let runtime =
+        piramid::config::loader::load_runtime_config().unwrap_or_else(exit_on_config_error);
+    let state = std::sync::Arc::new(
+        AppState::new(
+            &runtime.data_dir,
+            runtime.app.clone(),
+            runtime.slow_query_ms,
+            runtime.disk_min_free_bytes,
+            runtime.disk_readonly_on_low_space,
+        )
+        .map_err(std::io::Error::other)?,
+    );
+    // Best-effort: a collection that fails to open is reported in the bundle rather than
+    // preventing one from being written, since a broken collection is often the reason someone
+    // is running this in the first place.
+    let _ = preload_collections_for_metrics(&state);
+
+    let path = support::write(&runtime, &state, Some(output))?;
+    println!("wrote {}", path.display());
+    println!("Review it before sharing — it contains your configuration and collection names.");
+    Ok(())
 }
 
 fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {

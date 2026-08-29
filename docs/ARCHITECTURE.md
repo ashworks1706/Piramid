@@ -11,13 +11,42 @@ stops them growing into each other except discipline that something enforces.
 So the layering is physical. Each layer is a crate, and `scripts/check-deps.sh` fails CI on an
 edge that is not in the law below.
 
+## The tree
+
+```text
+engine/                   the library crates — grouped by subsystem
+  foundation/core         shared vocabulary
+  hardware/               code that cares what machine it runs on
+    compute  gpu
+  retrieval/              everything that finds vectors
+    storage  index  search  collections  embeddings
+  inference/              everything that runs a model
+    fusion   runtime
+  service/                how the outside world reaches it
+    server   observability
+apps/                     what we ship
+  cli/                    the piramid binary — fuses the engine into one artifact
+  website/                piramiddb.com, with blog content and images inside it
+  sdk/                    npm and python clients
+```
+
+Two things this naming is doing. `engine/` says what the thing *is* — "crates" describes Rust's
+compilation model, not the product. And **one binary does not mean one folder**: the engine is
+twelve crates across five subsystems, and `apps/cli` is the thing that fuses them into an
+artifact.
+
+The subsystem groups are for navigation. They are *not* the dependency order — that is the law
+below, and it does not line up one-to-one with the folders (`foundation/core` depends on
+`hardware/compute` for the `ExecutionMode` and `Metric` types configuration carries).
+
 ## Crates
 
 ```mermaid
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
     Server[server<br/>http · services · runtime · cluster]
-    Inference[inference<br/>model · runtime · kv_cache · fusion]
+    Fusion[inference/fusion<br/>RetrievalHook seam]
+    Inference[inference/runtime<br/>model · forward pass · kv_cache]
     Collections[collections<br/>Collection · cache · checkpoint]
     Embeddings[embeddings<br/>openai · ollama · local]
     Search[search<br/>planning · filtering · ranking]
@@ -35,8 +64,10 @@ flowchart TD
     Server --> Index
     Server --> Storage
     Server --> Core
+    Inference --> Fusion
     Inference --> Gpu
     Inference --> Core
+    Fusion --> Core
     Collections --> Search
     Collections --> Index
     Collections --> Storage
@@ -62,7 +93,8 @@ flowchart TD
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
 | `collections` | The `Collection` object, cache, checkpoint, compaction | Serve HTTP |
 | `embeddings` | Provider adapters, caching, retries | Know about collections |
-| `inference` | Model execution, KV cache, batching, sampling, fusion | Be required for retrieval to work |
+| `inference/fusion` | The `RetrievalHook` seam | Depend on the retrieval stack |
+| `inference/runtime` | Model execution, KV cache, batching, sampling | Depend on the retrieval stack; be required for retrieval to work |
 | `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
@@ -72,9 +104,10 @@ A crate may depend on one listed below it; the reverse is a violation.
 
 ```
 compute ─┐                    gpu ─┐
-         │                         ├─→ inference ─┐
+         │                         ├─→ inference/runtime ─┐
 core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         └─→ embeddings ──────────────────────────────────┘
+         ├─→ embeddings ──────────────────────────────────┘
+         └─→ fusion ─→ inference/runtime
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
@@ -139,7 +172,7 @@ choice unmeasurable. `gather_into()` is the portable fallback. Both have default
 default; migrating `CacheManager` onto it is tracked in the roadmap and can happen one call site at
 a time because `as_slab` is optional.
 
-### `inference::fusion::RetrievalHook`
+### `piramid_fusion::RetrievalHook`
 
 Where retrieval enters the forward pass.
 
@@ -233,22 +266,27 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 2. No library crate calls `std::process::exit`. Configuration loading returns `Result`.
 3. `core` never names an HTTP type.
 4. Vendor SDK types (`cudarc`, `candle`) never escape their backend module.
-5. `unsafe` appears only in `crates/gpu` and two audited sites, each with a `// SAFETY:` comment.
+5. `unsafe` appears only in `engine/hardware/gpu` and two audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
-7. Retrieval works with no model loaded — `inference` is never on the critical path for search.
+7. Retrieval works with no model loaded, and `inference/runtime` depends on nothing in the
+   retrieval stack. `fusion` is the seam between them and holds only the trait; a concrete
+   strategy is a separate crate that depends on both it and `search`. Enforced by
+   `scripts/check-deps.sh`.
 8. Default builds are CPU-only and need no vendor toolchain.
 
 ## Adding code
 
-1. HTTP-specific → `server/src/http`.
-2. Coordinates a user-facing operation → `server/src/services`.
-3. Changes one collection's state → `collections`.
-4. Reads or writes bytes, mmap, WAL, sidecars → `storage`.
-5. ANN implementation detail → `index`.
-6. Distance math or backend dispatch → `compute`.
-7. Device memory, streams, kernels → `gpu`.
-8. Model execution → `inference`.
-9. Shared vocabulary (error, config, metadata) → `core`.
+1. HTTP-specific → `engine/service/server/src/http`.
+2. Coordinates a user-facing operation → `engine/service/server/src/services`.
+3. Changes one collection's state → `engine/retrieval/collections`.
+4. Reads or writes bytes, mmap, WAL, sidecars → `engine/retrieval/storage`.
+5. ANN implementation detail → `engine/retrieval/index`.
+6. Distance math or backend dispatch → `engine/hardware/compute`.
+7. Device memory, streams, kernels → `engine/hardware/gpu`.
+8. Model execution → `engine/inference/runtime`.
+9. Retrieval inside the forward pass → `engine/inference/fusion`.
+10. Shared vocabulary (error, config, metadata) → `engine/foundation/core`.
+11. A deployable, a site, or a client library → `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow
 explicit before writing anything.

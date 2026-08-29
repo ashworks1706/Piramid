@@ -91,3 +91,6 @@ Honest list of things that are wrong or missing today.
   they can be flipped to `deny`.
 - README documents `/api/infer`, which does not exist.
 - The website is 14 components for a product whose headline feature is unbuilt.
+- The npm and python SDKs are 11 and 7 lines, published under names already claimed on their
+  registries. Either make them real clients or unpublish them — a stub under an installable name
+  is worse than no package.

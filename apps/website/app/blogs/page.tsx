@@ -54,7 +54,7 @@ export default async function BlogsIndex() {
     options: {
       parseFrontmatter: true,
       mdxOptions: {
-        remarkPlugins: [remarkGfm, remarkRewriteImages(blog.filePath)],
+        remarkPlugins: [remarkGfm, remarkRewriteImages()],
         rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
       },
     },

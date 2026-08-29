@@ -29,7 +29,9 @@ piramid-collections -> piramid-storage
 piramid-collections -> piramid-index
 piramid-collections -> piramid-search
 piramid-embeddings -> piramid-core
+piramid-fusion -> piramid-core
 piramid-inference -> piramid-core
+piramid-inference -> piramid-fusion
 piramid-inference -> piramid-gpu
 piramid-server -> piramid-core
 piramid-server -> piramid-compute
@@ -49,6 +51,7 @@ piramid -> piramid-index
 piramid -> piramid-search
 piramid -> piramid-collections
 piramid -> piramid-embeddings
+piramid -> piramid-fusion
 piramid -> piramid-inference
 piramid -> piramid-server
 EOF
@@ -79,6 +82,22 @@ for leaf in piramid-compute piramid-gpu; do
   if grep -q "^$leaf -> " <<<"$ACTUAL"; then
     echo "FAIL $leaf must be a leaf crate but depends on:"
     grep "^$leaf -> " <<<"$ACTUAL" | sed 's/^/       /'
+    status=1
+  fi
+done
+
+# The model runtime must not depend on the retrieval stack. Fusion is the seam between them:
+# `piramid-fusion` holds only the trait, and a concrete strategy is a separate crate that depends
+# on both it and `piramid-search`. If the runtime ever gains a retrieval dependency, a collection
+# stops being queryable without a model and the single-process design loses its point.
+for retrieval in piramid-storage piramid-index piramid-search piramid-collections; do
+  if grep -q "^piramid-inference -> $retrieval\$" <<<"$ACTUAL"; then
+    echo "FAIL piramid-inference must not depend on the retrieval stack: $retrieval"
+    echo "     put the dependency behind a fusion strategy crate instead"
+    status=1
+  fi
+  if grep -q "^piramid-fusion -> $retrieval\$" <<<"$ACTUAL"; then
+    echo "FAIL piramid-fusion is the seam and must stay retrieval-free: $retrieval"
     status=1
   fi
 done

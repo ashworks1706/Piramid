@@ -1,5 +1,10 @@
 # 0001 — One binary, layers as crates
 
+> Superseded in part by [0008](0008-engine-and-apps.md): the library tree moved from `crates/`
+> to `engine/`, and `apps/` widened to hold the website and SDKs alongside the CLI. The
+> one-deployable decision here is unchanged.
+
+
 **Context.** Piramid's pitch is that retrieval and inference share a process: no network hop
 between the index and the model, and eventually one device address space holding both vectors and
 weights. Comparable systems are assembled from separate services (a vector database, an inference

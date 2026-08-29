@@ -31,6 +31,18 @@ Specifically:
 - **The body limit is 100 MB** and there is no request-rate limit, so an unauthenticated caller can
   exhaust memory or disk. `DISK_MIN_FREE_BYTES` bounds the disk case only.
 
+## Diagnostic bundles
+
+`piramid support-bundle` writes version, platform, build features, resolved configuration, and
+collection state to a file for attaching to a bug report. Variables whose names look like
+credentials (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `DSN`, `CREDENTIAL`, `AUTH`) are reported as
+`<redacted, N chars>` — present-or-absent is diagnostic, the value never is.
+
+It still contains your configuration and collection *names*. Read it before sharing.
+
+Nothing is transmitted anywhere. Piramid sends no telemetry to this project under any
+configuration; the exporters in `piramid-observability` point at endpoints **you** supply.
+
 ## Handling secrets
 
 `OPENAI_API_KEY` and other provider credentials come from the environment and belong in `.env`,
@@ -43,7 +55,7 @@ which is gitignored. They are never logged. Do not put them in a compose file or
 
 ## Unsafe code
 
-`unsafe_code` is denied workspace-wide. It is permitted in `crates/gpu` (device memory) and at
+`unsafe_code` is denied workspace-wide. It is permitted in `engine/hardware/gpu` (device memory) and at
 exactly two audited sites — `storage::persistence::mmap::create_mmap` and `server::runtime::disk`
 — each carrying a `// SAFETY:` comment stating its precondition. A PR introducing `unsafe`
 anywhere else will not pass CI.

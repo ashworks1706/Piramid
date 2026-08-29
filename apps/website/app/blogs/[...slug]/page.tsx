@@ -75,7 +75,7 @@ export default async function DocPage({
         remarkPlugins: [
           remarkGfm,
           remarkMath,
-          remarkRewriteImages(blog.filePath),
+          remarkRewriteImages(),
         ],
         rehypePlugins: [rehypeSlug, rehypeKatex],
       },
