@@ -30,8 +30,9 @@ Infrastructure that pays off regardless of which fusion mechanism wins
 - [ ] binary pre-filter → full-precision rerank, with a recall measurement
 
 **Observability**
-- [ ] Prometheus text format at `/metrics`
-- [ ] spans on search, write, embed, and kernel launches
+- [x] Prometheus text format at `/metrics`
+- [x] spans on search, write, embed, rebuild, and compact
+- [ ] spans on kernel launches, once there are kernels to launch
 
 ---
 

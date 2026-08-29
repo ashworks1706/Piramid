@@ -15,6 +15,10 @@
 //! | `otel` | `PIRAMID_OTLP_ENDPOINT` | Spans over OTLP |
 //! | `sentry` | `PIRAMID_SENTRY_DSN` | Errors and panics to Sentry |
 //!
+//! `PIRAMID_LOG_SPANS=true` needs no feature: it logs one line per finished operation with its
+//! duration and fields. Most operators will never run a collector, and this is what makes the
+//! span instrumentation visible to them.
+//!
 //! OTLP is the wire format rather than any vendor's SDK, so Axiom, Grafana Tempo, Honeycomb, and
 //! Jaeger all work from one configuration.
 //!
@@ -25,6 +29,7 @@
 pub mod config;
 pub mod prometheus;
 
+use tracing_subscriber::fmt::format::FmtSpan;
 use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
@@ -83,13 +88,25 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
         ))
     });
 
+    // FmtSpan::CLOSE emits one line per finished operation carrying its duration and recorded
+    // fields. That is how the span instrumentation becomes visible without a collector.
+    let span_events = if config.span_events {
+        FmtSpan::CLOSE
+    } else {
+        FmtSpan::NONE
+    };
+
     let console = if json {
         tracing_subscriber::fmt::layer()
             .json()
             .with_target(true)
+            .with_span_events(span_events)
             .boxed()
     } else {
-        tracing_subscriber::fmt::layer().with_target(true).boxed()
+        tracing_subscriber::fmt::layer()
+            .with_target(true)
+            .with_span_events(span_events)
+            .boxed()
     };
 
     let registry = tracing_subscriber::registry().with(filter).with(console);
@@ -138,6 +155,17 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
             "PIRAMID_SENTRY_DSN is set but this build lacks the `sentry` feature"
         );
     }
+
+    // Report what actually resolved. Telemetry that silently does nothing is worse than none,
+    // and an operator who set a variable needs to see whether it took effect.
+    tracing::info!(
+        target: "piramid::observability",
+        otlp = config.otlp.as_ref().map(|c| c.endpoint.as_str()).unwrap_or("off"),
+        sentry = config.sentry.is_some(),
+        span_events = config.span_events,
+        json_logs = json,
+        "observability_ready"
+    );
 
     ObservabilityGuard {
         #[cfg(feature = "sentry")]

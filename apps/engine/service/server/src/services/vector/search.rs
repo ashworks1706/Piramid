@@ -12,6 +12,27 @@ use piramid_core::validation;
 
 use super::{ensure_available, MAX_BATCH_SIZE};
 
+/// Search a collection.
+///
+/// The span carries the fields an operator needs to explain a slow query without reproducing it:
+/// which collection, how many neighbours, which index, and whether the recall knobs were
+/// overridden per-request. `results` and `elapsed_ms` are recorded once known.
+#[tracing::instrument(
+    name = "search",
+    target = "piramid::search",
+    skip_all,
+    fields(
+        collection = %collection,
+        request_id = request_id,
+        k = req.k,
+        batch = req.vectors.as_ref().map(|v| v.len()).unwrap_or(1),
+        index_type = tracing::field::Empty,
+        ef = tracing::field::Empty,
+        nprobe = tracing::field::Empty,
+        results = tracing::field::Empty,
+        elapsed_ms = tracing::field::Empty,
+    )
+)]
 pub fn search_vectors(
     state: &SharedState,
     collection: String,
@@ -48,6 +69,18 @@ pub fn search_vectors(
         preset,
     )?;
 
+    let span = tracing::Span::current();
+    span.record(
+        "index_type",
+        tracing::field::display(collection_guard.vector_index().index_type()),
+    );
+    if let Some(ef) = effective_search.ef {
+        span.record("ef", ef);
+    }
+    if let Some(nprobe) = effective_search.nprobe {
+        span.record("nprobe", nprobe);
+    }
+
     match (vector, vectors) {
         (Some(vector), None) => {
             validation::validate_vector(&vector)?;
@@ -76,6 +109,8 @@ pub fn search_vectors(
             if let Some(tracker) = state.collection_manager.tracker(&collection) {
                 tracker.record_search(duration);
             }
+            span.record("results", results.len());
+            span.record("elapsed_ms", duration.as_millis() as u64);
 
             Ok(SearchResultsResponse::Single(SearchResponse {
                 results: results.into_iter().map(hit_to_response).collect(),
@@ -107,6 +142,8 @@ pub fn search_vectors(
             if let Some(tracker) = state.collection_manager.tracker(&collection) {
                 tracker.record_search(duration);
             }
+            span.record("results", batch_results.iter().map(Vec::len).sum::<usize>());
+            span.record("elapsed_ms", duration.as_millis() as u64);
 
             Ok(SearchResultsResponse::Multi(MultiSearchResponse {
                 results: batch_results
@@ -126,6 +163,20 @@ pub fn search_vectors(
     }
 }
 
+/// Range search: nearest neighbours filtered to a minimum score.
+#[tracing::instrument(
+    name = "range_search",
+    target = "piramid::search",
+    skip_all,
+    fields(
+        collection = %collection,
+        request_id = request_id,
+        k = req.k,
+        min_score = req.min_score,
+        results = tracing::field::Empty,
+        elapsed_ms = tracing::field::Empty,
+    )
+)]
 pub fn range_search_vectors(
     state: &SharedState,
     collection: String,
@@ -178,6 +229,9 @@ pub fn range_search_vectors(
     if let Some(tracker) = state.collection_manager.tracker(&collection) {
         tracker.record_search(duration);
     }
+    let span = tracing::Span::current();
+    span.record("results", results.len());
+    span.record("elapsed_ms", duration.as_millis() as u64);
 
     Ok(SearchResponse {
         results: results.into_iter().map(hit_to_response).collect(),

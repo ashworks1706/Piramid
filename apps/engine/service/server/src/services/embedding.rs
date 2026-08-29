@@ -19,6 +19,16 @@ fn ensure_available(state: &SharedState) -> Result<()> {
     Ok(())
 }
 
+/// Embed texts through the configured provider and store the resulting vectors.
+///
+/// The only path that makes a network call, so it is the one most likely to dominate a slow
+/// request. Worth a span even when nothing else is instrumented.
+#[tracing::instrument(
+    name = "embed",
+    target = "piramid::embeddings",
+    skip_all,
+    fields(collection = %collection, texts = tracing::field::Empty)
+)]
 pub async fn embed_text(
     state: &SharedState,
     collection: String,
@@ -34,6 +44,8 @@ pub async fn embed_text(
         .ok_or(ServerError::ServiceUnavailable(
             EMBEDDING_NOT_CONFIGURED.to_string(),
         ))?;
+
+    tracing::Span::current().record("texts", req.texts.as_ref().map(Vec::len).unwrap_or(1));
 
     match (req.text.clone(), req.texts.clone()) {
         (Some(text), None) => {
@@ -138,6 +150,13 @@ pub async fn embed_text(
     }
 }
 
+/// Embed a query string, then search with the resulting vector.
+#[tracing::instrument(
+    name = "search_by_text",
+    target = "piramid::search",
+    skip_all,
+    fields(collection = %collection, request_id = request_id)
+)]
 pub async fn search_by_text(
     state: &SharedState,
     collection: String,

@@ -142,6 +142,16 @@ pub fn index_stats(state: &SharedState, collection: String) -> Result<IndexStats
     })
 }
 
+/// Rebuild a collection's ANN index from stored records.
+///
+/// Long-running and holds a write lock, so it shows up as a stall on unrelated writes. The span
+/// is what connects the two.
+#[tracing::instrument(
+    name = "rebuild_index",
+    target = "piramid::indexing",
+    skip_all,
+    fields(collection = %collection)
+)]
 pub fn rebuild_index(state: &SharedState, collection: String) -> Result<RebuildIndexResponse> {
     ensure_available(state)?;
 
@@ -257,6 +267,13 @@ pub fn find_duplicates(
     Ok(DuplicateResponse { pairs })
 }
 
+/// Rewrite a collection's record store, dropping dead entries.
+#[tracing::instrument(
+    name = "compact",
+    target = "piramid::writes",
+    skip_all,
+    fields(collection = %collection)
+)]
 pub fn compact_collection(state: &SharedState, collection: String) -> Result<RebuildIndexResponse> {
     ensure_available(state)?;
 

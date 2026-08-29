@@ -80,6 +80,16 @@ fn build_batch_entries(mut req: InsertRequest) -> Result<Vec<Document>> {
     Ok(entries)
 }
 
+/// Insert one or more vectors.
+///
+/// A write touches the WAL, the record store, the cache, and the index, so a slow one is
+/// ambiguous without a span to hang the sub-timings off.
+#[tracing::instrument(
+    name = "insert",
+    target = "piramid::writes",
+    skip_all,
+    fields(collection = %collection, inserted = tracing::field::Empty)
+)]
 pub fn insert_vector(
     state: &SharedState,
     collection: String,
@@ -118,6 +128,7 @@ pub fn insert_vector(
             }
             state.enforce_cache_budget();
 
+            tracing::Span::current().record("inserted", 1);
             InsertResultsResponse::Single(InsertResponse {
                 id: id.to_string(),
                 latency_ms: Some(duration.as_millis() as f32),
@@ -136,6 +147,7 @@ pub fn insert_vector(
             }
             state.enforce_cache_budget();
 
+            tracing::Span::current().record("inserted", ids.len());
             InsertResultsResponse::Multi(MultiInsertResponse {
                 ids: ids.into_iter().map(|id| id.to_string()).collect(),
                 count,
@@ -189,6 +201,13 @@ pub fn delete_vector(
     }))
 }
 
+/// Delete several vectors by id.
+#[tracing::instrument(
+    name = "delete_vectors",
+    target = "piramid::writes",
+    skip_all,
+    fields(collection = %collection)
+)]
 pub fn delete_vectors(
     state: &SharedState,
     collection: String,
@@ -228,6 +247,13 @@ pub fn delete_vectors(
     }))
 }
 
+/// Insert a vector, replacing any existing one with the same id.
+#[tracing::instrument(
+    name = "upsert",
+    target = "piramid::writes",
+    skip_all,
+    fields(collection = %collection)
+)]
 pub fn upsert_vector(
     state: &SharedState,
     collection: String,

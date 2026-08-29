@@ -13,6 +13,13 @@ pub struct ObservabilityConfig {
     pub otlp: Option<OtlpConfig>,
     /// Sentry error reporting, when `PIRAMID_SENTRY_DSN` is set.
     pub sentry: Option<SentryConfig>,
+    /// Log a line when each instrumented operation finishes, with its duration and fields.
+    ///
+    /// Off by default: it roughly doubles log volume on a busy server. It exists because most
+    /// operators will never run an OTLP collector, and without it the span instrumentation is
+    /// invisible — a span only reaches the console when an event fires inside it, so a clean
+    /// search produces no output at all.
+    pub span_events: bool,
 }
 
 /// OTLP trace export settings.
@@ -64,7 +71,15 @@ impl ObservabilityConfig {
                     .unwrap_or(0.1),
             });
 
-        Self { otlp, sentry }
+        let span_events = env::var("PIRAMID_LOG_SPANS")
+            .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
+            .unwrap_or(false);
+
+        Self {
+            otlp,
+            sentry,
+            span_events,
+        }
     }
 
     /// Whether any exporter is configured.

@@ -41,7 +41,11 @@ credentials (`KEY`, `TOKEN`, `SECRET`, `PASSWORD`, `DSN`, `CREDENTIAL`, `AUTH`) 
 It still contains your configuration and collection *names*. Read it before sharing.
 
 Nothing is transmitted anywhere. Piramid sends no telemetry to this project under any
-configuration; the exporters in `piramid-observability` point at endpoints **you** supply.
+configuration; the exporters in `piramid-observability` point at endpoints **you** supply, and
+`PIRAMID_LOG_SPANS` only writes to your own logs.
+
+Span fields include collection names and request ids, never vector contents, document text, or
+metadata values.
 
 ## Handling secrets
 
