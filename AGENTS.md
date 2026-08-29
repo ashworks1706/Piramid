@@ -40,8 +40,8 @@ apps/engine/data/collections      Collection domain object, cache, checkpoint, c
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai, ollama, local providers
-apps/engine/inference/fusion      the RetrievalHook seam        (depends on core only)
-apps/engine/inference/runtime     model, forward pass, kv_cache, batching, sampling
+apps/engine/inference             model, forward pass, kv_cache, batching, sampling,
+                                  and retrieval/ — the RetrievalHook seam
 apps/engine/service/server        http, services, runtime state, cluster
 apps/engine/service/observability tracing subscriber, OTLP, Sentry, Prometheus rendering
 apps/cli                          the `piramid` binary + the umbrella `piramid` facade crate
@@ -84,9 +84,10 @@ Everything else is infrastructure for these. Change them deliberately.
 - **`storage::vectors::VectorReader`** — how indexes read vectors they do not own.
   `as_slab()` is the fast path, `gather_into()` the fallback. Both have defaults, so a new reader
   costs nothing.
-- **`inference::fusion::RetrievalHook`** — where retrieval enters the forward pass. Defined before
-  anything can call it, on purpose: a driver written without the seam is very hard to retrofit
-  with one.
+- **`inference::retrieval::RetrievalHook`** — where retrieval enters the forward pass. Defined
+  before anything can call it, on purpose: a driver written without the seam is very hard to
+  retrofit with one. A strategy that queries an index is its own crate — `inference` must never
+  depend on the retrieval stack.
 
 ## Rules
 

@@ -11,8 +11,7 @@ members = [
     "apps/engine/retrieval/index",
     "apps/engine/retrieval/search",
     "apps/engine/retrieval/embeddings",
-    "apps/engine/inference/fusion",
-    "apps/engine/inference/runtime",
+    "apps/engine/inference",
     "apps/engine/service/observability",
     "apps/engine/service/server",
     "apps/cli",
@@ -37,8 +36,7 @@ piramid-index = { path = "apps/engine/retrieval/index", version = "0.2.0" }
 piramid-search = { path = "apps/engine/retrieval/search", version = "0.2.0" }
 piramid-collections = { path = "apps/engine/data/collections", version = "0.2.0" }
 piramid-embeddings = { path = "apps/engine/retrieval/embeddings", version = "0.2.0" }
-piramid-fusion = { path = "apps/engine/inference/fusion", version = "0.2.0" }
-piramid-inference = { path = "apps/engine/inference/runtime", version = "0.2.0" }
+piramid-inference = { path = "apps/engine/inference", version = "0.2.0" }
 piramid-observability = { path = "apps/engine/service/observability", version = "0.2.0" }
 piramid-server = { path = "apps/engine/service/server", version = "0.2.0" }
 

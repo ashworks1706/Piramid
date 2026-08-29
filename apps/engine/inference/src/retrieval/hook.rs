@@ -1,4 +1,4 @@
-//! The retrieval-fusion seam.
+//! The retrieval seam: the trait a forward-pass driver calls into.
 
 use piramid_core::error::Result;
 
@@ -7,7 +7,7 @@ use piramid_core::error::Result;
 /// Distinguishing these lets one hook implementation serve several fusion strategies without the
 /// driver knowing which is in use.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-pub enum FusionPoint {
+pub enum RetrievalPoint {
     /// Before the first decoder layer, once per sequence.
     SequenceStart,
     /// At a chunk boundary during decoding — the point at which a chunked-retrieval scheme queries
@@ -31,7 +31,7 @@ pub enum FusionPoint {
 #[derive(Debug)]
 pub struct ForwardContext<'a> {
     /// Where in the pass this invocation sits.
-    pub point: FusionPoint,
+    pub point: RetrievalPoint,
     /// Tokens generated so far, for building a retrieval query.
     pub tokens: &'a [u32],
     /// Hidden state for the current position, laid out as `[batch, hidden_dim]`.
@@ -45,7 +45,7 @@ pub struct ForwardContext<'a> {
 /// A retrieval strategy that participates in the forward pass.
 ///
 /// Implementations own their own index handles and encoders. The runtime knows only that it must
-/// call [`RetrievalHook::on_fusion_point`] at each point [`RetrievalHook::wants`] accepts.
+/// call [`RetrievalHook::on_retrieval_point`] at each point [`RetrievalHook::wants`] accepts.
 pub trait RetrievalHook: Send + Sync {
     /// Name for logs and configuration.
     fn name(&self) -> &'static str;
@@ -53,12 +53,12 @@ pub trait RetrievalHook: Send + Sync {
     /// Whether this hook wants to run at `point`.
     ///
     /// Checked before assembling a [`ForwardContext`], so declining is cheap.
-    fn wants(&self, point: FusionPoint) -> bool;
+    fn wants(&self, point: RetrievalPoint) -> bool;
 
     /// Run retrieval and fuse the result into `ctx.hidden_state`.
     ///
     /// Called only when [`RetrievalHook::wants`] returned `true` for `ctx.point`.
-    fn on_fusion_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
+    fn on_retrieval_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
 }
 
 /// A hook that never fires.
@@ -73,11 +73,11 @@ impl RetrievalHook for NoopRetrievalHook {
         "noop"
     }
 
-    fn wants(&self, _point: FusionPoint) -> bool {
+    fn wants(&self, _point: RetrievalPoint) -> bool {
         false
     }
 
-    fn on_fusion_point(&self, _ctx: &mut ForwardContext<'_>) -> Result<()> {
+    fn on_retrieval_point(&self, _ctx: &mut ForwardContext<'_>) -> Result<()> {
         Ok(())
     }
 }

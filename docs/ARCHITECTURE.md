@@ -24,7 +24,6 @@ apps/                     everything first-party
     retrieval/            how you find them
       index  search  embeddings
     inference/            how you run a model over them
-      fusion  runtime
     service/              how the outside world reaches it
       server  observability
   cli/                    the piramid binary — fuses the engine into one artifact
@@ -54,10 +53,9 @@ The groups answer "what is this for", and each cut is a real one:
   an index. A collection is *acted on* by search; it is not itself a way of finding things.
 - **`retrieval/`** is how you find them: `index` (ANN structure), `search` (planning, scoring,
   ranking), `embeddings` (turning text into a vector to search with).
-- **`inference/`** splits the seam from the driver. `fusion` is the `RetrievalHook` trait and
-  depends only on `core`; `runtime` drives the forward pass. A fusion *strategy* needs the index,
-  so it will be a third crate depending on `fusion` and `search` — which is what keeps `runtime`
-  free of retrieval entirely.
+- **`inference/`** is the forward pass, plus `retrieval::RetrievalHook` — the seam where retrieval
+  enters it. A strategy that actually queries an index depends on `search`, so it belongs in its
+  own crate depending on both; that is what keeps `inference` free of the retrieval stack.
 
 Groups are for navigation, not stratification. They deliberately do **not** line up with the
 dependency order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types
@@ -69,8 +67,7 @@ that configuration carries. The law below is the authority on direction; the fol
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
     Server[server<br/>http · services · runtime · cluster]
-    Fusion[inference/fusion<br/>RetrievalHook seam]
-    Inference[inference/runtime<br/>model · forward pass · kv_cache]
+    Inference[inference<br/>model · forward pass · kv_cache · retrieval seam]
     Collections[collections<br/>Collection · cache · checkpoint]
     Embeddings[embeddings<br/>openai · ollama · local]
     Search[search<br/>planning · filtering · ranking]
@@ -88,10 +85,8 @@ flowchart TD
     Server --> Index
     Server --> Storage
     Server --> Core
-    Inference --> Fusion
     Inference --> Gpu
     Inference --> Core
-    Fusion --> Core
     Collections --> Search
     Collections --> Index
     Collections --> Storage
@@ -117,8 +112,7 @@ flowchart TD
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
 | `collections` | The `Collection` object, cache, checkpoint, compaction | Serve HTTP |
 | `embeddings` | Provider adapters, caching, retries | Know about collections |
-| `inference/fusion` | The `RetrievalHook` seam | Depend on the retrieval stack |
-| `inference/runtime` | Model execution, KV cache, batching, sampling | Depend on the retrieval stack; be required for retrieval to work |
+| `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack; be required for retrieval to work |
 | `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
@@ -128,10 +122,9 @@ A crate may depend on one listed below it; the reverse is a violation.
 
 ```
 compute ─┐                    gpu ─┐
-         │                         ├─→ inference/runtime ─┐
+         │                         ├─→ inference ─┐
 core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         ├─→ embeddings ──────────────────────────────────┘
-         └─→ fusion ─→ inference/runtime
+         └─→ embeddings ──────────────────────────────────┘
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
@@ -196,13 +189,13 @@ choice unmeasurable. `gather_into()` is the portable fallback. Both have default
 default; migrating `CacheManager` onto it is tracked in the roadmap and can happen one call site at
 a time because `as_slab` is optional.
 
-### `piramid_fusion::RetrievalHook`
+### `inference::retrieval::RetrievalHook`
 
 Where retrieval enters the forward pass.
 
 ```rust
-fn wants(&self, point: FusionPoint) -> bool;
-fn on_fusion_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
+fn wants(&self, point: RetrievalPoint) -> bool;
+fn on_retrieval_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
 ```
 
 Deliberately mechanism-agnostic: it says *when* retrieval may occur and *what it may touch*, not
@@ -292,10 +285,9 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 4. Vendor SDK types (`cudarc`, `candle`) never escape their backend module.
 5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
-7. Retrieval works with no model loaded, and `inference/runtime` depends on nothing in the
-   retrieval stack. `fusion` is the seam between them and holds only the trait; a concrete
-   strategy is a separate crate that depends on both it and `search`. Enforced by
-   `scripts/check-deps.sh`.
+7. Retrieval works with no model loaded, and `inference` depends on nothing in the retrieval
+   stack. `inference::retrieval` holds only the `RetrievalHook` trait; a strategy that queries an
+   index is a separate crate depending on both. Enforced by `scripts/check-deps.sh`.
 8. Default builds are CPU-only and need no vendor toolchain.
 
 ## Adding code
@@ -307,8 +299,8 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 5. ANN implementation detail → `apps/engine/retrieval/index`.
 6. Distance math or backend dispatch → `apps/engine/hardware/compute`.
 7. Device memory, streams, kernels → `apps/engine/hardware/gpu`.
-8. Model execution → `apps/engine/inference/runtime`.
-9. Retrieval inside the forward pass → `apps/engine/inference/fusion`.
+8. Model execution → `apps/engine/inference`.
+9. Retrieval inside the forward pass → `apps/engine/inference/src/retrieval`.
 10. Shared vocabulary (error, config, metadata) → `apps/engine/core`.
 11. A deployable, a site, or a client library → `apps/`.
 

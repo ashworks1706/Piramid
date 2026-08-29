@@ -1,5 +1,9 @@
 # 0008 — `apps/engine/` for the library tree, `apps/` for what we ship
 
+> The `inference` split described here is superseded by
+> [0009](0009-retrieval-hook-is-a-module.md). The rest stands.
+
+
 Supersedes the folder naming in [0002](0002-workspace-crate-boundaries.md); the crate boundaries
 and the dependency law it established are unchanged.
 

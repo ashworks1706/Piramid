@@ -1613,13 +1613,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "piramid-fusion"
-version = "0.2.0"
-dependencies = [
- "piramid-core",
-]
-
-[[package]]
 name = "piramid-gpu"
 version = "0.2.0"
 
@@ -1642,7 +1635,6 @@ name = "piramid-inference"
 version = "0.2.0"
 dependencies = [
  "piramid-core",
- "piramid-fusion",
  "piramid-gpu",
 ]
 
