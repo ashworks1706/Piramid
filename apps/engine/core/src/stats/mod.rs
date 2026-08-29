@@ -4,9 +4,9 @@
 //! that ships data anywhere — which is why this can live in `core` and be recorded into from
 //! `collections`, `server`, and anywhere else without dragging exporters along.
 //!
-//! Where these numbers *go* is `piramid-observability`: the tracing subscriber, the OTLP and
-//! Sentry exporters, and the Prometheus encoder. That crate carries the heavy dependencies, and
-//! only the binary and `server` link it.
+//! Where these numbers *go* is `piramid-observability`: the tracing subscriber, the OTLP
+//! exporter, and the Prometheus encoder. That crate carries the heavy dependencies, and only the
+//! binary and `server` link it.
 //!
 //! The two were called `telemetry` and `observability`, which most engineers use
 //! interchangeably. The split is real — recording is cheap and ubiquitous, exporting is

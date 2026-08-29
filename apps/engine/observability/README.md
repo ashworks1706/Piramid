@@ -5,15 +5,19 @@ Telemetry export. `piramid_core::stats` measures; this crate ships.
 | Exporter | Feature | Variable | Default |
 |---|---|---|---|
 | OTLP traces | `otel` | `PIRAMID_OTLP_ENDPOINT` | off |
-| Sentry errors | `sentry` | `PIRAMID_SENTRY_DSN` | off |
 | Prometheus metrics | — | always at `/metrics` | on |
 | Span timings in logs | — | `PIRAMID_LOG_SPANS` | off |
 
 OTLP is the wire format rather than a vendor SDK, so Axiom, Grafana Tempo, Honeycomb, and Jaeger
 all work from the same configuration.
 
+That is the line this crate holds: open standards only — OTLP and the Prometheus exposition
+format — and no integration with any vendor's product. Errors reach an operator as panics and
+`tracing` events on stderr, which whatever collects their logs already picks up. A database that
+shipped a Sentry client would be making an application-monitoring choice on its operator's behalf.
+
 ```bash
-cargo build --features otel,sentry
+cargo build --features otel
 PIRAMID_OTLP_ENDPOINT=http://localhost:4317 piramid serve
 ```
 

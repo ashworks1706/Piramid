@@ -17,7 +17,7 @@ edge that is not in the law below.
 apps/                     everything first-party
   engine/                 the library crates
     core/                 shared vocabulary — errors, config, metadata, validation, stats
-    observability/        where measurements go — subscriber, OTLP, Sentry, Prometheus
+    observability/        where measurements go — subscriber, OTLP, Prometheus
     hardware/             code that cares what machine it runs on
       compute  gpu
     data/                 where vectors live and who owns them
@@ -66,7 +66,7 @@ They also split one concern that is easy to read as two names for the same thing
 `core::stats` is what the engine measures about itself — latency, lock contention, embedding
 throughput — as plain atomics, with no dependency on `tracing` or any exporter, so `collections`
 and `server` can record into it freely. `observability` is where those measurements *go*, and it
-carries `tracing-subscriber`, OpenTelemetry, and Sentry. Merging them would link an exporter stack
+carries `tracing-subscriber` and OpenTelemetry. Merging them would link an exporter stack
 into every crate that times a lock. `server` and `inference` are flat because each is a single crate; a group of one earns
 nothing.
 

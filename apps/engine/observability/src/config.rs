@@ -2,7 +2,7 @@
 //!
 //! Every exporter is opt-in and disabled when its variable is unset, so a default deployment
 //! sends nothing anywhere. That is the right default for a database people run on their own
-//! hardware.
+//! hardware, and there is no endpoint here that this project controls.
 
 use std::env;
 
@@ -11,8 +11,6 @@ use std::env;
 pub struct ObservabilityConfig {
     /// OTLP trace exporter, when `PIRAMID_OTLP_ENDPOINT` is set.
     pub otlp: Option<OtlpConfig>,
-    /// Sentry error reporting, when `PIRAMID_SENTRY_DSN` is set.
-    pub sentry: Option<SentryConfig>,
     /// Log a line when each instrumented operation finishes, with its duration and fields.
     ///
     /// Off by default: it roughly doubles log volume on a busy server. It exists because most
@@ -31,17 +29,6 @@ pub struct OtlpConfig {
     pub service_name: String,
 }
 
-/// Sentry error-reporting settings.
-#[derive(Debug, Clone)]
-pub struct SentryConfig {
-    /// Project DSN.
-    pub dsn: String,
-    /// Environment tag, e.g. `production`.
-    pub environment: String,
-    /// Fraction of transactions sampled for performance monitoring, in `[0.0, 1.0]`.
-    pub traces_sample_rate: f32,
-}
-
 impl ObservabilityConfig {
     /// Read configuration from the environment.
     ///
@@ -57,33 +44,15 @@ impl ObservabilityConfig {
                     .unwrap_or_else(|_| "piramid".to_string()),
             });
 
-        let sentry = env::var("PIRAMID_SENTRY_DSN")
-            .ok()
-            .filter(|value| !value.trim().is_empty())
-            .map(|dsn| SentryConfig {
-                dsn,
-                environment: env::var("PIRAMID_SENTRY_ENVIRONMENT")
-                    .unwrap_or_else(|_| "development".to_string()),
-                traces_sample_rate: env::var("PIRAMID_SENTRY_TRACES_SAMPLE_RATE")
-                    .ok()
-                    .and_then(|value| value.parse().ok())
-                    .filter(|rate: &f32| (0.0..=1.0).contains(rate))
-                    .unwrap_or(0.1),
-            });
-
         let span_events = env::var("PIRAMID_LOG_SPANS")
             .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
             .unwrap_or(false);
 
-        Self {
-            otlp,
-            sentry,
-            span_events,
-        }
+        Self { otlp, span_events }
     }
 
     /// Whether any exporter is configured.
     pub fn is_enabled(&self) -> bool {
-        self.otlp.is_some() || self.sentry.is_some()
+        self.otlp.is_some()
     }
 }

@@ -21,7 +21,7 @@
 //! | [`compute`] | Distance math and CPU/GPU backend dispatch |
 //! | [`gpu`] | Device runtime: contexts, buffers, streams, kernels |
 //! | [`stats`] | What the engine measures about itself |
-//! | [`observability`] | Where those measurements go: subscriber, OTLP, Sentry, Prometheus |
+//! | [`observability`] | Where those measurements go: subscriber, OTLP, Prometheus |
 //! | [`config`], [`error`], [`mod@metadata`], [`stats`], [`validation`] | `piramid-core` |
 //!
 //! Two rules worth knowing before adding code:

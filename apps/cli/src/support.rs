@@ -97,7 +97,6 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
         ("gpu-cuda", cfg!(feature = "gpu-cuda")),
         ("inference-candle", cfg!(feature = "inference-candle")),
         ("otel", cfg!(feature = "otel")),
-        ("sentry", cfg!(feature = "sentry")),
     ] {
         let _ = writeln!(out, "{name:<18} {}", if enabled { "on" } else { "off" });
     }

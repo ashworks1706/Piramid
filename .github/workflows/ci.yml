@@ -41,8 +41,8 @@ jobs:
             flags: --features gpu-cuda
           - name: inference-candle
             flags: --features inference-candle
-          - name: otel+sentry
-            flags: --features otel,sentry
+          - name: otel
+            flags: --features otel
           - name: all
             flags: --all-features
           - name: no-default

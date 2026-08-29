@@ -33,7 +33,7 @@ Language is never a folder. Hardware is never a folder.
 
 ```
 apps/engine/core                  errors, config, metadata + filters, validation, self-measurement
-apps/engine/observability         where those measurements go: subscriber, OTLP, Sentry,
+apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
 apps/engine/hardware/compute      distance kernels + backend registry    (leaf: no workspace deps)
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels (leaf: no workspace deps)

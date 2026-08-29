@@ -3,11 +3,11 @@
 //! `piramid_core::stats` holds what the engine measures about itself — latency, lock contention,
 //! embedding throughput — as plain atomics with no dependency on `tracing` or any exporter. This
 //! crate is where those measurements *go*: it builds the tracing subscriber and, when configured,
-//! ships spans over OTLP and errors to Sentry.
+//! ships spans over OTLP.
 //!
 //! The split is load-bearing, not cosmetic. Recording is cheap and happens in `collections`,
-//! `server`, and anywhere else; exporting pulls in `tracing-subscriber`, OpenTelemetry, and
-//! Sentry. Merging them would link all of that into every crate that times a lock.
+//! `server`, and anywhere else; exporting pulls in `tracing-subscriber` and OpenTelemetry.
+//! Merging them would link all of that into every crate that times a lock.
 //!
 //! # Exporters
 //!
@@ -17,14 +17,16 @@
 //! | Feature | Variable | Effect |
 //! |---|---|---|
 //! | `otel` | `PIRAMID_OTLP_ENDPOINT` | Spans over OTLP |
-//! | `sentry` | `PIRAMID_SENTRY_DSN` | Errors and panics to Sentry |
 //!
 //! `PIRAMID_LOG_SPANS=true` needs no feature: it logs one line per finished operation with its
 //! duration and fields. Most operators will never run a collector, and this is what makes the
 //! span instrumentation visible to them.
 //!
 //! OTLP is the wire format rather than any vendor's SDK, so Axiom, Grafana Tempo, Honeycomb, and
-//! Jaeger all work from one configuration.
+//! Jaeger all work from one configuration. That is the line this crate holds: it speaks open
+//! standards — OTLP and the Prometheus exposition format — and integrates with no vendor's
+//! product. Errors reach an operator as panics and `tracing` events on stderr, which their log
+//! pipeline already collects.
 //!
 //! Metrics are separate: [`prometheus`] renders what `piramid_core::stats` already aggregates,
 //! served at `/metrics`. For a database, a scrape endpoint matters more than distributed tracing,
@@ -38,7 +40,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
-pub use config::{ObservabilityConfig, OtlpConfig, SentryConfig};
+pub use config::{ObservabilityConfig, OtlpConfig};
 
 /// Keeps exporters alive for the process lifetime.
 ///
@@ -46,8 +48,6 @@ pub use config::{ObservabilityConfig, OtlpConfig, SentryConfig};
 /// `main` until shutdown — dropping it early silently stops export.
 #[must_use = "dropping the guard shuts down telemetry export"]
 pub struct ObservabilityGuard {
-    #[cfg(feature = "sentry")]
-    _sentry: Option<::sentry::ClientInitGuard>,
     // Held rather than dropped immediately: shutting the provider down is what flushes the last
     // batch of spans. `opentelemetry::global::shutdown_tracer_provider` was removed in 0.30, so
     // the provider itself is the handle.
@@ -73,25 +73,11 @@ impl Drop for ObservabilityGuard {
 /// Install the tracing subscriber and any configured exporters.
 ///
 /// `filter` is the already-resolved `EnvFilter` for console output; `json` selects structured
-/// console logs. Call once, as early in `main` as possible — Sentry must be initialized before
-/// the panic hook it installs can catch anything.
+/// console logs. Call once, as early in `main` as possible, so startup diagnostics are captured.
 ///
 /// Exporter setup failures are logged and skipped rather than propagated: telemetry not reaching
 /// a collector is not a reason to refuse to serve queries.
 pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> ObservabilityGuard {
-    #[cfg(feature = "sentry")]
-    let sentry_guard = config.sentry.as_ref().map(|cfg| {
-        ::sentry::init((
-            cfg.dsn.clone(),
-            ::sentry::ClientOptions {
-                environment: Some(cfg.environment.clone().into()),
-                traces_sample_rate: cfg.traces_sample_rate,
-                release: ::sentry::release_name!(),
-                ..Default::default()
-            },
-        ))
-    });
-
     // FmtSpan::CLOSE emits one line per finished operation carrying its duration and recorded
     // fields. That is how the span instrumentation becomes visible without a collector.
     let span_events = if config.span_events {
@@ -114,9 +100,6 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
     };
 
     let registry = tracing_subscriber::registry().with(filter).with(console);
-
-    #[cfg(feature = "sentry")]
-    let registry = registry.with(sentry_tracing::layer());
 
     #[cfg(feature = "otel")]
     let otel_provider = {
@@ -152,28 +135,17 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
         }
     }
 
-    #[cfg(not(feature = "sentry"))]
-    if config.sentry.is_some() {
-        tracing::warn!(
-            target: "piramid::observability",
-            "PIRAMID_SENTRY_DSN is set but this build lacks the `sentry` feature"
-        );
-    }
-
     // Report what actually resolved. Telemetry that silently does nothing is worse than none,
     // and an operator who set a variable needs to see whether it took effect.
     tracing::info!(
         target: "piramid::observability",
         otlp = config.otlp.as_ref().map(|c| c.endpoint.as_str()).unwrap_or("off"),
-        sentry = config.sentry.is_some(),
         span_events = config.span_events,
         json_logs = json,
         "observability_ready"
     );
 
     ObservabilityGuard {
-        #[cfg(feature = "sentry")]
-        _sentry: sentry_guard,
         #[cfg(feature = "otel")]
         otel: otel_provider,
     }
