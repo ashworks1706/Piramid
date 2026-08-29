@@ -5,7 +5,7 @@
 //! # Filling this in
 //!
 //! 1. Add `candle-core` and `candle-nn` to `Cargo.toml` under the `inference-candle` feature.
-//! 2. Construct candle's device from the same [`piramid_gpu::Device`] the retrieval path holds — do
+//! 2. Construct candle's device from the same `piramid-gpu::Device` the retrieval path holds — do
 //!    not open a second context, or vectors and weights end up in separate allocations.
 //! 3. Keep `candle` types inside this file.
 

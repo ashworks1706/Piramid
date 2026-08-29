@@ -6,7 +6,7 @@
 //!
 //! # Adding a backend
 //!
-//! Add a feature-gated submodule implementing [`DeviceRuntime`], then add one arm to each function
+//! Add a feature-gated submodule implementing [`DeviceRuntime`](crate::device::DeviceRuntime), then add one arm to each function
 //! below. The dispatch is centralized here so no other file needs `#[cfg]` for hardware.
 
 #[cfg(feature = "gpu-cuda")]

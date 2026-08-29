@@ -2,39 +2,59 @@ name: Security
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
   schedule:
-    # Run security checks every Monday at 9 AM UTC
-    - cron: '0 9 * * 1'
+    # Weekly, so a new advisory against a pinned dependency surfaces without waiting for a PR.
+    - cron: "0 9 * * 1"
+
+permissions:
+  contents: read
 
 jobs:
-  cargo-deny:
-    name: Cargo Deny Checks
+  deny:
+    name: cargo-deny
     runs-on: ubuntu-latest
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+      - uses: actions/checkout@v4
+      - uses: EmbarkStudios/cargo-deny-action@v2
+        with:
+          command: check advisories bans licenses sources
 
-    - name: Install Rust
-      uses: dtolnay/rust-toolchain@stable
-
-    - name: Install cargo-deny
-      run: cargo install --locked cargo-deny
-
-    - name: Run cargo deny
-      run: cargo deny check advisories bans licenses sources
+  # `unsafe_code` is denied workspace-wide with a small number of audited exceptions
+  # (see SECURITY.md). This makes a new one impossible to add unnoticed.
+  unsafe-audit:
+    name: Unsafe audit
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Check allow(unsafe_code) sites against the known list
+        shell: bash
+        run: |
+          set -euo pipefail
+          status=0
+          while IFS= read -r f; do
+            [ -z "$f" ] && continue
+            case "$f" in
+              crates/gpu/*|crates/storage/src/persistence/mmap.rs|crates/server/src/runtime/disk.rs)
+                echo "  ok   $f" ;;
+              *)
+                echo "  FAIL $f — unreviewed unsafe_code allowance"
+                status=1 ;;
+            esac
+          done < <(grep -rl 'allow(unsafe_code)' crates apps --include='*.rs' | sort)
+          if [ $status -ne 0 ]; then
+            echo
+            echo "If this allowance is intended, document it in SECURITY.md and add it here."
+            exit 1
+          fi
+          echo "unsafe audit ok — expected sites only"
 
   dependency-review:
-    name: Dependency Review
+    name: Dependency review
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request'
-    
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
-
-    - name: Dependency Review
-      uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v4
+      - uses: actions/dependency-review-action@v4

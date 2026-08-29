@@ -15,7 +15,7 @@
 //! callers, not the other way around. Keeping it a leaf is what allows kernels to be benchmarked
 //! and swapped without dragging application state along.
 //!
-//! Device runtime concerns — contexts, buffers, streams — belong in [`piramid_gpu`], not here.
+//! Device runtime concerns — contexts, buffers, streams — belong in `piramid-gpu`, not here.
 //! This module owns math semantics and backend *selection* only.
 
 pub mod backends;

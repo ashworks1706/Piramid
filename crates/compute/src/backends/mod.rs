@@ -19,7 +19,7 @@ pub use simd::SimdBackend;
 #[cfg(feature = "gpu-cuda")]
 pub use cuda::CudaBackend;
 
-use crate::error::{ComputeError, ComputeResult};
+use crate::error::ComputeResult;
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;
 
@@ -60,7 +60,7 @@ pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKerne
             }
             #[cfg(not(feature = "gpu-cuda"))]
             {
-                Err(ComputeError::BackendUnavailable {
+                Err(crate::error::ComputeError::BackendUnavailable {
                     backend: "gpu",
                     reason: "built without the `gpu-cuda` feature".to_string(),
                 })

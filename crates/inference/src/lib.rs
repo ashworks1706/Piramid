@@ -12,10 +12,10 @@
 //!
 //! # Layering
 //!
-//! Inference depends on [`piramid_gpu`] for the device runtime and on [`piramid_search`] for
+//! Inference depends on `piramid-gpu` for the device runtime and on `piramid-search` for
 //! retrieval, but retrieval must never depend on inference: a collection has to remain queryable
 //! with no model loaded. Backend crates stay confined to [`backends`], the same containment rule
-//! [`piramid_gpu::backends`] follows.
+//! `piramid-gpu::backends` follows.
 //!
 //! # Status
 //!

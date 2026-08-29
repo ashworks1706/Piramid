@@ -1,7 +1,7 @@
 //! Batched distance kernels.
 //!
 //! Scores one query against a contiguous slab of candidate vectors. Mirrors the batch methods on
-//! [`piramid_compute::DistanceKernels`], which is why that trait takes a slab: the slab uploads in
+//! `piramid-compute::DistanceKernels`, which is why that trait takes a slab: the slab uploads in
 //! one transfer and indexes directly as a device-side 2-D array.
 //!
 //! Not yet implemented. `distance.cu` alongside this file is the intended home for the device

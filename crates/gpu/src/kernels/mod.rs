@@ -13,7 +13,7 @@
 //! launch geometry; it does not own device lifetime or memory, which come from
 //! [`crate::device`] and [`crate::buffer`].
 //!
-//! Nothing here decides *which* backend runs — that is [`piramid_compute::backends`]. These modules
+//! Nothing here decides *which* backend runs — that is `piramid-compute::backends`. These modules
 //! are reached only after a GPU backend has already been selected.
 
 pub mod attention;

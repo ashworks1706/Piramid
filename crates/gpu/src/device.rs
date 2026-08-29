@@ -25,7 +25,7 @@ pub struct DeviceCapabilities {
 /// The contract a device runtime must satisfy.
 ///
 /// Implemented per vendor backend under [`crate::backends`]. Everything above this trait —
-/// [`piramid_compute`] kernels and [`piramid_inference`] model execution alike — is written against
+/// `piramid-compute` kernels and `piramid-inference` model execution alike — is written against
 /// the trait, never against a vendor SDK.
 pub trait DeviceRuntime: Send + Sync + std::fmt::Debug {
     /// Backend name, e.g. `"cudarc"`.

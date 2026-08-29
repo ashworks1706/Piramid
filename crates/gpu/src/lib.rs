@@ -8,7 +8,7 @@
 //!
 //! # Why it is not part of `compute/`
 //!
-//! Two subsystems need a device: [`piramid_compute`] for distance kernels and [`piramid_inference`]
+//! Two subsystems need a device: `piramid-compute` for distance kernels and `piramid-inference`
 //! for model execution. If the device runtime lived inside `compute/`, inference would have to
 //! depend on the retrieval math layer to allocate memory. Keeping `gpu/` a peer means both can
 //! share one [`Device`] — which is the whole point, since vectors and model weights need to sit in

@@ -1,6 +1,6 @@
 //! Attention kernels.
 //!
-//! Reserved for [`piramid_inference`]. Kept in `gpu/` rather than `inference/` because attention is
+//! Reserved for `piramid-inference`. Kept in `gpu/` rather than `inference/` because attention is
 //! device code with the same lifetime and module-loading concerns as every other kernel; the
 //! inference layer calls in through a typed wrapper the same way the retrieval path does.
 //!

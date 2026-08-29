@@ -21,7 +21,7 @@
 //! | [`compute`] | Distance math and CPU/GPU backend dispatch |
 //! | [`gpu`] | Device runtime: contexts, buffers, streams, kernels |
 //! | [`observability`] | Tracing subscriber, OTLP export, Sentry, Prometheus rendering |
-//! | [`config`], [`error`], [`metadata`], [`telemetry`], [`validation`] | `piramid-core` |
+//! | [`config`], [`error`], [`mod@metadata`], [`telemetry`], [`validation`] | `piramid-core` |
 //!
 //! Two rules worth knowing before adding code:
 //!

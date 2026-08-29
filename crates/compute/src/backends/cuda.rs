@@ -1,7 +1,7 @@
 //! CUDA-backed distance kernels.
 //!
 //! This is the compute-layer *adapter*: it owns no CUDA types itself. Device handles, buffers,
-//! streams, and module loading all live in [`piramid_gpu`], so that [`piramid_inference`] can share
+//! streams, and module loading all live in `piramid-gpu`, so that `piramid-inference` can share
 //! the same device runtime without depending on `compute/`.
 //!
 //! Compiled only under the `gpu-cuda` feature. Until kernels land, [`CudaBackend::is_available`]
@@ -20,7 +20,7 @@ use crate::backends::scalar::ScalarBackend;
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;
 
-/// GPU kernels dispatched through [`piramid_gpu`].
+/// GPU kernels dispatched through `piramid-gpu`.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct CudaBackend;
 
