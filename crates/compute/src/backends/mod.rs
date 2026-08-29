@@ -45,7 +45,7 @@ pub fn all() -> Vec<&'static dyn DistanceKernels> {
 
 /// Look up the backend serving `mode`, without checking availability.
 ///
-/// `Auto` is resolved first. Returns [`ComputeError::BackendUnavailable`] when the mode names a
+/// `Auto` is resolved first. Returns [`ComputeError::BackendUnavailable`](crate::error::ComputeError::BackendUnavailable) when the mode names a
 /// backend that was not compiled into this build.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
     match mode.resolve() {
