@@ -1,0 +1,30 @@
+[package]
+name = "piramid-index"
+description = "ANN index implementations: flat, HNSW, IVF."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+piramid-compute.workspace = true
+piramid-storage.workspace = true
+serde.workspace = true
+bincode.workspace = true
+rand.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+uuid.workspace = true
+criterion.workspace = true
+
+[[bench]]
+name = "hnsw_performance"
+harness = false
+
+[lints]
+workspace = true

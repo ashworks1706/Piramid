@@ -70,3 +70,6 @@ venv/
 ENV/
 env/
 .venv
+
+# Workspace build artifacts
+/target

@@ -1,0 +1,37 @@
+[package]
+name = "piramid-server"
+description = "HTTP transport, use-case services, and shared runtime state."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+piramid-compute.workspace = true
+piramid-storage.workspace = true
+piramid-index.workspace = true
+piramid-search.workspace = true
+piramid-collections.workspace = true
+piramid-embeddings.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+axum.workspace = true
+tower-http.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+libc.workspace = true
+num_cpus.workspace = true
+
+[dev-dependencies]
+axum.workspace = true
+tokio.workspace = true
+
+[lints]
+workspace = true

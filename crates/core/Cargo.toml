@@ -1,0 +1,27 @@
+[package]
+name = "piramid-core"
+description = "Shared foundation for Piramid: errors, configuration, metadata, validation, telemetry."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-compute.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+bincode.workspace = true
+thiserror.workspace = true
+num_cpus.workspace = true
+uuid.workspace = true
+
+[dev-dependencies]
+tokio.workspace = true
+serde_yaml.workspace = true
+
+[lints]
+workspace = true

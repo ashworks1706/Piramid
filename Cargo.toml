@@ -1,96 +1,105 @@
-[package]
-name = "piramid"
+[workspace]
+resolver = "2"
+members = [
+    "crates/core",
+    "crates/compute",
+    "crates/gpu",
+    "crates/storage",
+    "crates/index",
+    "crates/search",
+    "crates/collections",
+    "crates/embeddings",
+    "crates/inference",
+    "crates/server",
+    "apps/cli",
+]
+
+[workspace.package]
 version = "0.2.0"
 edition = "2021"
-description = "All-in-one binary for distributed model inference, retrieval, and vector search."
 license = "Apache-2.0"
 repository = "https://github.com/ashworks1706/piramid"
 homepage = "https://piramiddb.com"
-documentation = "https://piramiddb.com"
-readme = "README.md"
-keywords = ["vector-database", "rag", "embeddings", "search", "inference"]
-categories = ["database-implementations", "command-line-utilities"]
-exclude = [
-    ".dockerignore",
-    ".github/",
-    ".githooks/",
-    "assets/blogs/",
-    "blogs/",
-    "dashboard/",
-    "docker-compose*.yml",
-    "Dockerfile",
-    "docs/",
-    "piramid.yaml",
-    "release-notes/",
-    "scripts/",
-    "sdk/",
-    "website/",
-    "Cargo.toml.orig",
-]
-default-run = "piramid"
+documentation = "https://docs.rs/piramid"
+rust-version = "1.87"  # `usize::is_multiple_of` / `next_multiple_of`, used by compute::kernels
 
-[lib]
-name = "piramid"
-crate-type = ["rlib"] 
+[workspace.dependencies]
+# in-repo crates — every internal dependency goes through here so versions stay in lockstep
+piramid-core = { path = "crates/core", version = "0.2.0" }
+piramid-compute = { path = "crates/compute", version = "0.2.0" }
+piramid-gpu = { path = "crates/gpu", version = "0.2.0" }
+piramid-storage = { path = "crates/storage", version = "0.2.0" }
+piramid-index = { path = "crates/index", version = "0.2.0" }
+piramid-search = { path = "crates/search", version = "0.2.0" }
+piramid-collections = { path = "crates/collections", version = "0.2.0" }
+piramid-embeddings = { path = "crates/embeddings", version = "0.2.0" }
+piramid-inference = { path = "crates/inference", version = "0.2.0" }
+piramid-server = { path = "crates/server", version = "0.2.0" }
 
-[[bin]]
-name = "piramid"
-path = "src/bin/piramid.rs"
-
-[dependencies]
-# Serialization
+# serialization
 serde = { version = "1.0", features = ["derive"] }
-bincode = "1.3"
 serde_json = "1.0"
-# UUID for document IDs
+serde_yaml = "0.9"
+bincode = "1.3"
 uuid = { version = "1.0", features = ["v4", "serde"] }
 
-# Observability
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter"] }
-clap = { version = "4.5", features = ["derive"] }
-
-# Config file support
-serde_yaml = "0.9"
-
-# Error handling
+# errors
 thiserror = "1.0"
 
-# HTTP server 
-axum = "0.8"
+# async + http
 tokio = { version = "1", features = ["full"] }
+axum = "0.8"
 tower-http = { version = "0.6", features = ["cors", "fs", "limit", "set-header", "trace"] }
-
-# HTTP client for embedding providers
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 async-trait = "0.1"
-rand = "0.8"
 
-# SIMD acceleration
+# observability
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+
+# cli
+clap = { version = "4.5", features = ["derive"] }
+
+# compute
 wide = "0.7"
-
-# Memory optimization
-memmap2 = "0.9"
-
-# Cache optimization 
-lru="0.16.3"
-
-# Concurrent data structures
-dashmap= "6.0"
-
-# Parallel processing
 rayon = "1.10"
 num_cpus = "1.16"
+rand = "0.8"
+
+# storage + concurrency
+memmap2 = "0.9"
+lru = "0.16.3"
+dashmap = "6.0"
 parking_lot = "0.12"
 libc = "0.2"
 
-[dev-dependencies]
-# Logging
+# dev
+criterion = { version = "0.5", features = ["html_reports"] }
 log = "0.4"
 
-# For testing
-criterion = {version = "0.5", features = ["html_reports"]}
+[workspace.lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+# Ratchet: flip to "warn" per crate as public items are documented. The new crates
+# (compute, gpu, inference) already enforce it via `#![deny(missing_docs)]`.
+missing_docs = "allow"
 
-[[bench]]
-name = "hnsw_performance"
-harness = false
+[workspace.lints.clippy]
+all = { level = "warn", priority = -1 }
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "deny"
+print_stderr = "deny"
+# Ratchet: currently ~20 call sites outside tests. Fix at the source, then flip to "deny".
+unwrap_used = "allow"
+expect_used = "allow"
+
+[profile.release]
+lto = "thin"
+codegen-units = 1
+strip = true
+
+[profile.bench]
+debug = true
