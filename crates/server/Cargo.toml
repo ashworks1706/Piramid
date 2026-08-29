@@ -17,6 +17,7 @@ piramid-index.workspace = true
 piramid-search.workspace = true
 piramid-collections.workspace = true
 piramid-embeddings.workspace = true
+piramid-observability.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 axum.workspace = true

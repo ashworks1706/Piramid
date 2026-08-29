@@ -342,6 +342,9 @@ impl AppConfig {
         if let Ok(val) = std::env::var("LOG_HTTP") {
             self.logging.http = parse_bool_env("LOG_HTTP", &val)?;
         }
+        if let Ok(val) = std::env::var("LOG_JSON") {
+            self.logging.json = parse_bool_env("LOG_JSON", &val)?;
+        }
         Ok(())
     }
 

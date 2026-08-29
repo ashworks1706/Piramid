@@ -20,3 +20,20 @@ pub async fn health_embeddings(State(state): State<SharedState>) -> StatusCode {
 pub async fn metrics(State(state): State<SharedState>) -> Result<Json<MetricsResponse>> {
     Ok(Json(admin::metrics(&state)?))
 }
+
+/// Prometheus scrape endpoint.
+///
+/// Served at `/metrics`, outside the `/api` prefix, so a scrape config does not need to know the
+/// API layout. `/api/metrics` still returns the richer JSON view.
+pub async fn prometheus_metrics(
+    State(state): State<SharedState>,
+) -> Result<([(axum::http::header::HeaderName, &'static str); 1], String)> {
+    let snapshot = admin::metrics(&state)?;
+    Ok((
+        [(
+            axum::http::header::CONTENT_TYPE,
+            crate::http::prometheus::SCRAPE_CONTENT_TYPE,
+        )],
+        crate::http::prometheus::render(&snapshot),
+    ))
+}

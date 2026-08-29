@@ -10,6 +10,7 @@ members = [
     "crates/collections",
     "crates/embeddings",
     "crates/inference",
+    "crates/observability",
     "crates/server",
     "apps/cli",
 ]
@@ -34,6 +35,7 @@ piramid-search = { path = "crates/search", version = "0.2.0" }
 piramid-collections = { path = "crates/collections", version = "0.2.0" }
 piramid-embeddings = { path = "crates/embeddings", version = "0.2.0" }
 piramid-inference = { path = "crates/inference", version = "0.2.0" }
+piramid-observability = { path = "crates/observability", version = "0.2.0" }
 piramid-server = { path = "crates/server", version = "0.2.0" }
 
 # serialization
@@ -56,6 +58,12 @@ async-trait = "0.1"
 # observability
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
+tracing-opentelemetry = "0.31"
+opentelemetry = "0.30"
+opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.30", features = ["grpc-tonic", "trace"] }
+sentry = { version = "0.34", default-features = false, features = ["backtrace", "contexts", "panic", "reqwest", "rustls"] }
+sentry-tracing = "0.34"
 
 # cli
 clap = { version = "4.5", features = ["derive"] }

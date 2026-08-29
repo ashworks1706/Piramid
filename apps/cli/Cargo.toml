@@ -24,6 +24,10 @@ path = "src/main.rs"
 default = []
 gpu-cuda = ["piramid-compute/gpu-cuda", "piramid-gpu/gpu-cuda"]
 inference-candle = ["piramid-inference/inference-candle"]
+# Export traces over OTLP to any collector (Axiom, Tempo, Honeycomb, Jaeger).
+otel = ["piramid-observability/otel"]
+# Report errors and panics to Sentry.
+sentry = ["piramid-observability/sentry"]
 
 [dependencies]
 piramid-core.workspace = true
@@ -35,6 +39,7 @@ piramid-search.workspace = true
 piramid-collections.workspace = true
 piramid-embeddings.workspace = true
 piramid-inference.workspace = true
+piramid-observability.workspace = true
 piramid-server.workspace = true
 axum.workspace = true
 clap.workspace = true

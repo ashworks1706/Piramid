@@ -11,6 +11,7 @@ mod animation;
 use piramid::config::{self, AppConfig, LogLevel, LoggingConfig};
 use piramid::runtime::AppState;
 use piramid::{config::loader::RuntimeConfig, embeddings, server};
+use piramid_observability::{ObservabilityConfig, ObservabilityGuard};
 use tokio::runtime::Runtime;
 use tracing_subscriber::EnvFilter;
 
@@ -273,7 +274,7 @@ fn start_server_inline() -> std::io::Result<()> {
             disk_readonly_on_low_space,
         } = piramid::config::loader::load_runtime_config().unwrap_or_else(exit_on_config_error);
 
-        init_tracing(app_config.logging)?;
+        let _observability = init_tracing(app_config.logging)?;
         if app_config.logging.config {
             tracing::info!(
                 target: "piramid::config",
@@ -334,14 +335,18 @@ fn start_server_inline() -> std::io::Result<()> {
     })
 }
 
-fn init_tracing(cfg: LoggingConfig) -> std::io::Result<()> {
+/// Install tracing and any configured telemetry exporters.
+///
+/// Returns a guard that must live until shutdown: dropping it flushes pending spans and stops
+/// export. Returns `None` when logging is disabled or already initialized.
+fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard>> {
     static TRACING_INIT: OnceLock<()> = OnceLock::new();
     if TRACING_INIT.get().is_some() {
-        return Ok(());
+        return Ok(None);
     }
     if !cfg.enabled {
         TRACING_INIT.set(()).ok();
-        return Ok(());
+        return Ok(None);
     }
 
     let base_level = level_directive(cfg.level);
@@ -370,15 +375,11 @@ fn init_tracing(cfg: LoggingConfig) -> std::io::Result<()> {
         env_filter = add_directive(env_filter, "piramid::http=off");
     }
 
-    let subscriber = tracing_subscriber::fmt()
-        .with_env_filter(env_filter)
-        .with_target(true)
-        .compact()
-        .finish();
-    tracing::subscriber::set_global_default(subscriber)
-        .map_err(|e| std::io::Error::other(format!("failed to initialize tracing: {e}")))?;
+    // Exporters are opt-in per environment variable and no-ops when unset.
+    let observability = ObservabilityConfig::from_env();
+    let guard = piramid_observability::init(&observability, env_filter, cfg.json);
     TRACING_INIT.set(()).ok();
-    Ok(())
+    Ok(Some(guard))
 }
 
 fn add_directive(mut filter: EnvFilter, directive: &str) -> EnvFilter {

@@ -20,6 +20,7 @@
 //! | [`storage`] | Records, WAL, sidecars, mmap, vector layout, quantization |
 //! | [`compute`] | Distance math and CPU/GPU backend dispatch |
 //! | [`gpu`] | Device runtime: contexts, buffers, streams, kernels |
+//! | [`observability`] | Tracing subscriber, OTLP export, Sentry, Prometheus rendering |
 //! | [`config`], [`error`], [`metadata`], [`telemetry`], [`validation`] | `piramid-core` |
 //!
 //! Two rules worth knowing before adding code:
@@ -40,6 +41,7 @@ pub use piramid_embeddings as embeddings;
 pub use piramid_gpu as gpu;
 pub use piramid_index as index;
 pub use piramid_inference as inference;
+pub use piramid_observability as observability;
 pub use piramid_search as search;
 pub use piramid_server::{cluster, http as server, runtime, services};
 pub use piramid_storage as storage;

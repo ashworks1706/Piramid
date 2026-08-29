@@ -29,6 +29,12 @@ pub struct LoggingConfig {
     pub inference: bool,
     #[serde(default = "default_true")]
     pub http: bool,
+    /// Emit structured JSON lines instead of human-readable console output.
+    ///
+    /// Set this in any deployment whose logs are shipped to a collector; the default is the
+    /// readable format because the common case is someone running the binary locally.
+    #[serde(default)]
+    pub json: bool,
     #[serde(default)]
     pub slow_query_ms: Option<u64>,
 }
@@ -44,6 +50,7 @@ impl Default for LoggingConfig {
             writes: true,
             inference: true,
             http: true,
+            json: false,
             slow_query_ms: Some(500),
         }
     }

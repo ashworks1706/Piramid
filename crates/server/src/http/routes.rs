@@ -118,6 +118,8 @@ pub fn create_router(state: SharedState) -> Router {
     Router::<SharedState>::new()
         .nest("/api", api.clone())
         .nest("/api/v1", api)
+        // Prometheus scrapes `/metrics` by convention, outside the API prefix.
+        .route("/metrics", get(handlers::prometheus_metrics))
         // Middleware layers
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB for batch operations
         .layer(cors)

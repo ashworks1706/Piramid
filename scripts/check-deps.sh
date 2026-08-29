@@ -38,6 +38,9 @@ piramid-server -> piramid-index
 piramid-server -> piramid-search
 piramid-server -> piramid-collections
 piramid-server -> piramid-embeddings
+piramid-server -> piramid-observability
+piramid-observability -> piramid-core
+piramid -> piramid-observability
 piramid -> piramid-core
 piramid -> piramid-compute
 piramid -> piramid-gpu

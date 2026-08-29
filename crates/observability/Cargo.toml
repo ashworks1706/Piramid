@@ -1,0 +1,41 @@
+[package]
+name = "piramid-observability"
+description = "Telemetry export for Piramid: tracing subscriber, OTLP traces, Sentry errors, Prometheus metrics."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Optional exporters. Default builds pull in none of these.
+opentelemetry = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+tracing-opentelemetry = { workspace = true, optional = true }
+sentry = { workspace = true, optional = true }
+sentry-tracing = { workspace = true, optional = true }
+
+[features]
+default = []
+
+# Export traces over OTLP. Any OTLP collector works — Axiom, Grafana Tempo, Honeycomb,
+# Jaeger — so this is one feature rather than one per vendor.
+otel = [
+    "dep:opentelemetry",
+    "dep:opentelemetry_sdk",
+    "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry",
+]
+
+# Report errors and panics to Sentry.
+sentry = ["dep:sentry", "dep:sentry-tracing"]
+
+[lints]
+workspace = true
