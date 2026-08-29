@@ -16,7 +16,8 @@ edge that is not in the law below.
 ```text
 apps/                     everything first-party
   engine/                 the library crates
-    core/                 shared vocabulary — errors, config, metadata, telemetry
+    core/                 shared vocabulary — errors, config, metadata, validation
+    observability/        telemetry export — subscriber, OTLP, Sentry, Prometheus
     hardware/             code that cares what machine it runs on
       compute  gpu
     data/                 where vectors live and who owns them
@@ -24,8 +25,7 @@ apps/                     everything first-party
     retrieval/            how you find them
       index  search  embeddings
     inference/            how you run a model over them
-    service/              how the outside world reaches it
-      server  observability
+    server/               how the outside world reaches it
   cli/                    the piramid binary — fuses the engine into one artifact
   website/                piramiddb.com, with blog content and images inside it
   sdk/                    npm and python clients
@@ -53,9 +53,15 @@ The groups answer "what is this for", and each cut is a real one:
   an index. A collection is *acted on* by search; it is not itself a way of finding things.
 - **`retrieval/`** is how you find them: `index` (ANN structure), `search` (planning, scoring,
   ranking), `embeddings` (turning text into a vector to search with).
-- **`inference/`** is the forward pass, plus `retrieval::RetrievalHook` — the seam where retrieval
+- **`inference/`** is the forward pass, plus `augment::RetrievalHook` — the seam where retrieval
   enters it. A strategy that actually queries an index depends on `search`, so it belongs in its
   own crate depending on both; that is what keeps `inference` free of the retrieval stack.
+
+`core` and `observability` sit flat because they are cross-cutting rather than a layer: `core` is
+the vocabulary everything shares, and `observability` is used both by `server` (which renders
+metrics) and directly by `apps/cli` (which installs the tracing subscriber before any server
+exists). `server` and `inference` are flat because each is a single crate; a group of one earns
+nothing.
 
 Groups are for navigation, not stratification. They deliberately do **not** line up with the
 dependency order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types
@@ -292,8 +298,8 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 
 ## Adding code
 
-1. HTTP-specific → `apps/engine/service/server/src/http`.
-2. Coordinates a user-facing operation → `apps/engine/service/server/src/services`.
+1. HTTP-specific → `apps/engine/server/src/http`.
+2. Coordinates a user-facing operation → `apps/engine/server/src/services`.
 3. Changes one collection's state → `apps/engine/data/collections`.
 4. Reads or writes bytes, mmap, WAL, sidecars → `apps/engine/data/storage`.
 5. ANN implementation detail → `apps/engine/retrieval/index`.

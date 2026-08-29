@@ -4,6 +4,7 @@ resolver = "2"
 # the binary that fuses it together, the site, and the client SDKs.
 members = [
     "apps/engine/core",
+    "apps/engine/observability",
     "apps/engine/hardware/compute",
     "apps/engine/hardware/gpu",
     "apps/engine/data/storage",
@@ -12,8 +13,7 @@ members = [
     "apps/engine/retrieval/search",
     "apps/engine/retrieval/embeddings",
     "apps/engine/inference",
-    "apps/engine/service/observability",
-    "apps/engine/service/server",
+    "apps/engine/server",
     "apps/cli",
 ]
 
@@ -37,8 +37,8 @@ piramid-search = { path = "apps/engine/retrieval/search", version = "0.2.0" }
 piramid-collections = { path = "apps/engine/data/collections", version = "0.2.0" }
 piramid-embeddings = { path = "apps/engine/retrieval/embeddings", version = "0.2.0" }
 piramid-inference = { path = "apps/engine/inference", version = "0.2.0" }
-piramid-observability = { path = "apps/engine/service/observability", version = "0.2.0" }
-piramid-server = { path = "apps/engine/service/server", version = "0.2.0" }
+piramid-observability = { path = "apps/engine/observability", version = "0.2.0" }
+piramid-server = { path = "apps/engine/server", version = "0.2.0" }
 
 # serialization
 serde = { version = "1.0", features = ["derive"] }

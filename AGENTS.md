@@ -33,6 +33,7 @@ Language is never a folder. Hardware is never a folder.
 
 ```
 apps/engine/core                  errors, config, metadata + filters, validation, telemetry
+apps/engine/observability         tracing subscriber, OTLP, Sentry, Prometheus rendering
 apps/engine/hardware/compute      distance kernels + backend registry    (leaf: no workspace deps)
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels (leaf: no workspace deps)
 apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quantization
@@ -40,16 +41,22 @@ apps/engine/data/collections      Collection domain object, cache, checkpoint, c
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai, ollama, local providers
-apps/engine/inference             model, forward/ (the pass), kv_cache, batching, sampling,
-                                  and augment/ — the RetrievalHook seam
-apps/engine/service/server        http, services, runtime state, cluster
-apps/engine/service/observability tracing subscriber, OTLP, Sentry, Prometheus rendering
+apps/engine/inference             forward/ (the pass), kv_cache, batching, sampling,
+                                  augment/ (the RetrievalHook seam)
+apps/engine/server                http, services, runtime state, cluster
 apps/cli                          the `piramid` binary + the umbrella `piramid` facade crate
 apps/website                      piramiddb.com, blog content and images included
 apps/sdk                          npm and python clients
 docs/                             ARCHITECTURE.md, ROADMAP.md, decisions/
 deploy/                           compose + one Dockerfile per image
 ```
+
+`core` and `observability` are flat because they are cross-cutting, not a layer — `observability`
+is used by `server` *and* directly by `apps/cli`, which installs the tracing subscriber before any
+server exists. `server` and `inference` are flat because each is one crate. The grouped folders say
+what they are for: `hardware/` changes when the machine changes, `data/` is where vectors live and
+who owns them, `retrieval/` is how you find them. Groups are navigation, not dependency order —
+the law below is the authority on direction.
 
 Groups say what a thing is for: `hardware/` changes when the machine changes, `data/` is where
 vectors live and who owns them, `retrieval/` is how you find them, `inference/` how you run a model

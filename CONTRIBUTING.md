@@ -36,8 +36,8 @@ is a design conversation — open an issue first.
 
 | If it is… | It belongs in |
 |---|---|
-| HTTP-specific | `apps/engine/service/server/src/http` |
-| A user-facing operation | `apps/engine/service/server/src/services` |
+| HTTP-specific | `apps/engine/server/src/http` |
+| A user-facing operation | `apps/engine/server/src/services` |
 | One collection's state | `apps/engine/data/collections` |
 | Bytes, mmap, WAL, sidecars | `apps/engine/data/storage` |
 | An ANN implementation detail | `apps/engine/retrieval/index` |
