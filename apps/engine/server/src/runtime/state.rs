@@ -32,10 +32,8 @@ pub struct RebuildJobStatus {
     pub elapsed_ms: Option<u128>, // Optional elapsed time for the rebuild job in milliseconds
 }
 
-// Shared application state
-// Each collection is an independent Collection with its own file.
-// DashMap allows concurrent access to different collections without blocking.
-// Holds config + optional embedder so handlers can access without reloading.
+// Collections are independent, each backed by its own file, so a DashMap lets requests touch
+// different collections without contending.
 pub struct AppState {
     pub collection_manager: CollectionManager,
     pub data_dir: String, // Base directory for collection files, e.g. "./data"
@@ -84,7 +82,6 @@ impl AppState {
             app_config,
             slow_query_ms,
             rebuild_jobs: Arc::new(DashMap::new()),
-            // Initialize to current time; updated on each config reload
             config_last_reload: Arc::new(AtomicU64::new(
                 SystemTime::now()
                     .duration_since(UNIX_EPOCH)
@@ -152,7 +149,6 @@ impl AppState {
         self.collection_manager.get_existing(name)
     }
 
-    // Lazily load or create a collection
     pub fn get_or_create_collection(&self, name: &str) -> Result<CollectionHandle> {
         if self.shutting_down.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());

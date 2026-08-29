@@ -6,7 +6,7 @@
 
 use crate::metadata::value::{Metadata, MetadataValue};
 
-// Chainable filter builder. All conditions must match (AND logic).
+/// A set of conditions a document's metadata must all satisfy.
 #[derive(Debug, Clone)]
 pub struct Filter {
     conditions: Vec<FilterCondition>,
@@ -18,49 +18,42 @@ impl Filter {
     }
 
     pub fn eq(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `eq`: equals - field value must exactly match
         self.conditions
             .push(FilterCondition::Eq(field.to_string(), value.into()));
         self
     }
 
     pub fn ne(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `ne`: not equals - field value must not match
         self.conditions
             .push(FilterCondition::Ne(field.to_string(), value.into()));
         self
     }
 
     pub fn gt(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `gt`: greater than - field value must be greater
         self.conditions
             .push(FilterCondition::Gt(field.to_string(), value.into()));
         self
     }
 
     pub fn gte(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `gte`: greater than or equal
         self.conditions
             .push(FilterCondition::Gte(field.to_string(), value.into()));
         self
     }
 
     pub fn lt(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `lt`: less than
         self.conditions
             .push(FilterCondition::Lt(field.to_string(), value.into()));
         self
     }
 
     pub fn lte(mut self, field: &str, value: impl Into<MetadataValue>) -> Self {
-        // - `lte`: less than or equal
         self.conditions
             .push(FilterCondition::Lte(field.to_string(), value.into()));
         self
     }
 
     pub fn is_in(mut self, field: &str, values: Vec<MetadataValue>) -> Self {
-        // - `in`: field value is in the provided list
         self.conditions
             .push(FilterCondition::In(field.to_string(), values));
         self
@@ -81,7 +74,7 @@ impl Default for Filter {
     }
 }
 
-// Individual filter operations
+/// One condition within a [`Filter`].
 #[derive(Debug, Clone)]
 pub enum FilterCondition {
     Eq(String, MetadataValue),
@@ -117,7 +110,7 @@ impl FilterCondition {
     }
 }
 
-// Helper to compare numeric metadata values
+/// Compare two metadata values numerically, coercing integers to floats.
 fn compare_values<F>(actual: Option<&MetadataValue>, expected: &MetadataValue, cmp: F) -> bool
 where
     F: Fn(f64, f64) -> bool,

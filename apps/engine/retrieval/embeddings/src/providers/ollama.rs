@@ -1,7 +1,6 @@
-// Supports local embedding models via Ollama:
-// - nomic-embed-text (768 dimensions)
-// - mxbai-embed-large (1024 dimensions)
-// - all-minilm (384 dimensions)
+//! Ollama provider, for local embedding models.
+//!
+//! Known-good models: `nomic-embed-text` (768), `mxbai-embed-large` (1024), `all-minilm` (384).
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -14,7 +13,6 @@ use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResponse,
 const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
 const DEFAULT_CACHE_SIZE: usize = 10000;
 
-// Ollama embedding provider LRU cache
 struct OllamaEmbedderInner {
     client: Client,
     model: String,
@@ -26,7 +24,6 @@ pub struct OllamaEmbedder {
 }
 
 impl OllamaEmbedder {
-    // Create a new Ollama embedder with automatic caching
     pub fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let inner = OllamaEmbedderInner::new(config)?;
         Ok(Self {
@@ -34,7 +31,6 @@ impl OllamaEmbedder {
         })
     }
 
-    // Create with custom cache size
     pub fn with_cache_size(config: &EmbeddingConfig, cache_size: usize) -> EmbeddingResult<Self> {
         let inner = OllamaEmbedderInner::new(config)?;
         Ok(Self {
@@ -79,7 +75,6 @@ impl OllamaEmbedderInner {
 #[async_trait]
 impl Embedder for OllamaEmbedderInner {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
-        // request payload for the Ollama API
         let request = OllamaEmbeddingRequest {
             model: self.model.clone(),
             prompt: text.to_string(),
@@ -134,7 +129,6 @@ impl Embedder for OllamaEmbedderInner {
     }
 }
 
-// Delegate Embedder trait to the cached inner embedder
 #[async_trait]
 impl Embedder for OllamaEmbedder {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {

@@ -36,7 +36,6 @@ impl EmbedMetrics {
         let total_latency_ns = self.total_latency_ns.load(Ordering::Relaxed); // Total latency in nanoseconds
         let avg_latency_ms = if requests > 0 {
             Some((total_latency_ns as f64 / requests as f64 / 1_000_000.0) as f32)
-        // Convert to milliseconds
         } else {
             None
         };

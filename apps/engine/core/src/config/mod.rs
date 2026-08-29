@@ -1,4 +1,4 @@
-// Configuration module
+//! Configuration, resolved from defaults, an optional file, then the environment.
 
 mod app;
 mod cache;

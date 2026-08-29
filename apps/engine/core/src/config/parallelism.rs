@@ -1,26 +1,23 @@
-// Parallelism configuration for concurrent operations
+//! Thread-pool settings.
 
 use serde::{Deserialize, Serialize};
 
-//  mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ParallelismMode {
-    // Single-threaded execution
+    /// One thread.
     SingleThreaded,
-    // Use all available CPU cores
+    /// One thread per core.
     #[default]
     Auto,
-    // Use a specific number of threads
+    /// A fixed thread count.
     Fixed(usize),
 }
 
-// Parallelism configuration
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct ParallelismConfig {
-    // Thread pool mode
     pub mode: ParallelismMode,
 
-    // Enable parallel search (when applicable)
+    /// Fan batch searches across the pool.
     pub parallel_search: bool,
 }
 
@@ -34,7 +31,6 @@ impl Default for ParallelismConfig {
 }
 
 impl ParallelismConfig {
-    // Single-threaded mode
     pub fn single_threaded() -> Self {
         ParallelismConfig {
             mode: ParallelismMode::SingleThreaded,
@@ -42,7 +38,6 @@ impl ParallelismConfig {
         }
     }
 
-    //  fixed number of threads
     pub fn fixed(num_threads: usize) -> Self {
         ParallelismConfig {
             mode: ParallelismMode::Fixed(num_threads),
@@ -50,7 +45,7 @@ impl ParallelismConfig {
         }
     }
 
-    // the number of threads to use
+    /// Resolved thread count. Zero means let rayon decide.
     pub fn num_threads(&self) -> usize {
         match self.mode {
             ParallelismMode::SingleThreaded => 1,

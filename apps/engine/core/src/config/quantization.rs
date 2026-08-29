@@ -1,21 +1,19 @@
-// Quantization configuration for vector compression
+//! Vector compression settings.
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum QuantizationLevel {
-    // No quantization - full precision float32
+    /// Full-precision f32.
     #[default]
     None,
-    // 8-bit integer quantization
+    /// 8-bit integer, scaled per vector.
     Int8,
-    // Product quantization block-wise min/max compression
-    Pq {
-        subquantizers: usize,
-    },
-    // 4-bit integer quantization
+    /// Product quantization with `subquantizers` blocks.
+    Pq { subquantizers: usize },
+    /// 4-bit integer. Not implemented; rejected by `AppConfig::validate`.
     Int4,
-    // 16-bit float quantization
+    /// Half precision. Not implemented; rejected by `AppConfig::validate`.
     Float16,
 }
 
@@ -30,13 +28,11 @@ pub enum QuantizationStage {
     ResultPostSearch,
 }
 
-// Quantization configuration
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct QuantizationConfig {
-    // Quantization level to use
     pub level: QuantizationLevel,
 
-    // Whether to compress vectors on disk only (false = also in memory)
+    /// Compress on disk only. `false` also quantizes the in-memory copy.
     pub disk_only: bool,
 
     #[serde(default)]
@@ -74,7 +70,7 @@ impl Default for QuantizationConfig {
 }
 
 impl QuantizationConfig {
-    // Enable int8 quantization for index/search experiments while keeping raw storage.
+    /// Quantize for index and search while keeping raw vectors on disk.
     pub fn int8() -> Self {
         QuantizationConfig {
             level: QuantizationLevel::Int8,
@@ -88,7 +84,6 @@ impl QuantizationConfig {
         }
     }
 
-    // Enable int8 quantization for disk only
     pub fn int8_disk_only() -> Self {
         QuantizationConfig {
             level: QuantizationLevel::Int8,
@@ -102,7 +97,6 @@ impl QuantizationConfig {
         }
     }
 
-    // Enable CPU product quantization with the given number of subquantizers.
     pub fn pq(subquantizers: usize) -> Self {
         QuantizationConfig {
             level: QuantizationLevel::Pq { subquantizers },

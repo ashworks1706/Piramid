@@ -12,7 +12,7 @@ findings cut against a literal RETRO implementation:
   ([2310.07713](https://arxiv.org/abs/2310.07713)), the largest retrieval-pretrained LLM at 48B,
   reports that removing the retrieval encoder and using the decoder backbone alone gives
   comparable results. The gains came from retrieval-augmented *pretraining* improving the decoder,
-  not from retrieval in the attention loop at inference — which is precisely the mechanism in
+  not from retrieval in the attention loop at inference — which is exactly the mechanism in
   question.
 - **Gains may be token overlap, not generalization.**
   [2302.12128](https://arxiv.org/pdf/2302.12128) finds RETRO's improvements largely track token

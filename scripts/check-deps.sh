@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
-# Verify the workspace dependency law.
+# Verify the workspace dependency rule.
 #
-# The layering in docs/ARCHITECTURE.md is only real if something enforces it. Cargo already makes
+# The layering in docs/ARCHITECTURE.md only holds if something checks it. Cargo already makes
 # an undeclared edge a compile error; this script makes a *declared* one a CI failure, so adding
 # `piramid-server` to `piramid-compute`'s manifest fails here rather than being noticed in review.
 #

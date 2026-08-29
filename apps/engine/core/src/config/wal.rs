@@ -4,20 +4,19 @@ use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct WalConfig {
-    // Enable WAL
     pub enabled: bool,
 
-    // Checkpoint frequency, flush every N operations
+    /// Checkpoint after this many operations.
     pub checkpoint_frequency: usize,
 
-    // Optional time-based checkpoint interval, seconds
+    /// Also checkpoint after this many seconds, if set.
     #[serde(default)]
     pub checkpoint_interval_secs: Option<u64>,
 
-    // Maximum log file size in bytes before rotation
+    /// Rotate once the log passes this many bytes.
     pub max_log_size: usize,
 
-    // Sync to disk after every write, slower but safer
+    /// `fsync` every write. Durable across power loss, and much slower.
     pub sync_on_write: bool,
 }
 
@@ -34,7 +33,6 @@ impl Default for WalConfig {
 }
 
 impl WalConfig {
-    // Disable WAL
     pub fn disabled() -> Self {
         WalConfig {
             enabled: false,
@@ -45,7 +43,6 @@ impl WalConfig {
         }
     }
 
-    // High durability mode, sync on every write
     pub fn high_durability() -> Self {
         WalConfig {
             enabled: true,
@@ -56,7 +53,6 @@ impl WalConfig {
         }
     }
 
-    // Fast mode, larger checkpoint intervals
     pub fn fast() -> Self {
         WalConfig {
             enabled: true,

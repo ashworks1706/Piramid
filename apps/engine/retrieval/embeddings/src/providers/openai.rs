@@ -1,7 +1,7 @@
-// Supports:
-// - text-embedding-3-small (1536 dimensions)
-// - text-embedding-3-large (3072 dimensions)
-// - text-embedding-ada-002 (1536 dimensions, legacy)
+//! OpenAI provider.
+//!
+//! Known-good models: `text-embedding-3-small` (1536), `text-embedding-3-large` (3072), and
+//! `text-embedding-ada-002` (1536, legacy).
 
 use async_trait::async_trait;
 use reqwest::Client;
@@ -14,7 +14,6 @@ use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResponse,
 const DEFAULT_OPENAI_API_URL: &str = "https://api.openai.com/v1/embeddings";
 const DEFAULT_CACHE_SIZE: usize = 10000;
 
-// OpenAI embedding provider with built-in LRU cache
 struct OpenAIEmbedderInner {
     client: Client,   // HTTP requests to the OpenAI API
     api_key: String,  // OpenAI API key for authentication
@@ -27,7 +26,6 @@ pub struct OpenAIEmbedder {
 }
 
 impl OpenAIEmbedder {
-    // automatic caching
     pub fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let inner = OpenAIEmbedderInner::new(config)?;
         Ok(Self {
@@ -35,7 +33,6 @@ impl OpenAIEmbedder {
         })
     }
 
-    // custom cache size
     pub fn with_cache_size(config: &EmbeddingConfig, cache_size: usize) -> EmbeddingResult<Self> {
         let inner = OpenAIEmbedderInner::new(config)?;
         Ok(Self {

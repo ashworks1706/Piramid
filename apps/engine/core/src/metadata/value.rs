@@ -1,9 +1,8 @@
-// Metadata - extra data you store alongside vectors
+//! Key-value data stored alongside a vector, and the values it can hold.
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-// Values that can be stored in metadata
-// Rust enums with data: each variant can hold different types!
+/// A value in a document's metadata.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub enum MetadataValue {
     String(String), // holds a String
@@ -15,8 +14,6 @@ pub enum MetadataValue {
 }
 
 impl MetadataValue {
-    // These methods try to extract the inner value
-    // Return Option<T> because it might not be that type
     pub fn as_string(&self) -> Option<&str> {
         match self {
             MetadataValue::String(s) => Some(s), // return reference to inner string
@@ -46,8 +43,7 @@ impl MetadataValue {
     }
 }
 
-// impl From<X> for Y means you can do: let y: Y = x.into();
-// This lets us write: metadata([("key", "value".into())])
+// These exist so callers can write `metadata([("k", "v".into())])` without naming the variant.
 impl From<String> for MetadataValue {
     fn from(s: String) -> Self {
         MetadataValue::String(s)
@@ -92,8 +88,7 @@ impl From<bool> for MetadataValue {
 
 pub type Metadata = HashMap<String, MetadataValue>;
 
-// Helper to create metadata inline
-//  `const N: usize` is a const generic - array size known at compile time
+/// Build a [`Metadata`] map from an array of pairs.
 pub fn metadata<const N: usize>(pairs: [(&str, MetadataValue); N]) -> Metadata {
     pairs
         .into_iter() // consume array into iterator

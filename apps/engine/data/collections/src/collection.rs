@@ -33,7 +33,6 @@ impl Collection {
         }
     }
 
-    // Track operations to trigger checkpoints based on WAL config
     pub(super) fn track_operation(&mut self) -> Result<()> {
         let interval_due = if let Some(last) = self.checkpoint.last_checkpoint() {
             if let Some(interval) = self.config.wal.checkpoint_interval_secs {
@@ -134,14 +133,13 @@ impl Collection {
         cache_maintenance::rebuild(self)
     }
 
-    // If cache and index diverge (e.g., after crash), rebuild to ensure consistency.
+    /// Rebuild the ANN index from stored records, used when it and the cache have diverged.
     pub fn ensure_cache_consistency(&mut self) -> Result<()> {
         cache_maintenance::ensure_consistent(self)
     }
 
     /// Rebuild the vector index from on-disk data and persist it.
     pub fn rebuild_index(&mut self) -> Result<()> {
-        // Collect all vectors from storage
         let mut vectors: HashMap<Uuid, Vec<f32>> = HashMap::new();
 
         for (id, pointer) in &self.index {
@@ -149,14 +147,12 @@ impl Collection {
             vectors.insert(*id, entry.try_get_vector()?);
         }
 
-        // Build fresh index
         let mut new_index = piramid_index::create_index(&self.config.index, self.index.len());
         let reader = HashMapVectorReader::new(&vectors);
         for (id, vec) in &vectors {
             new_index.insert(*id, vec, &reader);
         }
 
-        // Swap and persist
         self.vector_index = new_index;
         self.rebuild_vector_cache()?;
         save_vector_index(self.path.as_str(), self.vector_index())?;

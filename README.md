@@ -10,43 +10,38 @@
 </p>
 
 <p align="center">
-  <a href="#overview">Overview</a> •
+  <a href="#what-this-is">What this is</a> •
   <a href="#quickstart">Quickstart</a> •
   <a href="#usage">Usage</a> •
-  <a href="#where-this-is-going">Direction</a> •
+  <a href="#where-this-is-going">Where this is going</a> •
   <a href="docs/ARCHITECTURE.md">Architecture</a> •
   <a href="docs/SETUP.md">Setup</a> •
-  <a href="docs/ROADMAP.md">Roadmap</a> •
-  <a href="https://piramiddb.com/blogs/contributions">Contributing</a>
+  <a href="docs/ROADMAP.md">Roadmap</a>
 </p>
 
-## Overview
+## What this is
 
-Standard RAG retrieves chunks from a vector database, concatenates them into the prompt, and sends
-everything to a separate inference service. Two network hops, redundant serialization, and context
-windows filled with stuffed text — paid on every query.
+Today Piramid is a single-node vector database written in Rust. Collections, kNN and range
+search, metadata filtering, embedding ingestion, WAL durability, three ANN index families, and
+SIMD distance kernels. It runs as one binary with no external dependencies.
 
-Piramid is being built so retrieval and transformer inference share one Rust process, with
-retrieved vectors entering the model through cross-attention during the forward pass instead of
-being prepended as context tokens.
-
-**Today Piramid is the retrieval half of that: a single-node vector database.** Collections, kNN
-and range search, metadata filtering, embedding ingestion, WAL durability, three ANN index
-families, and SIMD distance kernels. The inference half is scaffolding with its seams defined and
-no implementation behind them — see [Where this is going](#where-this-is-going).
+The longer-term goal is to run retrieval and transformer inference in the same process, with
+retrieved vectors entering the model through cross-attention during the forward pass rather than
+being pasted into the prompt. That half is scaffolding: the seams are defined, there is no
+implementation behind them yet. See [Where this is going](#where-this-is-going).
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
-### Architecture
+### How it's put together
 
-Eleven crates, one binary. A crate may depend on one below it; the reverse is a layering violation
-that `scripts/check-deps.sh` fails CI on.
+Eleven library crates under `apps/engine`, plus the binary that links them. A crate may depend on
+one below it in the list; the reverse fails CI.
 
 ```mermaid
 flowchart TD
     CLI[apps/cli]
-    Server[server<br/>http · services · runtime]
-    Inference[inference<br/>model · retrieval seam]
+    Server[server<br/>http · services · state]
+    Inference[inference<br/>forward pass · retrieval seam]
     Collections[collections]
     Embeddings[embeddings]
     Search[search]
@@ -69,11 +64,11 @@ flowchart TD
     Core --> Compute
 ```
 
-`compute` and `gpu` depend on nothing in the workspace. `gpu` owns the device runtime so that
-`compute` and `inference` can share one `Device` — vectors and model weights in a single address
-space is the whole reason for the single-process design.
+`compute` and `gpu` depend on nothing else in the workspace. `gpu` owns the device runtime so that
+both `compute` and `inference` can share one device, which is what lets vectors and model weights
+live in the same address space later.
 
-Full guide: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Decisions and their reasoning:
+Full guide in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Decisions and their reasoning in
 [docs/decisions/](docs/decisions/).
 
 ## Quickstart
@@ -83,13 +78,13 @@ cargo install piramid
 piramid serve --data-dir ./data
 ```
 
-Defaults to `http://0.0.0.0:6333`; data lives under `~/.piramid` unless `DATA_DIR` says otherwise.
-Every setting is in [`.env.example`](.env.example).
+Listens on `0.0.0.0:6333`. Data goes to `~/.piramid` unless `DATA_DIR` says otherwise. Every
+setting is listed in [`.env.example`](.env.example).
 
-Docker:
+With Docker:
 
 ```bash
-just up          # or: docker compose -f deploy/compose.yml up -d
+just up
 ```
 
 From source:
@@ -113,7 +108,7 @@ curl -X POST http://localhost:6333/api/collections/docs/vectors \
   -H "Content-Type: application/json" \
   -d '{"vector": [0.1, 0.2, 0.3, 0.4], "text": "Hello world", "metadata": {"category": "greeting"}}'
 
-# Embed and store text (requires EMBEDDING_PROVIDER)
+# Embed and store text (needs EMBEDDING_PROVIDER set)
 curl -X POST http://localhost:6333/api/collections/docs/embed \
   -H "Content-Type: application/json" \
   -d '{"texts": ["hello", "bonjour"], "metadata_list": [{"lang": "en"}, {"lang": "fr"}]}'
@@ -124,33 +119,34 @@ curl -X POST http://localhost:6333/api/collections/docs/search \
   -d '{"vector": [0.1, 0.2, 0.3, 0.4], "k": 5}'
 ```
 
-Health and metrics: `/api/health`, `/api/readyz`, `/api/metrics`, `/api/version`.
+Operational endpoints: `/api/health`, `/api/readyz`, `/api/version`, `/api/metrics` for the JSON
+view and `/metrics` for Prometheus.
 
 ## Where this is going
 
-The thesis: **knowledge does not have to live in the weights, and it does not have to live in the
-prompt either.** Retrieval that enters through cross-attention costs no context window, and can
-happen *during* generation rather than once before it.
+The idea is that knowledge does not have to live in a model's weights, and it does not have to
+live in the prompt either. Retrieval that reaches the model through cross-attention costs no
+context window, and it can happen during generation rather than once before it.
 
-Piramid commits to the **seam** for that, not to one mechanism. `inference::augment::RetrievalHook`
-defines when retrieval may occur and what it may touch; chunked cross-attention, residual-stream
-gating, and learned index routing are all implementations of one trait. The trait exists before any
-code calls it, because a forward-pass driver written without the seam is very hard to retrofit with
-one.
+Piramid commits to the seam for that rather than to a particular mechanism.
+`inference::augment::RetrievalHook` says when retrieval may happen and what it may touch, not how
+retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
+routing would all be implementations of the same trait. The trait exists before anything calls it
+because a forward-pass driver written without the seam is hard to retrofit with one.
 
-The evidence for the specific RETRO mechanism is genuinely mixed, and
-[ADR 0006](docs/decisions/0006-retrieval-fusion-seam.md) lays out the case against it as well as
-for it, along with the experiment that would settle it. Building the seam rather than the mechanism
-means the infrastructure — device runtime, contiguous vector layout, kernel dispatch, indexes —
-holds its value whichever way that lands.
+The evidence for the specific RETRO mechanism is mixed, and
+[ADR 0006](docs/decisions/0006-retrieval-fusion-seam.md) lays out the case against it alongside
+the case for, plus the experiment that would settle it. Building the seam rather than the
+mechanism means the device runtime, vector layout, kernel dispatch, and indexes stay useful
+whichever way that goes.
 
-See [docs/ROADMAP.md](docs/ROADMAP.md), including a **Known gaps** section listing what is
-currently missing or wrong.
+[docs/ROADMAP.md](docs/ROADMAP.md) has the plan, including a list of what is currently missing or
+broken.
 
 ## Contributing
 
-`just doctor` checks your setup, `just check` is the gate. Read
-[AGENTS.md](AGENTS.md) for layout, the dependency law, and conventions.
+`just doctor` checks your setup and `just check` is the gate. [AGENTS.md](AGENTS.md) covers the
+layout, the dependency rule, and the conventions.
 
 ## License
 

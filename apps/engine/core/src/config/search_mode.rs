@@ -1,24 +1,21 @@
-// Search mode configuration
+//! Which kind of search a request is asking for.
 
 use serde::{Deserialize, Serialize};
 
-// mode
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
 pub enum SearchMode {
-    // K-nearest neighbors return top k results
+    /// Return the `k` nearest.
     #[default]
     KNN,
-    // Range search return all within distance threshold
+    /// Return everything within a score threshold.
     Range,
 }
 
-// Range search parameters
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct RangeSearchParams {
-    // Maximum distance threshold
     pub max_distance: f32,
 
-    // Maximum number of results (None = unlimited)
+    /// Result ceiling. `None` returns everything above the threshold.
     pub max_results: Option<usize>,
 }
 

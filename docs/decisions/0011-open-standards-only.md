@@ -35,7 +35,7 @@ dependencies.
 an application-monitoring decision on the operator's behalf. Errors are not lost — a panic still
 carries a backtrace to stderr, where whatever collects logs already picks it up.
 
-**Not decided.** Whether OTLP earns its place yet. It is vendor-neutral and an operator genuinely
+**Not decided.** Whether OTLP is worth keeping yet. It is vendor-neutral and an operator genuinely
 cannot add it themselves, but Piramid is one process with no distributed calls, so the spans
 currently restate what `/metrics` and the logs already say. Its value arrives when inference lands
 and a request spans retrieval, fusion, and a forward pass. It is feature-gated and off by default,

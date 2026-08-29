@@ -63,7 +63,7 @@ impl Default for AutoIndexConfig {
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(tag = "type")]
 pub enum IndexConfig {
-    // Auto-select based on size (default)
+    /// Pick a family from the collection's size.
     Auto {
         metric: Metric,
         #[serde(default)]
@@ -73,7 +73,6 @@ pub enum IndexConfig {
         #[serde(default)]
         auto: AutoIndexConfig,
     },
-    // Flat index (brute force)
     Flat {
         metric: Metric,
         #[serde(default)]
@@ -81,7 +80,6 @@ pub enum IndexConfig {
         #[serde(default)]
         search: SearchConfig,
     },
-    // HNSW index
     Hnsw {
         m: usize,
         m_max: usize,
@@ -95,7 +93,6 @@ pub enum IndexConfig {
         #[serde(default)]
         search: SearchConfig,
     },
-    // IVF index
     Ivf {
         num_clusters: usize,
         num_probes: usize,

@@ -45,7 +45,7 @@ once. Split it at the layer boundary.
 
 ## Piramid-specific
 
-Check against `AGENTS.md`: does anything violate the dependency law, define types in a `mod.rs`,
+Check against `AGENTS.md`: does anything violate the dependency rule, define types in a `mod.rs`,
 re-export another module's contents, or call `process::exit` in a library? Those are the failure
 modes this codebase has actually had.
 

@@ -35,9 +35,9 @@ rather than an oversight.
 
 ## Rules
 
-- Write it when the decision is made, not afterwards. A reconstructed rationale is a rationalization.
-- Record the evidence *against* as well as for. `0006` is the model: it cites three findings that
-  undercut its own thesis, which is what makes it useful rather than decorative.
+- Write it when the decision is made, not afterwards. A reconstructed rationale is a after-the-fact story.
+- Record the evidence *against* as well as for. `0006` is the example: it cites three findings that
+  undercut its own thesis, which is what makes it useful rather than ornamental.
 - Name the falsifier where there is one. "What would change our mind" is the most valuable line in
   most records.
 - Past records are immutable. A reversal is a new record that supersedes the old one; edit the old

@@ -32,35 +32,27 @@ pub enum ErrorKind {
 
 #[derive(Error, Debug)]
 pub enum PiramidError {
-    // Storage errors
     #[error("Storage error: {0}")]
     Storage(#[from] super::storage::StorageError),
 
-    // Index errors
     #[error("Index error: {0}")]
     Index(#[from] super::index::IndexError),
 
-    // Server/API errors
     #[error("Server error: {0}")]
     Server(#[from] super::server::ServerError),
 
-    // Embedding errors
     #[error("Embedding error: {0}")]
     Embedding(#[from] super::embedding::EmbeddingError),
 
-    // IO errors
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
 
-    // Serialization errors
     #[error("Serialization error: {0}")]
     Serialization(#[from] bincode::Error),
 
-    // JSON errors
     #[error("JSON error: {0}")]
     Json(#[from] serde_json::Error),
 
-    // Generic errors
     #[error("{0}")]
     Other(String),
 }

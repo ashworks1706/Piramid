@@ -1,20 +1,18 @@
-// Cache configuration for embeddings
+//! Cache limits, applied per collection and across the process.
 
 use serde::{Deserialize, Serialize};
 
-// Cache configuration
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct CacheConfig {
-    // Enable caching
     pub enabled: bool,
 
-    // Maximum number of cached items
+    /// Item ceiling for the metadata cache.
     pub max_size: usize,
 
-    // Time-to-live in seconds (None = no expiration)
+    /// Entry lifetime in seconds. `None` never expires.
     pub ttl_seconds: Option<u64>,
 
-    // Maximum total collection cache bytes across loaded collections (None = unlimited)
+    /// Byte budget shared across every loaded collection. `None` is unbounded.
     #[serde(default)]
     pub max_bytes: Option<u64>,
 }
@@ -31,7 +29,6 @@ impl Default for CacheConfig {
 }
 
 impl CacheConfig {
-    // Disable caching
     pub fn disabled() -> Self {
         CacheConfig {
             enabled: false,
@@ -41,7 +38,6 @@ impl CacheConfig {
         }
     }
 
-    // Set cache size
     pub fn with_size(size: usize) -> Self {
         CacheConfig {
             enabled: true,
@@ -51,7 +47,6 @@ impl CacheConfig {
         }
     }
 
-    // Set cache size and TTL
     pub fn with_size_and_ttl(size: usize, ttl_seconds: u64) -> Self {
         CacheConfig {
             enabled: true,

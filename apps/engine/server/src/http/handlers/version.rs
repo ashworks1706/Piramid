@@ -1,5 +1,4 @@
-// src/server/handlers/version.rs
-// this file defines the handler for the /api/version endpoint, which returns the server version and optional git commit hash
+//! `GET /api/version`.
 
 use axum::response::Json;
 use serde::Serialize;
@@ -11,7 +10,7 @@ pub struct VersionResponse {
     pub git_commit: Option<&'static str>,
 }
 
-// GET /api/version - returns binary version and optional git hash
+/// Binary version, plus the build's git hash when one was baked in.
 pub async fn version() -> Json<VersionResponse> {
     Json(VersionResponse {
         version: env!("CARGO_PKG_VERSION"),

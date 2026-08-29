@@ -12,7 +12,7 @@ Reviewing it against how comparable Rust systems are cut turned up three problem
 **The name is taken, and by the adjacent field.** In the Rust ML ecosystem "fusion" means *kernel
 fusion*: [`burn-fusion`](https://crates.io/crates/burn-fusion) is a kernel-fusion backend
 decorator, and Candle ships `candle-flash-attn` for fused attention. A crate called
-`piramid-fusion` sitting next to `piramid-gpu` reads as "fuses GPU kernels" to precisely the
+`piramid-fusion` sitting next to `piramid-gpu` reads as "fuses GPU kernels" to exactly the
 readers most likely to look.
 
 **The dependency argument did not hold.** The claim was that only a crate boundary could prevent
@@ -24,7 +24,7 @@ retrieval dependency, which is the actual invariant, and it holds either way.
 **No precedent for a two-file trait crate.** Candle keeps `BackendDevice` and `BackendStorage` in
 `candle-core` beside implementations. Burn's `Backend` trait lives in a substantial crate, not one
 extracted for direction. Candle splits `candle-kernels` and `candle-flash-attn` out because their
-*builds* differ — a CUDA toolchain — which is a real reason a crate boundary earns its cost.
+*builds* differ — a CUDA toolchain — which is a real reason a crate boundary is worth it.
 
 **Decision.** Fold the trait back into `piramid-inference` as a module, and rename `FusionPoint`
 to `RetrievalPoint` and `on_fusion_point` to `on_retrieval_point`. The concept keeps the name

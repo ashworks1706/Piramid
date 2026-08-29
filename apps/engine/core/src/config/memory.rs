@@ -1,16 +1,16 @@
-// Memory management configuration
+//! Memory limits and mmap settings.
 
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct MemoryConfig {
-    // Maximum memory per collection in bytes (None = unlimited)
+    /// Byte ceiling per collection. `None` is unbounded.
     pub max_memory_per_collection: Option<usize>,
 
-    // Initial mmap size in bytes
+    /// Size the data file is first mapped at; it grows from here.
     pub initial_mmap_size: usize,
 
-    // Enable memory-mapped files
+    /// Map the data file. With this off, records go through ordinary file reads.
     pub use_mmap: bool,
 }
 
@@ -25,7 +25,6 @@ impl Default for MemoryConfig {
 }
 
 impl MemoryConfig {
-    // Set maximum memory per collection in MB
     pub fn with_limit_mb(limit_mb: usize) -> Self {
         MemoryConfig {
             max_memory_per_collection: Some(limit_mb * 1024 * 1024),
@@ -34,7 +33,6 @@ impl MemoryConfig {
         }
     }
 
-    // Set initial mmap size in MB
     pub fn with_mmap_size_mb(size_mb: usize) -> Self {
         MemoryConfig {
             max_memory_per_collection: None,
@@ -43,7 +41,6 @@ impl MemoryConfig {
         }
     }
 
-    // Disable memory-mapped files for regular heap allocation
     pub fn no_mmap() -> Self {
         MemoryConfig {
             max_memory_per_collection: None,

@@ -1,4 +1,4 @@
-// LRU cache wrapper for embeddings, Uses LRU eviction when cache is full.
+//! An `Embedder` wrapper that caches by text, evicting least-recently-used entries.
 
 use async_trait::async_trait;
 use lru::LruCache;
@@ -21,7 +21,6 @@ impl<E: Embedder> CachedEmbedder<E> {
         }
     }
 
-    // Get cache statistics
     pub fn cache_stats(&self) -> CacheStats {
         let cache = self.cache.lock().unwrap();
         CacheStats {
@@ -30,7 +29,6 @@ impl<E: Embedder> CachedEmbedder<E> {
         }
     }
 
-    // Clear the cache
     pub fn clear_cache(&self) {
         let mut cache = self.cache.lock().unwrap();
         cache.clear();
@@ -40,11 +38,9 @@ impl<E: Embedder> CachedEmbedder<E> {
 #[async_trait]
 impl<E: Embedder> Embedder for CachedEmbedder<E> {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
-        // Check cache first
         {
             let mut cache = self.cache.lock().unwrap();
             if let Some(embedding) = cache.get(text) {
-                // Cache hit! Return immediately
                 return Ok(EmbeddingResponse {
                     embedding: embedding.clone(),
                     tokens: None, // We don't track tokens for cached results
@@ -53,10 +49,8 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
             }
         }
 
-        // Cache miss - call the underlying embedder
         let response = self.inner.embed(text).await?;
 
-        // Store in cache
         {
             let mut cache = self.cache.lock().unwrap();
             cache.put(text.to_string(), response.embedding.clone());
@@ -78,7 +72,7 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
     }
 }
 
-// Cache statistics
+/// Hit and miss counts for a [`CachedEmbedder`].
 #[derive(Debug, Clone)]
 pub struct CacheStats {
     pub size: usize,     // Current number of cached items

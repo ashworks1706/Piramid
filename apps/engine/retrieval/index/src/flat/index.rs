@@ -1,6 +1,8 @@
-// Flat (brute force) index implementation
-// O(N) search - compares query against all vectors
-// Best for: small collections, zero build time, 100% recall
+//! Brute-force index.
+//!
+//! Compares the query against every vector, so search is `O(N)` with perfect recall and no build
+//! cost. The right choice below roughly ten thousand vectors, where traversal overhead outweighs
+//! the scan.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -9,7 +11,6 @@ use super::config::FlatConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
 use piramid_core::error::{IndexError, Result};
 
-// Stores nothing except config, vectors are in main storage
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FlatIndex {
     config: FlatConfig,
@@ -26,7 +27,7 @@ impl FlatIndex {
 }
 impl VectorIndex for FlatIndex {
     fn insert(&mut self, id: Uuid, _vector: &[f32], _vectors: &dyn VectorReader) {
-        // Just track the ID - no indexing structure needed
+        // Only the id list; there is no structure to maintain.
         if !self.vector_ids.contains(&id) {
             self.vector_ids.push(id);
         }
@@ -47,10 +48,8 @@ impl VectorIndex for FlatIndex {
             distances.push((*id, score));
         }
 
-        // Sort by score (descending for similarity)
         distances.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        // Return top k IDs
         Ok(distances.iter().take(k).map(|(id, _)| *id).collect())
     }
 

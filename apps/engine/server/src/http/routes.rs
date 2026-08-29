@@ -53,7 +53,6 @@ fn api_router(state: SharedState) -> Router<SharedState> {
             "/collections/{collection}/duplicates",
             post(handlers::find_duplicates),
         )
-        // Config hot reload/status
         .route("/config", get(handlers::config_status))
         .route("/config/reload", post(handlers::reload_config))
         // Vectors CRUD
@@ -77,7 +76,6 @@ fn api_router(state: SharedState) -> Router<SharedState> {
             "/collections/{collection}/vectors/{id}",
             delete(handlers::delete_vector),
         )
-        // Upsert
         .route(
             "/collections/{collection}/upsert",
             post(handlers::upsert_vector),
@@ -133,7 +131,7 @@ pub fn create_router(state: SharedState) -> Router {
             axum::http::header::HeaderName::from_static("x-frame-options"),
             HeaderValue::from_static("DENY"),
         ))
-        // Serve static dashboard files (Next.js export)
+        // Static dashboard, if one has been built into ./dashboard.
         .fallback_service(
             ServeDir::new("dashboard").not_found_service(ServeFile::new("dashboard/index.html")),
         )

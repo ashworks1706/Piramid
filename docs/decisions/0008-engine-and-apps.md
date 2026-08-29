@@ -40,7 +40,7 @@ that relationship legible, and the product is literally called an inference engi
 rather than deployables. The alternative — reserving `apps/` for deployables only and adding a
 third top-level `sdks/` — splits hairs the repo does not need.
 
-Subsystem groups are for navigation, not stratification. They deliberately do not line up with the
+Subsystem groups are for navigation, not layering. They deliberately do not line up with the
 dependency order: `core` depends on `hardware/compute` for the `ExecutionMode` and
 `Metric` types that configuration carries. The law in `scripts/check-deps.sh` is the authority on
 direction; the folders are an index.

@@ -1,4 +1,4 @@
-// Local embedding provider implementation
+//! A provider for any OpenAI-compatible embedding endpoint running locally.
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
@@ -84,12 +84,10 @@ struct LocalUsage {
 #[async_trait]
 impl Embedder for LocalEmbedderInner {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
-        // Construct the request body
         let req = LocalEmbeddingRequest {
             model: self.model.clone(),
             input: text.to_string(),
         };
-        // Send the POST request to the local embedding endpoint
         let response = self
             .client
             .post(&self.base_url)
@@ -97,7 +95,6 @@ impl Embedder for LocalEmbedderInner {
             .send()
             .await
             .map_err(|e| EmbeddingError::RequestFailed(e.to_string()))?;
-        // Check for HTTP errors
         if !response.status().is_success() {
             let status = response.status();
             let error_text = response
@@ -109,22 +106,18 @@ impl Embedder for LocalEmbedderInner {
                 status, error_text
             )));
         }
-        // Parse the JSON response
         let api_resp: LocalEmbeddingResponse = response
             .json()
             .await
             .map_err(|e| EmbeddingError::InvalidResponse(e.to_string()))?;
 
-        // Extract the embedding and token usage from the response
         let first = api_resp
             .data
             .first()
             .ok_or_else(|| EmbeddingError::InvalidResponse("No embeddings in response".into()))?;
 
-        // Construct the EmbeddingResponse
         let tokens = api_resp.usage.as_ref().map(|u| u.total_tokens);
 
-        // Return the embedding response
         Ok(EmbeddingResponse {
             embedding: first.embedding.clone(),
             tokens,

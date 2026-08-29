@@ -1,70 +1,66 @@
 # Piramid — agent guide
 
-An inference-native retrieval engine in Rust: vector storage, ANN search, and (eventually)
-transformer inference in one process. Read `docs/ARCHITECTURE.md` for crate boundaries and
-invariants, `docs/ROADMAP.md` for what we're building and in what order. Do not contradict either
-— propose an edit to the doc instead.
+An inference-native retrieval engine in Rust. Read `docs/ARCHITECTURE.md` for crate boundaries and
+invariants, `docs/ROADMAP.md` for what we're building and in what order. Don't contradict either;
+propose an edit to the doc instead.
 
 ## Commands
 
-`just` is the entrypoint (`just` lists recipes). Install: https://just.systems.
+`just` is the entrypoint. Run `just` on its own to list recipes. Install from https://just.systems.
 
 ```
-just doctor | env | hooks | bootstrap   # first run
-just check              # the gate: fmt, clippy, tests, layering, website
-just check-rust         # cargo fmt --check, clippy -D warnings, test, scripts/check-deps.sh
-just check-features     # compile-check --features gpu-cuda and inference-candle
-just fmt                # format every unit in place
-just serve              # run the server on :6333
-just cli show config    # any CLI subcommand
-just cli support-bundle # diagnostics to attach to a bug report
-just doc                # rustdoc, warnings are errors
-just bench              # criterion
-just audit              # cargo-deny: advisories, bans, licences, sources
-just up | down | logs   # docker compose
+just doctor | env | hooks | bootstrap   first run
+just check              the gate: fmt, clippy, tests, layering, website
+just check-rust         cargo fmt --check, clippy -D warnings, test, scripts/check-deps.sh
+just check-features     compile-check --features gpu-cuda, inference-candle, otel
+just fmt                format everything in place
+just serve              run the server on :6333
+just cli show config    any CLI subcommand
+just cli support-bundle diagnostics to attach to a bug report
+just doc                rustdoc, warnings are errors
+just bench              criterion
+just audit              cargo-deny: advisories, bans, licences, sources
+just up | down | logs   docker compose
 ```
 
-A change is not done until `just check` passes. CI and the pre-commit hook run the same recipes.
+A change isn't done until `just check` passes. CI and the pre-commit hook run the same recipes, so
+local green means CI green.
 
 ## Layout
 
-One repo, one binary. Library layers are `apps/engine/`; the only deployable is `apps/cli`.
-Language is never a folder. Hardware is never a folder.
+One repo, one binary. Everything we author is under `apps/`. The library crates are
+`apps/engine/`; the only thing that ships as an executable is `apps/cli`. Language is never a
+folder and neither is hardware.
 
 ```
-apps/engine/core                  errors, config, metadata + filters, validation, self-measurement
+apps/engine/core                  errors, config, metadata and filters, validation,
+                                  stats (what the engine measures about itself)
 apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
-apps/engine/hardware/compute      distance kernels + backend registry    (leaf: no workspace deps)
-apps/engine/hardware/gpu          device, buffer, stream, module, kernels (leaf: no workspace deps)
+apps/engine/hardware/compute      distance kernels and backend registry
+apps/engine/hardware/gpu          device, buffer, stream, module, kernels
 apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quantization
-apps/engine/data/collections      Collection domain object, cache, checkpoint, compact
+apps/engine/data/collections      the Collection object, cache, checkpoint, compact
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai, ollama, local providers
-apps/engine/inference             forward/ (the pass), kv_cache, batching, sampling,
-                                  augment/ (the RetrievalHook seam)
+apps/engine/inference             forward pass, kv_cache, batching, sampling,
+                                  augment (the RetrievalHook seam)
 apps/engine/server                http, services, runtime state, cluster
-apps/cli                          the `piramid` binary + the umbrella `piramid` facade crate
+apps/cli                          the piramid binary and the umbrella piramid facade crate
 apps/website                      piramiddb.com, blog content and images included
 apps/sdk                          npm and python clients
 docs/                             ARCHITECTURE.md, ROADMAP.md, decisions/
-deploy/                           compose + one Dockerfile per image
+deploy/                           compose and one Dockerfile per image
 ```
 
-`core` and `observability` are flat because they are cross-cutting, not a layer — `observability`
-is used by `server` *and* directly by `apps/cli`, which installs the tracing subscriber before any
-server exists. `server` and `inference` are flat because each is one crate. The grouped folders say
-what they are for: `hardware/` changes when the machine changes, `data/` is where vectors live and
-who owns them, `retrieval/` is how you find them. Groups are navigation, not dependency order —
-the law below is the authority on direction.
+`core` and `observability` are flat because they're used from everywhere rather than sitting at
+one level. `server` and `inference` are flat because each is a single crate. The grouped folders
+say what they're for: `hardware/` is the code that changes when the machine changes, `data/` is
+where vectors live and who owns them, `retrieval/` is how you find them. Groups are for finding
+your way around; the dependency rule below is what actually constrains anything.
 
-Groups say what a thing is for: `hardware/` changes when the machine changes, `data/` is where
-vectors live and who owns them, `retrieval/` is how you find them, `inference/` how you run a model
-over them, `service/` how the outside world reaches it. They are navigation, not dependency order —
-the law below is the authority on direction.
-
-## The dependency law
+## The dependency rule
 
 A crate may depend on one listed below it. The reverse is a layering violation.
 
@@ -75,74 +71,80 @@ core ────┼─→ storage ─→ index ─→ search ─→ collections
          └─→ embeddings ──────────────────────────────────┘
 ```
 
-Enforced by `scripts/check-deps.sh`, which runs in `just check-rust`, the pre-commit hook, and CI.
-Adding an edge means editing that script *and* `docs/ARCHITECTURE.md` in the same change.
+`scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.
+Adding an edge means editing that script and `docs/ARCHITECTURE.md` in the same change.
 
-**`compute` and `gpu` depend on nothing in the workspace**, including `core`. That is what lets
-kernels be lifted into a standalone benchmark, and what stops `inference` reaching through
-retrieval math to get at a device.
+`compute` and `gpu` depend on nothing in the workspace, `core` included. That's what lets kernels
+be benchmarked on their own, and what stops `inference` reaching through the retrieval math to get
+at a device.
 
 ## The three seams
 
 Everything else is infrastructure for these. Change them deliberately.
 
-- **`compute::DistanceKernels`** — one backend per file in `compute/backends/`, one arm in the
-  registry. Batch methods take a *contiguous row-major slab* and a caller-owned `out`, because
-  that shape uploads to a device in one copy. `&[Vec<f32>]` does not; never reintroduce it.
-- **`storage::vectors::VectorReader`** — how indexes read vectors they do not own.
-  `as_slab()` is the fast path, `gather_into()` the fallback. Both have defaults, so a new reader
-  costs nothing.
-- **`inference::augment::RetrievalHook`** — where retrieval enters the forward pass. Defined
-  before anything can call it, on purpose: a driver written without the seam is very hard to
-  retrofit with one. A strategy that queries an index is its own crate — `inference` must never
-  depend on the retrieval stack.
+`compute::DistanceKernels` — one backend per file in `compute/backends/`, one arm in the registry.
+Batch methods take a contiguous row-major slab and a caller-owned `out`, because that shape
+uploads to a device in one copy. A slice of `Vec`s can't, and forces a gather on every call that
+costs more than the kernel saves. Don't reintroduce it.
+
+`storage::vectors::VectorReader` — how indexes read vectors they don't own. `as_slab()` is the
+fast path and `gather_into()` the fallback. Both have defaults, so a new reader costs nothing.
+
+`inference::augment::RetrievalHook` — where retrieval enters the forward pass. Defined before
+anything can call it, because a driver written without the seam is hard to retrofit with one. A
+strategy that queries an index belongs in its own crate; `inference` must never depend on the
+retrieval stack.
 
 ## Rules
 
-- Workspace lints are the law (`[workspace.lints]` in the root `Cargo.toml`). No `panic!`,
-  `todo!`, `unimplemented!`, `dbg!`, `println!`, `eprintln!` outside `apps/cli`. Fix at the source
-  — never `#[allow]` a lint to get green. A genuine exception gets the narrowest possible scope
-  and a one-line reason.
-- `unsafe_code` is denied workspace-wide. It is allowed in `apps/engine/hardware/gpu` (device memory) and at
-  exactly two audited sites: `storage::persistence::mmap::create_mmap` and
-  `server::runtime::disk`. Every block carries a `// SAFETY:` comment stating the precondition.
-- **A library never ends the process.** No `std::process::exit` outside `apps/cli`. Loading
-  configuration returns `Result`; the binary decides what to do with it.
-- **Core is transport-agnostic.** `PiramidError` exposes `ErrorKind`, never a `StatusCode`.
-  HTTP mapping lives in `server::http::ApiError`.
-- Vendor SDK types stay inside their backend module — `gpu/backends/`, `inference/backends/`.
+- Workspace lints are enforced (`[workspace.lints]` in the root `Cargo.toml`). No `panic!`,
+  `todo!`, `unimplemented!`, `dbg!`, `println!`, or `eprintln!` outside `apps/cli`. Fix at the
+  source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
+  a one-line reason.
+- `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/hardware/gpu` and at two
+  audited sites, `storage::persistence::mmap::create_mmap` and `server::runtime::disk`. Every
+  block carries a `// SAFETY:` comment stating its precondition, and the security workflow fails
+  if a fourth site appears.
+- A library never ends the process. No `std::process::exit` outside `apps/cli`. Loading
+  configuration returns a `Result` and the binary decides what to do with it.
+- `core` is transport-agnostic. `PiramidError` exposes an `ErrorKind`, never a `StatusCode`. HTTP
+  mapping lives in `server::http::ApiError`.
+- Vendor SDK types stay inside their backend module, `gpu/backends/` and `inference/backends/`.
   Nothing above imports `cudarc` or `candle`.
-- Dependencies are declared in `[workspace.dependencies]` and referenced with `.workspace = true`.
-- Errors: `thiserror` enums, `Result` aliases per layer, no `unwrap` outside tests.
-- Logging: `tracing` with structured fields and a `target:`, never `println!`.
-- Feature flags are additive and default-off. `cargo build` must always work with no CUDA toolkit.
+- Telemetry speaks open standards only. Prometheus and OTLP are protocols; a vendor's product is
+  not. See ADR 0011.
+- Dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
+- Errors are `thiserror` enums with a `Result` alias per layer. No `unwrap` outside tests.
+- Logging is `tracing` with structured fields and a `target:`, never `println!`.
+- Feature flags are additive and off by default. `cargo build` has to work with no CUDA toolkit.
 
 ## Conventions
 
-- Unit tests next to the code (`#[cfg(test)] mod tests`); integration tests in `apps/engine/<group>/<crate>/tests/`.
-- Every public item has a `///` doc comment saying *what*, not *how*. Every module has `//!`.
+- Unit tests next to the code in `#[cfg(test)] mod tests`, integration tests in the crate's
+  `tests/`. Test data goes to `CARGO_TARGET_TMPDIR`, never a path relative to the crate.
+- Every public item has a `///` comment saying what it is, not how it works. Every module has a
+  `//!`.
+- Comments explain why, never what. If a comment restates the line below it, delete it.
+- One name, one meaning. Before naming a module, check the word isn't already used for something
+  else in the tree. Repeating a word is fine when it means the same thing at each layer, as with
+  `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See ADR 0010.
 - Traits are named for the capability, not the implementation. Backends are named for the
-  technology, one file each — new hardware is a new file, never a new match arm.
-- `mod.rs` / `lib.rs` re-export; they do not define types.
+  technology, one file each, so new hardware is a new file rather than a new match arm.
+- `mod.rs` and `lib.rs` re-export; they don't define types.
 - One canonical path per item. No module re-exports another module's contents.
-- One name, one meaning. Before naming a module, check the name is not already used for a
-  different concept elsewhere in the tree (`ls apps/engine/**/ | sort | uniq -d`). Repeating a
-  word is fine when it means the same thing at each layer — `config/index.rs`, `error/index.rs` —
-  and a bug when it does not. See `docs/decisions/0010-name-audit.md`.
-- Comments explain *why*, never *what*. If a comment restates the line below it, delete it.
-- The tree is scaffolded ahead of the code. Fill a stub in place; don't create parallel files or
-  rename a stub without updating `docs/ARCHITECTURE.md`.
-- Commit messages: imperative subject ≤ 72 chars, body explains *why*.
-- A decision that changes a boundary gets an ADR in `docs/decisions/`.
+- The tree is scaffolded ahead of the code. Fill a stub in place rather than creating a parallel
+  file, and don't rename a stub without updating `docs/ARCHITECTURE.md`.
+- Commit messages: imperative subject under 72 characters, body explains why.
+- A change that moves a boundary or forecloses an option gets an ADR in `docs/decisions/`.
 
 ## Skills
 
-`.claude/skills/README.md` lists them. Use `rust-skills` when writing Rust,
-`test-driven-development` for features and fixes, `systematic-debugging` for bugs,
-`verification-before-completion` before claiming anything is done, `kernel-authoring` when adding
-a compute backend or GPU kernel, `security-audit-standard` before a release, `/code-quality` for
-cleanup passes, `/adr` to record a decision. `/check` is the gate.
+`.claude/skills/README.md` lists them. Use `rust-skills` when writing Rust, `kernel-authoring` for
+compute backends and GPU kernels, `test-driven-development` for features and fixes,
+`systematic-debugging` for bugs, `verification-before-completion` before claiming anything works,
+`security-audit-standard` before a release, `/code-quality` for cleanup, `/adr` to record a
+decision. `/check` is the gate.
 
 ## Out of scope
 
-See "Out of scope" in `docs/ROADMAP.md`. Don't build toward those without an explicit decision.
+See the same section in `docs/ROADMAP.md`. Don't build toward those without an explicit decision.

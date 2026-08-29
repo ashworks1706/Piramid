@@ -1,4 +1,4 @@
-// Search configuration
+//! Per-query recall and speed knobs.
 
 use serde::{Deserialize, Serialize};
 
@@ -9,13 +9,13 @@ use super::{AdaptiveTuningConfig, QueryBudgetConfig};
 /// - Flat always exhaustive (ignores these settings)
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SearchConfig {
-    //  uses ef_search from config, or ef_construction if not set
+    /// HNSW candidate list width. Falls back to the index's `ef_search`.
     pub ef: Option<usize>,
 
-    //  uses num_probes from config
+    /// IVF partitions to scan. Falls back to the index's `num_probes`.
     pub nprobe: Option<usize>,
 
-    // How many extra candidates to pull when a filter is present multiplier of k
+    /// Multiplier on `k` when a filter is present, since some candidates get filtered out.
     #[serde(default = "default_filter_overfetch")]
     pub filter_overfetch: usize,
 
@@ -39,7 +39,7 @@ impl Default for SearchConfig {
 }
 
 impl SearchConfig {
-    // better recall, slower
+    /// Wider search: better recall, slower.
     pub fn high() -> Self {
         SearchConfig {
             ef: Some(400),
@@ -50,12 +50,11 @@ impl SearchConfig {
         }
     }
 
-    // default
     pub fn balanced() -> Self {
         SearchConfig::default()
     }
 
-    // lower recall, faster
+    /// Narrower search: faster, lower recall.
     pub fn fast() -> Self {
         SearchConfig {
             ef: Some(50),

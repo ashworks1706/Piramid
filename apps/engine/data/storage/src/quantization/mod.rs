@@ -1,13 +1,14 @@
-// Quantization primitives for storing vectors in a compressed form.
-// Supports scalar int8 quantization (legacy/default) and a lightweight
-// product-quantization-style block compressor for better recall/size tradeoffs.
+//! Compressed vector representations.
+//!
+//! Scalar int8 is the default. Product quantization splits a vector into blocks and stores a code
+//! per block, which trades more recall loss for a much smaller footprint.
 
 use serde::{Deserialize, Serialize};
 
 use piramid_core::config::QuantizationConfig;
 use piramid_core::error::{Result, StorageError};
 
-// Tracks which encoding is used; defaults to Scalar so old checkpoints still load.
+/// Which encoding a stored vector uses. Defaults to `Scalar` so older sidecars still load.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QuantizationKind {
     Scalar,
@@ -20,7 +21,7 @@ impl QuantizationKind {
     }
 }
 
-// Legacy scalar quantization (single min/max for whole vector).
+/// One min/max pair for the whole vector.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScalarQuantizedVector {
     pub values: Vec<i8>,
@@ -87,7 +88,7 @@ impl ScalarQuantizedVector {
     }
 }
 
-// Lightweight PQ representation: store codes and per-block min/max.
+/// Per-block codes with their own min/max pairs.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductQuantizedVector {
     pub codes: Vec<u8>,
@@ -211,8 +212,10 @@ impl ProductQuantizedVector {
     }
 }
 
-// Unified quantized vector. Additional fields default so legacy on-disk data
-// (values/min/max only) continues to deserialize correctly under bincode.
+/// A stored vector in whichever encoding was configured when it was written.
+///
+/// The `pq` and `kind` fields carry serde defaults so sidecars written before they existed still
+/// deserialize.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuantizedVector {
     pub values: Vec<i8>,

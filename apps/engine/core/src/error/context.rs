@@ -1,9 +1,6 @@
 use super::Result;
 
-// Extension trait to add context to errors in a convenient way
-
-//  we map the error to include the context message. For Option, we convert it to a Result and
-//  use the context message if the option is None.
+/// Attach a message to an error or a `None`, so a failure says where it came from.
 pub trait ErrorContext<T> {
     fn context<S: Into<String>>(self, msg: S) -> Result<T>;
     fn with_context<F, S>(self, f: F) -> Result<T>
@@ -29,8 +26,6 @@ where
     }
 }
 
-// allows us to convert an Option into a Result, where if the Option is None, we can
-// provide a context message that describes the error.
 impl<T> ErrorContext<T> for Option<T> {
     fn context<S: Into<String>>(self, msg: S) -> Result<T> {
         self.ok_or_else(|| super::PiramidError::Other(msg.into()))
