@@ -1,4 +1,4 @@
-// Collection checkpoint manager. Owns WAL state and collection-level checkpoint bookkeeping.
+//! Checkpoint bookkeeping: when to flush sidecars, and clearing the WAL once they are durable.
 
 use super::collection::Collection;
 use piramid_core::error::Result;
@@ -25,7 +25,6 @@ impl CheckpointManager {
 
     pub fn should_checkpoint(&mut self, cfg: &piramid_core::config::WalConfig) -> bool {
         if !cfg.enabled {
-            // If WAL is not enabled, we don't need to checkpoint, so we can return false immediately.
             return false;
         }
         self.operation_count += 1;
@@ -97,12 +96,12 @@ pub fn checkpoint(storage: &mut Collection) -> Result<()> {
         .unwrap()
         .as_secs();
 
-    // serializing the in-memory data structures and writing them to their respective files on disk. ensure that we have a consistent snapshot of the collection's state that can be used for recovery if needed.
+    // All three sidecars land before the WAL is cleared below, so a crash mid-checkpoint replays
+    // rather than loses.
     save_index(storage)?;
     save_vector_index(storage)?;
     save_metadata(storage)?;
 
-    // If WAL is enabled in the configuration, checkpoint the WAL to ensure flushing any buffered entries and rotating the log file if it exceeds the configured size or if a checkpoint is triggered based on the operation count.
     if storage.config.wal.enabled {
         storage.checkpoint.wal.checkpoint(timestamp)?;
         storage.checkpoint.record_checkpoint(timestamp);
@@ -115,7 +114,6 @@ pub fn checkpoint(storage: &mut Collection) -> Result<()> {
 }
 
 pub fn flush(storage: &mut Collection) -> Result<()> {
-    // If WAL is enabled, we need to flush any pending entries to disk to ensure durability.
     storage.checkpoint.wal.flush()?;
     Ok(())
 }

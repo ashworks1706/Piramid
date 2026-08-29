@@ -1,5 +1,10 @@
+//! Retry wrapper for embedding providers.
+//!
+//! Retries only errors `EmbeddingError::is_recoverable` accepts, with exponential backoff. A
+//! permanent failure — a bad API key, a malformed request — returns immediately rather than
+//! burning the retry budget.
+
 // wraps any Embedder implementation and adds retry logic with exponential backoff.
-// If an embedding request fails due to a transient error, RetryEmbedder will automatically retry the request up to a specified number of times with increasing delays between attempts.
 use crate::{Embedder, EmbeddingError, EmbeddingResponse, EmbeddingResult};
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -48,7 +53,6 @@ impl RetryEmbedder {
     }
 }
 
-// The embed method will attempt to call the inner embedder's embed method, and if it fails with a retryable error, it will wait for a certain amount of time starting with initial_delay_ms and doubling each time before retrying, up to max_retries times. If all attempts fail, it will return the last error.
 #[async_trait]
 impl Embedder for RetryEmbedder {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {

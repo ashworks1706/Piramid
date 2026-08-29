@@ -18,7 +18,7 @@ fn cleanup(path: &str) {
 
 #[test]
 fn search_respects_filter() {
-    let test_db = ".piramid/tests/test_search_filter.db";
+    let test_db = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search_filter.db");
     cleanup(test_db);
 
     {

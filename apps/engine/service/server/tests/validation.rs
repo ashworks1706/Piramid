@@ -39,8 +39,8 @@ fn validate_batch_sizes() {
 
 #[test]
 fn invalid_metric_and_search_preset_are_rejected() {
-    assert!(piramid_server::services::search::parse_metric(Some("cosinee".into())).is_err());
-    assert!(piramid_server::services::search::apply_search_overrides(
+    assert!(piramid_server::services::convert::parse_metric(Some("cosinee".into())).is_err());
+    assert!(piramid_server::services::convert::apply_search_overrides(
         piramid_core::config::SearchConfig::default(),
         None,
         None,

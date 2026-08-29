@@ -1,51 +1,29 @@
-// Per-collection configuration that combines all settings
+//! Per-collection configuration.
 
 use super::*;
 use serde::{Deserialize, Serialize};
 
-// Unified collection configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionConfig {
-    // Index configuration
     pub index: crate::config::IndexConfig,
-
-    // Search behavior defaults
     #[serde(default)]
     pub search: SearchConfig,
-
-    // Quantization settings
     #[serde(default)]
     pub quantization: QuantizationConfig,
-
-    // Memory limits
     #[serde(default)]
     pub memory: MemoryConfig,
-
-    // WAL settings
     #[serde(default)]
     pub wal: WalConfig,
-
-    // Parallelism settings
     #[serde(default)]
     pub parallelism: ParallelismConfig,
-
-    // Execution mode for vector operations
     #[serde(default)]
     pub execution: ExecutionMode,
-
-    // Hardware/profile hints used by generated configs and collection defaults
     #[serde(default)]
     pub hardware: HardwareConfig,
-
-    // Limits configuration
     #[serde(default)]
     pub limits: LimitsConfig,
-
-    // Cache configuration
     #[serde(default)]
     pub cache: CacheConfig,
-
-    // Logging controls for collection operations
     #[serde(default)]
     pub logging: LoggingConfig,
 }
@@ -69,7 +47,6 @@ impl Default for CollectionConfig {
 }
 
 impl CollectionConfig {
-    // Create a new config with custom index
     pub fn with_index(index: crate::config::IndexConfig) -> Self {
         CollectionConfig {
             index,
@@ -77,37 +54,31 @@ impl CollectionConfig {
         }
     }
 
-    // Enable int8 quantization
     pub fn with_int8_quantization(mut self) -> Self {
         self.quantization = QuantizationConfig::int8();
         self
     }
 
-    // Set memory limit in MB
     pub fn with_memory_limit_mb(mut self, limit_mb: usize) -> Self {
         self.memory = MemoryConfig::with_limit_mb(limit_mb);
         self
     }
 
-    // Disable WAL
     pub fn without_wal(mut self) -> Self {
         self.wal = WalConfig::disabled();
         self
     }
 
-    // Use single-threaded mode
     pub fn single_threaded(mut self) -> Self {
         self.parallelism = ParallelismConfig::single_threaded();
         self
     }
 
-    // Set execution mode
     pub fn with_execution_mode(mut self, mode: ExecutionMode) -> Self {
         self.execution = mode;
         self
     }
 
-    // Set limits configuration
     pub fn with_limits(mut self, limits: LimitsConfig) -> Self {
         self.limits = limits;
         self

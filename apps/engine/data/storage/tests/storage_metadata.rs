@@ -31,8 +31,8 @@ fn metadata_touch_and_counts() {
 
 #[test]
 fn corrupt_pointer_index_fails_to_load() {
-    let path = ".piramid/tests/corrupt_pointer_index.db";
-    std::fs::create_dir_all(".piramid/tests").unwrap();
+    let path = concat!(env!("CARGO_TARGET_TMPDIR"), "/corrupt_pointer_index.db");
+    std::fs::create_dir_all(env!("CARGO_TARGET_TMPDIR")).unwrap();
     let index_path = format!("{path}.index.db");
     let _ = std::fs::remove_file(&index_path);
     std::fs::write(&index_path, b"not bincode").unwrap();

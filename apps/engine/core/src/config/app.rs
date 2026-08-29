@@ -1,4 +1,5 @@
-// Main application configuration struct: all sub-configurations for the collection, index, search, quantization, memory management, WAL, parallelism, and execution mode.
+//! Application configuration: the root of every setting, and the env-override and validation
+//! rules that resolve it.
 
 use serde::{Deserialize, Serialize};
 

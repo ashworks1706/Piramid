@@ -10,7 +10,8 @@ use crate::traits::{
 use piramid_core::Result;
 use uuid::Uuid;
 
-// we need a wrapper because HNSW has some specific parameters that affect search quality (ef_search) and we want to allow overriding them at search time without changing the index config
+// `HnswIndex` has its own inherent `search` taking an explicit `ef`. This impl adapts the
+// generic trait call to it, resolving `ef` from the per-query config or the index default.
 impl VectorIndex for HnswIndex {
     fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) {
         self.insert(id, vector, vectors);
@@ -38,7 +39,6 @@ impl VectorIndex for HnswIndex {
         self.remove(id);
     }
 
-    // Get statistics about the HNSW index, including total nodes, max layer, layer sizes, average connections, and memory usage.
     fn stats(&self) -> IndexStats {
         let hnsw_stats = self.stats();
 

@@ -15,7 +15,6 @@ pub struct DuplicateHit {
     pub score: f32,
 }
 
-// finds pairs of vectors in the collection that are similar according to the given metric and threshold.
 pub fn find_duplicates(
     collection: &Collection,        // collection to search for duplicates.
     metric: Metric,                 // similarity metric to use for comparing vectors.

@@ -7,7 +7,7 @@ use crate::cache::CacheManager;
 use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::{HashMapVectorReader, VectorIndex, VectorReader};
-use piramid_storage::metadata::CollectionMetadata;
+use piramid_storage::manifest::CollectionMetadata;
 use piramid_storage::persistence::{get_wal_path, warm_file, EntryPointer};
 use piramid_storage::record_store::RecordStore;
 
@@ -65,7 +65,7 @@ impl Collection {
     }
 
     pub fn memory_usage_bytes(&self) -> usize {
-        // Calculate memory usage by summing the sizes of the memory-mapped file, index, vector cache, metadata cache, and vector index.
+        // Approximate: mmap + offset index + caches + ANN structure.
         let mmap_size = self.record_store.mapped_len();
         let index_size = self.index.capacity() * std::mem::size_of::<(Uuid, EntryPointer)>(); // Approximate size of the index based on its capacity
 

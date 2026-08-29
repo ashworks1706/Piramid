@@ -1,3 +1,10 @@
+//! The collection manifest.
+//!
+//! [`CollectionMetadata`] describes a *collection* — its name, vector dimensionality, counts, and
+//! timestamps. That is a different thing from `piramid_core::metadata::Metadata`, which is the
+//! key-value payload attached to a single document. This module is named `manifest` so the two
+//! are not both called "metadata" in the tree.
+
 // Collection metadata tracking (created_at, updated_at, dimensions)
 
 use serde::{Deserialize, Serialize};

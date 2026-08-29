@@ -1,7 +1,7 @@
 use std::time::Instant;
 
 use crate::runtime::SharedState;
-use crate::services::search::{apply_search_overrides, hit_to_response, parse_metric};
+use crate::services::convert::{apply_search_overrides, hit_to_response, parse_metric};
 use crate::services::types::range::RangeSearchRequest;
 use crate::services::types::{
     MultiSearchResponse, SearchRequest, SearchResponse, SearchResultsResponse,

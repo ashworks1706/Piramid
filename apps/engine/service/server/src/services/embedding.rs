@@ -2,9 +2,10 @@ use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::runtime::SharedState;
-use crate::services::metadata::{json_to_metadata, EMBEDDING_NOT_CONFIGURED};
-use crate::services::search::{apply_search_overrides, hit_to_response, parse_metric};
+use crate::services::convert::json_to_metadata;
+use crate::services::convert::{apply_search_overrides, hit_to_response, parse_metric};
 use crate::services::types::*;
+use crate::services::EMBEDDING_NOT_CONFIGURED;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::telemetry::{record_lock_read, record_lock_write};
 use piramid_storage::Document;

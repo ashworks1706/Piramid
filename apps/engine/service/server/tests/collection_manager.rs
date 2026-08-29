@@ -46,7 +46,10 @@ fn assert_not_found<T>(result: ApiResult<T>) {
 
 #[tokio::test]
 async fn read_endpoints_do_not_create_missing_collections() {
-    let data_dir = ".piramid/tests/collection_manager_missing_reads";
+    let data_dir = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/collection_manager_missing_reads"
+    );
     let state = test_state(data_dir);
 
     assert_not_found(
@@ -72,7 +75,10 @@ async fn read_endpoints_do_not_create_missing_collections() {
 
 #[tokio::test]
 async fn cache_budget_evicts_metadata_without_dropping_vectors() {
-    let data_dir = ".piramid/tests/collection_manager_cache_budget";
+    let data_dir = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/collection_manager_cache_budget"
+    );
     let mut app_config = AppConfig::default();
     app_config.cache.max_bytes = Some(1);
     let state = test_state_with_config(data_dir, app_config);
@@ -115,7 +121,10 @@ async fn cache_budget_evicts_metadata_without_dropping_vectors() {
 
 #[tokio::test]
 async fn insert_endpoint_creates_collection_intentionally() {
-    let data_dir = ".piramid/tests/collection_manager_insert_creates";
+    let data_dir = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/collection_manager_insert_creates"
+    );
     let state = test_state(data_dir);
 
     let response = vectors::insert_vector(
@@ -147,7 +156,10 @@ async fn insert_endpoint_creates_collection_intentionally() {
 
 #[tokio::test]
 async fn read_endpoint_loads_existing_collection_from_disk() {
-    let data_dir = ".piramid/tests/collection_manager_existing_disk";
+    let data_dir = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/collection_manager_existing_disk"
+    );
     let collection_path = format!("{data_dir}/docs.db");
     let state = test_state(data_dir);
     fs::create_dir_all(data_dir).expect("create test data dir");

@@ -26,10 +26,13 @@ retrieval dependency, which is the actual invariant, and it holds either way.
 extracted for direction. Candle splits `candle-kernels` and `candle-flash-attn` out because their
 *builds* differ — a CUDA toolchain — which is a real reason a crate boundary earns its cost.
 
-**Decision.** Fold the trait back in as `piramid_inference::retrieval`, and rename `FusionPoint` to
-`RetrievalPoint` and `on_fusion_point` to `on_retrieval_point`. The concept keeps the name
+**Decision.** Fold the trait back into `piramid-inference` as a module, and rename `FusionPoint`
+to `RetrievalPoint` and `on_fusion_point` to `on_retrieval_point`. The concept keeps the name
 "retrieval fusion" in prose, where it is the literature's term and unambiguous; only the crate and
 the API stop using a word that collides.
+
+The module landed as `inference::retrieval`, which promptly collided with the `retrieval/` crate
+group; [0010](0010-name-audit.md) renames it to `inference::augment`.
 
 `scripts/check-deps.sh` keeps asserting that `piramid-inference` depends on nothing in the
 retrieval stack. Verified by injecting `piramid-inference -> piramid-search` and watching it fail.

@@ -87,9 +87,6 @@ impl Embedder for OllamaEmbedderInner {
 
         let url = format!("{}/api/embeddings", self.base_url);
 
-        //  If the request fails (e.g., network error), we return an EmbeddingError.
-        // If the response status is not successful, we read the error message from the response and return it as an API error.
-        // If the response is successful, we parse the JSON response into our OllamaEmbeddingResponse struct, which contains the embedding vector.
         let response = self
             .client
             .post(&url)
@@ -112,7 +109,6 @@ impl Embedder for OllamaEmbedderInner {
             )));
         }
 
-        // JSON object that contains the embedding vector. If deserialization fails, we return an InvalidResponse error.
         let api_response: OllamaEmbeddingResponse = response
             .json()
             .await

@@ -13,7 +13,6 @@ pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorI
 
     match index_type {
         IndexKind::Flat => {
-            // we use the metric and mode from the config, but the rest of the parameters are not needed for a flat index.
             let (metric, mode) = config.get_metric_and_mode();
             Box::new(FlatIndex::new(FlatConfig { metric, mode }))
         }
@@ -42,7 +41,8 @@ pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorI
                     mode: *mode,
                 },
                 _ => {
-                    //  we use default HNSW parameters but apply the metric and mode from the config. The ef_search parameter defaults to the same value as ef_construction if not explicitly set
+                    // Auto-selected: default graph parameters, but the configured metric and
+                    // execution mode still apply.
                     let (metric, mode) = config.get_metric_and_mode();
                     let auto = config.auto_config();
                     let m = auto.hnsw_m;
@@ -76,7 +76,8 @@ pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorI
                     mode: *mode,
                 },
                 _ => {
-                    // we use the auto-configure method to determine the number of clusters and probes based on the number of vectors, while applying the metric and mode from the config. configured dynamically based on the dataset size while still respecting user preferences for the distance metric and execution mode.
+                    // Auto-selected: cluster and probe counts derived from collection size, with
+                    // any explicit overrides from config applied on top.
                     let (metric, mode) = config.get_metric_and_mode();
                     let auto = config.auto_config();
                     let mut config = IvfConfig::auto(num_vectors);

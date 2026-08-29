@@ -1,5 +1,4 @@
 // Flat index configuration
-// This struct defines the configuration options for a flat index, that stores all vectors in a single list and performs linear search.
 use piramid_compute::Metric;
 use piramid_core::config::ExecutionMode;
 use serde::{Deserialize, Serialize};

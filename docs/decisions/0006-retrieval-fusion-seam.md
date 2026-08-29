@@ -30,7 +30,7 @@ stream, not ANN plus cross-attention, and trained in at pretraining time.
 
 **Decision.** Commit to the *seam*, not the mechanism.
 
-`inference::fusion::RetrievalHook` says when retrieval may occur (`FusionPoint`) and what it may
+`inference::fusion::RetrievalHook` says when retrieval may occur (`RetrievalPoint`) and what it may
 touch (`ForwardContext`). It says nothing about how retrieved data is combined. Chunked
 cross-attention, residual-stream gating, hashed n-gram lookup, and learned index routing are all
 implementations of one trait.

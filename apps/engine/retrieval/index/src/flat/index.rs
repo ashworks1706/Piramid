@@ -32,7 +32,8 @@ impl VectorIndex for FlatIndex {
         }
     }
 
-    // Search for nearest neighbors to the query vector. The filter and metadata parameters are also ignored in this simple implementation, but they could be used in a more advanced version to filter results based on metadata or other criteria.
+    // Scans every vector. Filters are ignored here and applied by the caller after ranking —
+    // with no traversal to prune, evaluating them mid-scan would save nothing.
     fn search(&self, request: crate::IndexSearchRequest<'_>) -> Result<Vec<Uuid>> {
         let crate::IndexSearchRequest {
             query, k, vectors, ..

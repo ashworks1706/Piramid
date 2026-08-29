@@ -10,10 +10,9 @@ use piramid_core::error::{IndexError, Result};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct HnswNode {
-    // connections[layer] = Vec of neighbor IDs at that layer
-    // Layer 0 is at index 0
+    /// Neighbours per layer, layer 0 first.
     connections: Vec<Vec<Uuid>>,
-    // Marked true when deleted; we keep edges so traversal stays connected.
+    /// Deleted, but edges are kept so traversal stays connected.
     tombstone: bool,
 }
 
@@ -44,7 +43,7 @@ impl PartialOrd for SearchCandidate {
 
 impl Ord for SearchCandidate {
     fn cmp(&self, other: &Self) -> Ordering {
-        // For max heap, reverse ordering so closest (smallest distance) comes first
+        // Reversed: BinaryHeap is a max-heap, and we want the closest first.
         other
             .distance
             .partial_cmp(&self.distance)
@@ -52,7 +51,6 @@ impl Ord for SearchCandidate {
     }
 }
 
-// Main HNSW index structure
 #[derive(Clone, Serialize, Deserialize)]
 pub struct HnswIndex {
     config: HnswConfig,
@@ -80,16 +78,19 @@ impl HnswIndex {
             node.tombstone = true;
         }
     }
-    // higher layers have exponentially fewer nodes, so we want to assign layers
-    // to new nodes in a way that reflects this distribution
+    /// Draw a layer for a new node.
+    ///
+    /// Layer occupancy decays exponentially, which is what keeps the upper layers sparse enough
+    /// to act as an index over the lower ones.
     fn random_layer(&self) -> usize {
-        // exponential decay probability
-        // floor(-ln(uniform_random) * ml)
+        // floor(-ln(uniform) * ml)
         let r: f32 = rand::random();
         (-r.ln() * self.config.ml).floor() as usize // this basically gives us a layer based on exponential decay
     }
 
-    // Insert a node with access to vector storage for distance calculations
+    /// Insert `id`, linking it into each layer it occupies.
+    ///
+    /// `vectors` supplies the already-indexed vectors needed to compute distances while linking.
     pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) {
         let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
         let search_context = SearchContext {
@@ -97,12 +98,9 @@ impl HnswIndex {
             filter: None,
             metadatas: &empty_meta,
         };
-        // in hnsw, we add nodes one at a time, connecting them to existing nodes
-        // first, we need to create the node and determine its level
-        // determine the layer for the new node
         let layer = self.random_layer(); // this gives us a layer based on exponential decay
 
-        // if first node, make it entry point and return
+        // First node becomes the entry point.
         if self.start_node.is_none() {
             self.start_node = Some(id); // set entry point
             self.max_level = layer as isize; // this makes sure max_level is always the highest level
@@ -114,26 +112,19 @@ impl HnswIndex {
             return;
         }
 
-        // otherwise, we need to find the best entry point for each layer down to 0
-        // we do this by greedy search
-        // start from the highest layer of the current entry point
+        // Greedy descent from the current entry point to find where to link.
         let mut current_entry = vec![self.start_node.unwrap()];
 
-        // Search from top layer down to target layer (layer + 1)
         for lc in ((layer as isize + 1)..=self.max_level).rev() {
             current_entry =
                 self.search_layer(vector, &current_entry, 1, lc as usize, &search_context);
         }
 
-        // Insert and connect at each layer from target down to 0
-        // (keep pending connections to avoid partial writes before pruning).
+        // Connect from the target layer down to 0. Connections are staged and applied after
+        // pruning so a failure cannot leave a half-linked node.
         let mut pending_connections = vec![Vec::new(); layer + 1];
         for lc in (0..=layer).rev() {
-            // 0..=layer means we go from layer down to 0 since we are
-            // doing rev()
-            // Search for ef_construction nearest neighbors at this layer
             current_entry = self.search_layer(
-                // ef_construction means we want to find this many neighbors
                 vector,
                 &current_entry,
                 self.config.ef_construction,
@@ -141,7 +132,7 @@ impl HnswIndex {
                 &search_context,
             );
 
-            // Select M best neighbors (or M_max for layer 0)
+            // Layer 0 allows M_max edges; higher layers allow M.
             let m = if lc == 0 {
                 self.config.m_max
             } else {
@@ -149,27 +140,21 @@ impl HnswIndex {
             };
             let neighbors = self.select_neighbors(&current_entry, m, vectors, vector);
 
-            // Add bidirectional connections
-            // we do this by adding edges in both directions between the new node and its neighbors
-            // at the current layer since HNSW uses undirected edges, undirectec edges mean that if node A
-            // is connected to node B, then node B is also connected to node A
+            // Edges are undirected, so each link is written in both directions.
             for &neighbor_id in &neighbors {
-                // Add edge from new node to neighbor
                 if lc < pending_connections.len() {
                     pending_connections[lc].push(neighbor_id);
                 }
 
                 // Add edge from neighbor to new node
                 if let Some(neighbor) = self.nodes.get_mut(&neighbor_id) {
-                    // get mutable reference to neighbor why?
-                    // because we want to modify it's connections
                     if lc < neighbor.connections.len() {
                         neighbor.connections[lc].push(id);
 
-                        // Prune connections if neighbor exceeds max why? because HNSW limits the
-                        // number of connections per node to maintain efficiency
+                        // Degree is capped per node; prune the neighbour if this edge pushed it
+                        // over.
                         if neighbor.connections[lc].len() > m {
-                            // Clone the connections and neighbor vector to avoid borrow issues
+                            // Cloned to release the borrow on `self.nodes` before pruning.
                             let neighbor_connections = neighbor.connections[lc].clone();
                             let neighbor_vec = vectors.get(&neighbor_id).unwrap().to_vec();
 
@@ -191,23 +176,23 @@ impl HnswIndex {
             }
         }
 
-        // Create and insert the new node
         let new_node = HnswNode {
             connections: pending_connections,
             tombstone: false,
         };
         self.nodes.insert(id, new_node);
 
-        // Update entry point if this node is at a higher layer
+        // A node above the current entry point becomes the new entry point.
         if layer as isize > self.max_level {
             self.max_level = layer as isize;
             self.start_node = Some(id);
         }
     }
 
-    // 1. Greedy search from top layer down to layer 1 to find entry point for layer 0
-    // 2. Search layer 0 with ef parameter to find k nearest neighbors
-    // ef is a parameter that controls the accuracy/speed tradeoff during search
+    /// Find the `k` nearest neighbours of `query`.
+    ///
+    /// Descends greedily to layer 0, then widens the search there to `ef` candidates. `ef` is the
+    /// recall/speed knob: larger explores more of the graph.
     pub fn search(
         &self,
         query: &[f32],
@@ -236,15 +221,12 @@ impl HnswIndex {
             metadatas,
         };
 
-        // Search from top layer down to layer 1
         for lc in (1..=self.max_level as usize).rev() {
             current_nearest = self.search_layer(query, &current_nearest, 1, lc, &search_context);
         }
 
-        // Search layer 0 with ef
         current_nearest = self.search_layer(query, &current_nearest, ef.max(k), 0, &search_context);
 
-        // Return top k
         let mut filtered: Vec<Uuid> = current_nearest
             .into_iter()
             .filter(|id| !self.is_tombstone(id))
@@ -253,7 +235,7 @@ impl HnswIndex {
         Ok(filtered)
     }
 
-    // Search within a specific layer - returns nearest neighbor IDs sorted by distance
+    /// Search one layer, returning neighbour ids nearest-first.
     fn search_layer(
         &self,
         query: &[f32],
@@ -266,7 +248,6 @@ impl HnswIndex {
         let mut candidates = BinaryHeap::new();
         let mut nearest = BinaryHeap::new();
 
-        // Initialize with entry points
         for &ep in entry_points {
             if let Some(ep_vector) = context.vectors.get(&ep) {
                 if let Some(f) = context.filter {
@@ -291,25 +272,19 @@ impl HnswIndex {
             }
         }
 
-        // we track furthest distance by looking at the top of the nearest heap (since it's a
-        // max-heap)
         let mut furthest_distance = nearest.peek().map(|c| c.distance).unwrap_or(f32::INFINITY);
 
-        // Greedy search within the layer basically, we explore closest candidate first
+        // Explore the closest candidate first, stopping once nothing closer remains.
         while let Some(candidate) = candidates.pop() {
             if candidate.distance > furthest_distance {
                 break;
             }
 
-            // Explore neighbors at this level
             if let Some(node) = self.nodes.get(&candidate.id) {
                 if level < node.connections.len() {
                     for &neighbor_id in &node.connections[level] {
                         if visited.insert(neighbor_id) {
-                            // only proceed if not visited
-                            // we need to calculate distance to this neighbor and decide if it should be added to candidates and nearest
                             if let Some(neighbor_vector) = context.vectors.get(&neighbor_id) {
-                                // apply filter if provided
                                 if let Some(f) = context.filter {
                                     if let Some(md) = context.metadatas.get(&neighbor_id) {
                                         if !f.matches(md) {
@@ -320,7 +295,6 @@ impl HnswIndex {
                                 let dist = self.distance(query, neighbor_vector);
                                 let neighbor_dead = self.is_tombstone(&neighbor_id);
 
-                                // If this neighbor is closer than the furthest in nearest, add it
                                 if dist < furthest_distance || nearest.len() < num_closest {
                                     candidates.push(SearchCandidate {
                                         id: neighbor_id,
@@ -336,7 +310,6 @@ impl HnswIndex {
                                             nearest.pop(); // remove furthest
                                         }
 
-                                        // Update furthest distance
                                         furthest_distance = nearest
                                             .peek()
                                             .map(|c| c.distance)
@@ -350,20 +323,19 @@ impl HnswIndex {
             }
         }
 
-        // Convert heap to sorted vector (closest first)
         let mut result: Vec<_> = nearest.into_iter().collect();
         result.sort_by(|a, b| {
             a.distance
                 .partial_cmp(&b.distance)
                 .unwrap_or(Ordering::Equal)
         }); // sort
-            // ascending
-            // by
-            // distance
         result.into_iter().map(|c| c.id).collect() // return only IDs
     }
 
-    // Select M best neighbors using simple heuristic
+    /// Pick the `m` closest candidates.
+    ///
+    /// The paper's heuristic also considers diversity between neighbours; this takes distance
+    /// only, which is cheaper and adequate at the graph sizes tested here.
     fn select_neighbors(
         &self,
         candidates: &[Uuid],
@@ -375,7 +347,6 @@ impl HnswIndex {
             return candidates.to_vec();
         }
 
-        // Simple heuristic: select M closest by distance
         let mut distances: Vec<_> = candidates
             .iter()
             .filter_map(|&id| {
@@ -396,7 +367,6 @@ impl HnswIndex {
 
     #[allow(dead_code)]
     fn get_neighbors_at_level(&self, node_id: &Uuid, level: usize) -> Vec<Uuid> {
-        // get neighbors at the current level
         if let Some(node) = self.nodes.get(node_id) {
             if level < node.connections.len() {
                 return node.connections[level].clone();
@@ -405,10 +375,10 @@ impl HnswIndex {
         Vec::new()
     }
 
-    // distance function that calculates using configured metric
+    /// Distance under the configured metric, normalized so smaller is always nearer.
     fn distance(&self, a: &[f32], b: &[f32]) -> f32 {
-        // But our metrics return similarity scores (higher = better for Cosine/Dot)
-        // we need to invert for those metrics for HNSW
+        // Cosine and dot product return similarity (higher is nearer), so they are inverted;
+        // Euclidean is already a distance.
         match self.config.metric {
             Metric::Cosine => 1.0 - self.config.metric.calculate(a, b, self.config.mode),
             Metric::DotProduct => 1.0 - self.config.metric.calculate(a, b, self.config.mode),
@@ -416,14 +386,13 @@ impl HnswIndex {
         }
     }
 
-    // Remove a node from the index
+    /// Tombstone a node, keeping its edges so traversal stays connected.
     pub fn remove(&mut self, id: &Uuid) {
         if !self.nodes.contains_key(id) {
             return;
         }
         self.mark_tombstone(id);
 
-        // Update entry point if needed
         if self.start_node == Some(*id) {
             self.start_node = self
                 .nodes
@@ -440,7 +409,7 @@ impl HnswIndex {
         }
     }
 
-    // Get statistics about the index
+    /// Graph shape and approximate memory use.
     pub fn stats(&self) -> HnswStats {
         let mut total_nodes = 0;
         let mut tombstones = 0;
@@ -461,7 +430,6 @@ impl HnswIndex {
             }
         }
 
-        // calculate memory usage bytes
         let memory_usage_bytes = self.nodes.len() * std::mem::size_of::<(Uuid, HnswNode)>()
             + self
                 .nodes
@@ -488,7 +456,7 @@ impl HnswIndex {
         }
     }
 
-    // Get configured ef_search parameter
+    /// Configured default for the search-time `ef` knob.
     pub fn get_ef_search(&self) -> usize {
         self.config.ef_search
     }

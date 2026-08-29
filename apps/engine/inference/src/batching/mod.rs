@@ -4,7 +4,7 @@
 //! including continuous batching — admitting new sequences into a batch already in flight as older
 //! ones finish.
 //!
-//! Sits above [`crate::runtime`]: it decides *what runs together*, the runtime decides
+//! Sits above [`crate::forward`]: it decides *what runs together*, the forward pass decides
 //! *what happens per step*.
 //!
 //! Skeleton: no implementation yet.

@@ -189,7 +189,7 @@ choice unmeasurable. `gather_into()` is the portable fallback. Both have default
 default; migrating `CacheManager` onto it is tracked in the roadmap and can happen one call site at
 a time because `as_slab` is optional.
 
-### `inference::retrieval::RetrievalHook`
+### `inference::augment::RetrievalHook`
 
 Where retrieval enters the forward pass.
 
@@ -286,7 +286,7 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
 7. Retrieval works with no model loaded, and `inference` depends on nothing in the retrieval
-   stack. `inference::retrieval` holds only the `RetrievalHook` trait; a strategy that queries an
+   stack. `inference::augment` holds only the `RetrievalHook` trait; a strategy that queries an
    index is a separate crate depending on both. Enforced by `scripts/check-deps.sh`.
 8. Default builds are CPU-only and need no vendor toolchain.
 
@@ -300,7 +300,7 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 6. Distance math or backend dispatch → `apps/engine/hardware/compute`.
 7. Device memory, streams, kernels → `apps/engine/hardware/gpu`.
 8. Model execution → `apps/engine/inference`.
-9. Retrieval inside the forward pass → `apps/engine/inference/src/retrieval`.
+9. Retrieval inside the forward pass → `apps/engine/inference/src/augment`.
 10. Shared vocabulary (error, config, metadata) → `apps/engine/core`.
 11. A deployable, a site, or a client library → `apps/`.
 

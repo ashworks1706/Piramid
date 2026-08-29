@@ -40,8 +40,8 @@ apps/engine/data/collections      Collection domain object, cache, checkpoint, c
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai, ollama, local providers
-apps/engine/inference             model, forward pass, kv_cache, batching, sampling,
-                                  and retrieval/ — the RetrievalHook seam
+apps/engine/inference             model, forward/ (the pass), kv_cache, batching, sampling,
+                                  and augment/ — the RetrievalHook seam
 apps/engine/service/server        http, services, runtime state, cluster
 apps/engine/service/observability tracing subscriber, OTLP, Sentry, Prometheus rendering
 apps/cli                          the `piramid` binary + the umbrella `piramid` facade crate
@@ -84,7 +84,7 @@ Everything else is infrastructure for these. Change them deliberately.
 - **`storage::vectors::VectorReader`** — how indexes read vectors they do not own.
   `as_slab()` is the fast path, `gather_into()` the fallback. Both have defaults, so a new reader
   costs nothing.
-- **`inference::retrieval::RetrievalHook`** — where retrieval enters the forward pass. Defined
+- **`inference::augment::RetrievalHook`** — where retrieval enters the forward pass. Defined
   before anything can call it, on purpose: a driver written without the seam is very hard to
   retrofit with one. A strategy that queries an index is its own crate — `inference` must never
   depend on the retrieval stack.
@@ -117,6 +117,11 @@ Everything else is infrastructure for these. Change them deliberately.
   technology, one file each — new hardware is a new file, never a new match arm.
 - `mod.rs` / `lib.rs` re-export; they do not define types.
 - One canonical path per item. No module re-exports another module's contents.
+- One name, one meaning. Before naming a module, check the name is not already used for a
+  different concept elsewhere in the tree (`ls apps/engine/**/ | sort | uniq -d`). Repeating a
+  word is fine when it means the same thing at each layer — `config/index.rs`, `error/index.rs` —
+  and a bug when it does not. See `docs/decisions/0010-name-audit.md`.
+- Comments explain *why*, never *what*. If a comment restates the line below it, delete it.
 - The tree is scaffolded ahead of the code. Fill a stub in place; don't create parallel files or
   rename a stub without updating `docs/ARCHITECTURE.md`.
 - Commit messages: imperative subject ≤ 72 chars, body explains *why*.

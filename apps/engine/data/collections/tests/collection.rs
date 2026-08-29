@@ -12,7 +12,7 @@ use {
 };
 
 fn ensure_test_dir() {
-    let _ = fs::create_dir_all(".piramid/tests");
+    let _ = fs::create_dir_all(env!("CARGO_TARGET_TMPDIR"));
 }
 
 fn cleanup_test_files(paths: &[&str]) {
@@ -25,13 +25,13 @@ fn cleanup_test_files(paths: &[&str]) {
 #[test]
 fn basic_store_and_retrieve() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_basic.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_basic.db.index.db",
-        ".piramid/tests/test_basic.db.wal.db",
-        ".piramid/tests/test_basic.db.vecindex.db",
-        ".piramid/tests/test_basic.db.metadata.db",
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.wal.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.vecindex.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.metadata.db"),
     ];
     cleanup_test_files(&files);
 
@@ -50,14 +50,32 @@ fn basic_store_and_retrieve() {
 #[test]
 fn configured_quantization_does_not_quantize_stored_documents() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_raw_storage_with_quantization.db";
+    let test_path = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/test_raw_storage_with_quantization.db"
+    );
     let files = vec![
         test_path,
-        ".piramid/tests/test_raw_storage_with_quantization.db.index.db",
-        ".piramid/tests/test_raw_storage_with_quantization.db.wal.db",
-        ".piramid/tests/test_raw_storage_with_quantization.db.vecindex.db",
-        ".piramid/tests/test_raw_storage_with_quantization.db.metadata.db",
-        ".piramid/tests/test_raw_storage_with_quantization.db.wal.meta",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_raw_storage_with_quantization.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_raw_storage_with_quantization.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_raw_storage_with_quantization.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_raw_storage_with_quantization.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_raw_storage_with_quantization.db.wal.meta"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -84,13 +102,13 @@ fn configured_quantization_does_not_quantize_stored_documents() {
 #[test]
 fn persistence_roundtrip() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_persist.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_persist.db.index.db",
-        ".piramid/tests/test_persist.db.wal.db",
-        ".piramid/tests/test_persist.db.vecindex.db",
-        ".piramid/tests/test_persist.db.metadata.db",
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.wal.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.vecindex.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.metadata.db"),
     ];
     cleanup_test_files(&files);
 
@@ -119,13 +137,13 @@ fn persistence_roundtrip() {
 #[test]
 fn search_returns_results() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_search.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_search.db.index.db",
-        ".piramid/tests/test_search.db.wal.db",
-        ".piramid/tests/test_search.db.vecindex.db",
-        ".piramid/tests/test_search.db.metadata.db",
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.wal.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.vecindex.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.metadata.db"),
     ];
     cleanup_test_files(&files);
 
@@ -156,13 +174,22 @@ fn search_returns_results() {
 #[test]
 fn batch_search_multi_queries() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_batch_search.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_batch_search.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_batch_search.db.index.db",
-        ".piramid/tests/test_batch_search.db.wal.db",
-        ".piramid/tests/test_batch_search.db.vecindex.db",
-        ".piramid/tests/test_batch_search.db.metadata.db",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_batch_search.db.index.db"
+        ),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_batch_search.db.wal.db"),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_batch_search.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_batch_search.db.metadata.db"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -189,14 +216,26 @@ fn batch_search_multi_queries() {
 #[test]
 fn no_mmap_insert_grows_file_without_panicking() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_no_mmap_grow.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_no_mmap_grow.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_no_mmap_grow.db.index.db",
-        ".piramid/tests/test_no_mmap_grow.db.wal.db",
-        ".piramid/tests/test_no_mmap_grow.db.wal.meta",
-        ".piramid/tests/test_no_mmap_grow.db.vecindex.db",
-        ".piramid/tests/test_no_mmap_grow.db.metadata.db",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_no_mmap_grow.db.index.db"
+        ),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_no_mmap_grow.db.wal.db"),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_no_mmap_grow.db.wal.meta"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_no_mmap_grow.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_no_mmap_grow.db.metadata.db"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -226,13 +265,19 @@ fn no_mmap_insert_grows_file_without_panicking() {
 #[test]
 fn updates_write_one_wal_entry_each() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_update_wal.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_update_wal.db.index.db",
-        ".piramid/tests/test_update_wal.db.wal.db",
-        ".piramid/tests/test_update_wal.db.vecindex.db",
-        ".piramid/tests/test_update_wal.db.metadata.db",
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db.wal.db"),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_wal.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_wal.db.metadata.db"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -281,14 +326,32 @@ fn updates_write_one_wal_entry_each() {
 #[test]
 fn update_vector_persists_new_raw_vector_after_reopen() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_update_vector_persist.db";
+    let test_path = concat!(
+        env!("CARGO_TARGET_TMPDIR"),
+        "/test_update_vector_persist.db"
+    );
     let files = vec![
         test_path,
-        ".piramid/tests/test_update_vector_persist.db.index.db",
-        ".piramid/tests/test_update_vector_persist.db.wal.db",
-        ".piramid/tests/test_update_vector_persist.db.vecindex.db",
-        ".piramid/tests/test_update_vector_persist.db.metadata.db",
-        ".piramid/tests/test_update_vector_persist.db.wal.meta",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_vector_persist.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_vector_persist.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_vector_persist.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_vector_persist.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_vector_persist.db.wal.meta"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -314,14 +377,29 @@ fn update_vector_persists_new_raw_vector_after_reopen() {
 #[test]
 fn sidecar_files_persist_at_checkpoint_only() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_checkpoint_only.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_checkpoint_only.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_checkpoint_only.db.index.db",
-        ".piramid/tests/test_checkpoint_only.db.wal.db",
-        ".piramid/tests/test_checkpoint_only.db.vecindex.db",
-        ".piramid/tests/test_checkpoint_only.db.metadata.db",
-        ".piramid/tests/test_checkpoint_only.db.wal.meta",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_checkpoint_only.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_checkpoint_only.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_checkpoint_only.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_checkpoint_only.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_checkpoint_only.db.wal.meta"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -345,14 +423,29 @@ fn sidecar_files_persist_at_checkpoint_only() {
 #[test]
 fn metadata_cache_is_bounded_without_evicting_vectors() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_cache_manager_bounds.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_cache_manager_bounds.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_cache_manager_bounds.db.index.db",
-        ".piramid/tests/test_cache_manager_bounds.db.wal.db",
-        ".piramid/tests/test_cache_manager_bounds.db.vecindex.db",
-        ".piramid/tests/test_cache_manager_bounds.db.metadata.db",
-        ".piramid/tests/test_cache_manager_bounds.db.wal.meta",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_cache_manager_bounds.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_cache_manager_bounds.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_cache_manager_bounds.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_cache_manager_bounds.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_cache_manager_bounds.db.wal.meta"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -390,14 +483,29 @@ fn metadata_cache_is_bounded_without_evicting_vectors() {
 #[test]
 fn append_cursor_survives_reopen_and_preserves_existing_records() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_append_cursor_reopen.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_append_cursor_reopen.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_append_cursor_reopen.db.index.db",
-        ".piramid/tests/test_append_cursor_reopen.db.wal.db",
-        ".piramid/tests/test_append_cursor_reopen.db.vecindex.db",
-        ".piramid/tests/test_append_cursor_reopen.db.metadata.db",
-        ".piramid/tests/test_append_cursor_reopen.db.wal.meta",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_append_cursor_reopen.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_append_cursor_reopen.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_append_cursor_reopen.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_append_cursor_reopen.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_append_cursor_reopen.db.wal.meta"
+        ),
     ];
     cleanup_test_files(&files);
 
@@ -429,15 +537,33 @@ fn append_cursor_survives_reopen_and_preserves_existing_records() {
 #[test]
 fn compaction_rewrites_live_records_through_temp_record_store() {
     ensure_test_dir();
-    let test_path = ".piramid/tests/test_record_store_compact.db";
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_record_store_compact.db");
     let files = vec![
         test_path,
-        ".piramid/tests/test_record_store_compact.db.index.db",
-        ".piramid/tests/test_record_store_compact.db.wal.db",
-        ".piramid/tests/test_record_store_compact.db.vecindex.db",
-        ".piramid/tests/test_record_store_compact.db.metadata.db",
-        ".piramid/tests/test_record_store_compact.db.wal.meta",
-        ".piramid/tests/test_record_store_compact.db.compact",
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.index.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.wal.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.vecindex.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.metadata.db"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.wal.meta"
+        ),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_record_store_compact.db.compact"
+        ),
     ];
     cleanup_test_files(&files);
 

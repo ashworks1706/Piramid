@@ -1,6 +1,6 @@
 // Metadata persistence utilities
 
-use crate::metadata::SCHEMA_VERSION;
+use crate::manifest::SCHEMA_VERSION;
 use crate::CollectionMetadata;
 use piramid_core::error::PiramidError;
 use piramid_core::error::Result;

@@ -1,4 +1,7 @@
-// Index utilities for vector storage
+//! The offset index: document id to byte range in the record file.
+//!
+//! Named `offsets` rather than `index` because it has nothing to do with an ANN index. This maps
+//! a `Uuid` to where its bytes live; `piramid-index` decides which vectors are worth reading.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
@@ -6,20 +9,23 @@ use uuid::Uuid;
 
 use piramid_core::error::{Result, StorageError};
 
-//  maps UUID to location in mmap file
-// This is just file storage metadata
+/// Where one document's bytes live in the record file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryPointer {
-    pub offset: u64, // byte offset in file
-    pub length: u32, // size of serialized entry
+    /// Byte offset from the start of the record file.
+    pub offset: u64,
+    /// Length of the serialized document in bytes.
+    pub length: u32,
 }
 
 impl EntryPointer {
+    /// Point at `length` bytes starting at `offset`.
     pub fn new(offset: u64, length: u32) -> Self {
         Self { offset, length }
     }
 }
 
+/// Persist the offset index sidecar.
 pub fn save_index(path: &str, index: &HashMap<Uuid, EntryPointer>) -> Result<()> {
     let index_path = format!("{}.index.db", path);
     let index_data = bincode::serialize(index)?;
@@ -27,6 +33,7 @@ pub fn save_index(path: &str, index: &HashMap<Uuid, EntryPointer>) -> Result<()>
     Ok(())
 }
 
+/// Load the offset index sidecar.
 pub fn load_index(path: &str) -> Result<HashMap<Uuid, EntryPointer>> {
     let index_path = format!("{}.index.db", path);
 
@@ -44,6 +51,7 @@ pub fn load_index(path: &str) -> Result<HashMap<Uuid, EntryPointer>> {
     })
 }
 
+/// Path of the write-ahead log beside a record file.
 pub fn get_wal_path(storage_path: &str) -> String {
     format!("{}.wal.db", storage_path)
 }

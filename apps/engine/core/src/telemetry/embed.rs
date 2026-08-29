@@ -1,5 +1,7 @@
-// Metrics tracking for embedding requests, including counts and latency.
-// This module defines the `EmbedMetrics` struct, which uses atomic counters to track the number of embedding requests, total texts embedded, total tokens processed, and total latency. It also provides a method to take a snapshot of the current metrics for reporting purposes.
+//! Embedding throughput counters.
+//!
+//! Atomics rather than a lock: these are written on every embed call and read only when metrics
+//! are scraped.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;

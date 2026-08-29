@@ -1,8 +1,11 @@
-// Input validation and sanitization for vectors and requests
+//! Input validation for vectors, text, names, and batch sizes.
+//!
+//! Runs at the service boundary so everything below can assume well-formed input — which is why
+//! the compute kernels assert on dimension rather than returning a `Result`.
 
 use crate::error::{Result, ServerError};
 
-// Validate vector format (check for NaN, Infinity)
+/// Reject empty vectors and any non-finite component.
 pub fn validate_vector(vector: &[f32]) -> Result<()> {
     if vector.is_empty() {
         return Err(ServerError::InvalidRequest("Vector cannot be empty".to_string()).into());
@@ -26,7 +29,7 @@ pub fn validate_vector(vector: &[f32]) -> Result<()> {
     Ok(())
 }
 
-// Validate multiple vectors
+/// Validate every vector in a batch.
 pub fn validate_vectors(vectors: &[Vec<f32>]) -> Result<()> {
     for (i, vector) in vectors.iter().enumerate() {
         validate_vector(vector)
@@ -35,23 +38,21 @@ pub fn validate_vectors(vectors: &[Vec<f32>]) -> Result<()> {
     Ok(())
 }
 
-// Normalize a vector to unit length (L2 normalization)
-// relies on vector direction rather than magnitude.  helps prevent numerical instability
-// and improves performance by reducing the range of values.
-// In information retrieval, L2 normalization is commonly used to ensure that the magnitude of vectors
-// does not dominate the similarity calculations, allowing for more accurate comparisons.
+/// Scale a vector to unit length.
+///
+/// With normalized vectors, dot product and cosine similarity coincide, and magnitude stops
+/// influencing ranking. A zero or non-finite magnitude returns a zero vector rather than NaN.
 pub fn normalize_vector(vector: &[f32]) -> Vec<f32> {
     let magnitude: f32 = vector.iter().map(|&x| x * x).sum::<f32>().sqrt();
 
     if magnitude == 0.0 || magnitude.is_nan() || magnitude.is_infinite() {
-        // Return zero vector if magnitude is invalid
         return vec![0.0; vector.len()];
     }
 
     vector.iter().map(|&x| x / magnitude).collect()
 }
 
-// Check if vector dimensions match expected dimensions
+/// Check a vector against the collection's dimensionality.
 pub fn validate_dimensions(vector: &[f32], expected_dim: usize) -> Result<()> {
     if vector.len() != expected_dim {
         return Err(ServerError::InvalidRequest(format!(
@@ -64,7 +65,7 @@ pub fn validate_dimensions(vector: &[f32], expected_dim: usize) -> Result<()> {
     Ok(())
 }
 
-// Validate text input (basic sanitization)
+/// Reject text above the size limit.
 pub fn validate_text(text: &str) -> Result<()> {
     if text.is_empty() {
         return Err(ServerError::InvalidRequest("Text cannot be empty".to_string()).into());
@@ -82,7 +83,8 @@ pub fn validate_text(text: &str) -> Result<()> {
     Ok(())
 }
 
-// Validate collection name
+/// Collection names are used as filename stems, so they are restricted to characters that are
+/// safe on every supported platform.
 pub fn validate_collection_name(name: &str) -> Result<()> {
     if name.is_empty() {
         return Err(
@@ -97,7 +99,6 @@ pub fn validate_collection_name(name: &str) -> Result<()> {
         .into());
     }
 
-    // Only allow alphanumeric, underscore, hyphen
     if !name
         .chars()
         .all(|c| c.is_alphanumeric() || c == '_' || c == '-')
@@ -112,7 +113,7 @@ pub fn validate_collection_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-// Validate batch size limits
+/// Reject batches above `max`.
 pub fn validate_batch_size(size: usize, max_size: usize, operation: &str) -> Result<()> {
     if size == 0 {
         return Err(

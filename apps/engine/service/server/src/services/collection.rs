@@ -244,7 +244,7 @@ pub fn find_duplicates(
         lock_start,
     );
 
-    let metric = crate::services::search::parse_metric(req.metric)?;
+    let metric = crate::services::convert::parse_metric(req.metric)?;
     let hits = piramid_collections::find_duplicates(
         &collection_guard,
         metric,

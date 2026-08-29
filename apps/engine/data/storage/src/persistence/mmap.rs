@@ -47,7 +47,7 @@ pub fn warm_mmap(mmap: &MmapMut) {
         std::hint::black_box(byte);
         offset = offset.saturating_add(PAGE);
     }
-    // Ensure we touched the tail.
+    // Touch the tail page, which the stride above may have skipped.
     let last = mmap[len - 1];
     std::hint::black_box(last);
 }
@@ -71,7 +71,7 @@ pub fn grow_mmap_if_needed(
             file.set_len(new_size)?;
         }
     }
-    // If the required size is within the current size, we can simply continue using the existing
+    // Already large enough — keep the existing
     // memory map without any changes.
     Ok(())
 }

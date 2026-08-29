@@ -4,7 +4,7 @@ use std::time::Instant;
 use uuid::Uuid;
 
 use crate::runtime::SharedState;
-use crate::services::metadata::json_to_metadata;
+use crate::services::convert::json_to_metadata;
 use crate::services::types::{
     DeleteResponse, DeleteResultsResponse, DeleteVectorsRequest, InsertRequest, InsertResponse,
     InsertResultsResponse, MultiDeleteResponse, MultiInsertResponse, UpsertRequest, UpsertResponse,

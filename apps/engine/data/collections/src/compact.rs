@@ -1,5 +1,9 @@
+//! Compaction: rewrite the record store without dead entries.
+//!
+//! Copies live documents to a temporary file and swaps it in, so an interrupted compaction leaves
+//! the original intact.
+
 // Compaction logic for collections, including rewriting live documents and rebuilding indexes.
-//  takes a mutable reference to a `Collection` and performs compaction by creating a new temporary file, copying live documents to it, rebuilding the index and vector index, and then replacing the original file with the compacted version.
 use std::collections::HashMap;
 
 use super::collection::Collection;

@@ -1,4 +1,11 @@
-//  This module provides a simple JSON-based WAL that supports appending entries, replaying entries from a certain sequence number, and checkpointing. The WAL is designed to be durable and efficient, with support for rotation to prevent unbounded growth.
+//! Write-ahead log.
+//!
+//! One JSON entry per line after a version header, each carrying a monotonic sequence number.
+//! Line-delimited JSON is chosen for recoverability over compactness: a torn write costs the last
+//! line rather than the file.
+//!
+//! Replay returns entries above a given sequence number; checkpointing writes a marker so
+//! everything below it can be discarded, and rotation then truncates the file.
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Write};
@@ -6,7 +13,6 @@ use std::path::PathBuf;
 
 use super::entry::WalEntry;
 use piramid_core::error::Result;
-// The WAL file starts with a header line containing the version number, followed by one JSON-serialized entry per line. Each entry includes a sequence number (seq) that is assigned when the entry is logged. The replay method reads the WAL file and returns all entries with a sequence number greater than a specified minimum sequence number (min_seq). The log method appends a new entry to the WAL file, automatically assigning it the next sequence number. The checkpoint method logs a special checkpoint entry that can be used to indicate a consistent state of the collection, allowing older entries to be safely discarded after checkpointing. The rotate method allows for rotating the WAL file by closing the current one and starting a new, empty file, which is typically done after checkpointing to prevent the WAL from growing indefinitely.
 #[derive(serde::Serialize, serde::Deserialize, Debug)]
 struct WalHeader {
     version: u32,
@@ -57,7 +63,6 @@ impl Wal {
             if line.is_empty() {
                 continue;
             }
-            // Skip header if present (and validate version)
             if let Ok(header) = serde_json::from_str::<WalHeader>(&line) {
                 if header.version != WAL_VERSION {
                     return Err(piramid_core::error::PiramidError::other(format!(
@@ -83,7 +88,10 @@ impl Wal {
         Ok(entries)
     }
 
-    // Log a new WAL entry. This method assigns the next sequence number to the entry, serializes it to JSON, and appends it to the WAL file. If the WAL is disabled (file is None), it simply increments the sequence number without writing anything.
+    /// Append an entry, assigning it the next sequence number.
+    ///
+    /// With the WAL disabled the sequence still advances, so sequence numbers stay comparable
+    /// across a config change.
     pub fn log(&mut self, entry: &mut WalEntry) -> Result<()> {
         match entry {
             WalEntry::Insert { seq, .. }
@@ -108,14 +116,13 @@ impl Wal {
         Ok(())
     }
 
-    // Rotate the WAL file by closing the current one and starting a new, empty file. This is typically done after a checkpoint to prevent the WAL from growing indefinitely and to allow old entries to be safely discarded.
+    /// Truncate the log and start again. Safe only after a checkpoint has made the discarded
+    /// entries redundant.
     pub fn rotate(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());
         }
-        // Drop current writer to release handle
         drop(self.file.take());
-        // Open a fresh, truncated WAL file
         let file = OpenOptions::new()
             .write(true)
             .create(true)
@@ -134,7 +141,7 @@ impl Wal {
         Ok(())
     }
 
-    // Ensure the WAL file has a header with the correct version. If the file is new (size 0), we write the header. If the file already exists, we assume it has a valid header and do not modify it.
+    /// Write the version header if the file is new. An existing file is assumed to have one.
     fn ensure_header(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());

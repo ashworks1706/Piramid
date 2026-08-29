@@ -1,7 +1,7 @@
-// in case of crashes or unexpected shutdowns, replay those changes during recovery to bring the collection back to a consistent state.
+//! Write-ahead log configuration.
+
 use serde::{Deserialize, Serialize};
 
-// WAL configuration
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct WalConfig {
     // Enable WAL

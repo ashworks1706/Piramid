@@ -1,5 +1,8 @@
-// Clusters vectors using k-means, then searches only relevant clusters
-// O(√N) search complexity - much faster than brute force for large datasets
+//! Inverted-file index.
+//!
+//! Partitions vectors into k-means clusters and searches only the partitions nearest the query,
+//! trading recall for an `O(sqrt N)` candidate set. Suited to collections large enough that a
+//! full scan is too slow but not large enough to justify a graph index.
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -9,7 +12,6 @@ use super::config::IvfConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
 use piramid_core::error::{IndexError, Result};
 
-// IVF index structure
 #[derive(Clone, Serialize, Deserialize)]
 pub struct IvfIndex {
     config: IvfConfig,
@@ -22,9 +24,6 @@ pub struct IvfIndex {
 }
 
 impl IvfIndex {
-    // IVF is a good choice for very large datasets where search speed is critical and some loss of
-    // accuracy is acceptable.
-
     pub fn new(config: IvfConfig) -> Self {
         IvfIndex {
             config,
@@ -36,15 +35,11 @@ impl IvfIndex {
         }
     }
 
-    // Build clusters using k-means
+    /// Train centroids over `vectors` with Lloyd's algorithm.
+    ///
+    /// Offline work: centroids are rebuilt periodically, not on every insert. Runs until the
+    /// centroids stop moving or `max_iterations` is reached.
     pub fn build_clusters(&mut self, vectors: &dyn VectorReader) {
-        // building clusters is an offline process that can be done periodically as new vectors are
-        // added
-        // on high level, it works by:
-        // 1. Randomly initialize centroids from existing vectors
-        // 2. Assign each vector to nearest centroid (forming clusters)
-        // 3. Update centroids by computing mean of assigned vectors
-        // 4. Repeat until convergence or max iterations
         if vectors.is_empty() {
             return;
         }
@@ -65,9 +60,7 @@ impl IvfIndex {
             .map(|(_, v)| v.clone())
             .collect();
 
-        // K-means iterations
         for _ in 0..self.config.max_iterations {
-            // Assign each vector to nearest centroid
             let mut clusters: Vec<Vec<(Uuid, Vec<f32>)>> = vec![Vec::new(); num_clusters];
 
             for (id, vec) in &vector_list {
@@ -75,7 +68,6 @@ impl IvfIndex {
                 clusters[cluster_id].push((*id, vec.clone()));
             }
 
-            // Update centroids
             let mut converged = true;
             for (i, cluster) in clusters.iter().enumerate() {
                 if cluster.is_empty() {
@@ -84,14 +76,12 @@ impl IvfIndex {
 
                 let new_centroid = self.compute_centroid(cluster);
 
-                // Check convergence
                 let distance = self.config.metric.calculate(
                     &self.centroids[i],
                     &new_centroid,
                     self.config.mode,
                 );
                 if distance < 0.99 {
-                    // If centroids moved significantly
                     converged = false;
                 }
 
@@ -103,7 +93,6 @@ impl IvfIndex {
             }
         }
 
-        // Build inverted lists
         self.inverted_lists = vec![Vec::new(); num_clusters];
         self.vector_to_cluster.clear();
         self.pending_vectors.clear();
@@ -132,7 +121,6 @@ impl IvfIndex {
     }
 
     fn compute_centroid(&self, cluster: &[(Uuid, Vec<f32>)]) -> Vec<f32> {
-        // Compute mean vector for the cluster by summing all vectors and dividing by count
         if cluster.is_empty() {
             return vec![0.0; self.dimensions];
         }
@@ -160,11 +148,10 @@ impl VectorIndex for IvfIndex {
             return;
         }
 
-        // For online insertion, find nearest centroid and add to that cluster
+        // Online insert: assign to the nearest existing centroid rather than retraining.
         if self.centroids.is_empty() {
             self.pending_vectors.insert(id);
 
-            // First insertion - need to build clusters
             if vectors.len() >= self.config.num_clusters {
                 self.build_clusters(vectors);
             }
@@ -173,7 +160,6 @@ impl VectorIndex for IvfIndex {
 
         let cluster_id = self.find_nearest_centroid(vector);
 
-        // Add to inverted list
         if cluster_id >= self.inverted_lists.len() {
             return;
         }
@@ -193,7 +179,6 @@ impl VectorIndex for IvfIndex {
             return Err(IndexError::NotInitialized.into());
         }
 
-        // Find nearest centroids
         let mut centroid_distances: Vec<(usize, f32)> = self
             .centroids
             .iter()
@@ -210,10 +195,10 @@ impl VectorIndex for IvfIndex {
         centroid_distances
             .sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
 
-        // Use quality.nprobe if provided, otherwise use configured num_probes
         let nprobe = quality.nprobe.unwrap_or(self.config.num_probes);
 
-        // Search top nprobe clusters
+        // Only the `nprobe` nearest partitions are scanned; the rest are skipped, which is where
+        // the speedup and the recall loss both come from.
         let mut candidates: Vec<(Uuid, f32)> = Vec::new();
 
         for (cluster_id, _) in centroid_distances.iter().take(nprobe) {
@@ -233,7 +218,6 @@ impl VectorIndex for IvfIndex {
             }
         }
 
-        // Sort and return top k
         candidates.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
         Ok(candidates.iter().take(k).map(|(id, _)| *id).collect())
     }

@@ -82,7 +82,7 @@ fn api_router(state: SharedState) -> Router<SharedState> {
             "/collections/{collection}/upsert",
             post(handlers::upsert_vector),
         )
-        // Search (POST because we're sending a vector in body)
+        // POST rather than GET: the query vector goes in the body.
         .route(
             "/collections/{collection}/search",
             post(handlers::search_vectors),
@@ -103,10 +103,8 @@ fn api_router(state: SharedState) -> Router<SharedState> {
         .with_state(state)
 }
 
-// This function wires everything together:
-// 1. Creates route definitions
-// 2. Adds CORS middleware
-// 3. Attaches shared state
+/// Build the router: API routes under `/api`, the Prometheus endpoint, middleware, and the
+/// static dashboard fallback.
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any) // any domain can call us
@@ -120,17 +118,13 @@ pub fn create_router(state: SharedState) -> Router {
         .nest("/api/v1", api)
         // Prometheus scrapes `/metrics` by convention, outside the API prefix.
         .route("/metrics", get(handlers::prometheus_metrics))
-        // Middleware layers
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB for batch operations
         .layer(cors)
-        // Assign request IDs to all requests
         .layer(middleware::from_fn(assign_request_id))
-        // Add API version header
         .layer(SetResponseHeaderLayer::if_not_present(
             axum::http::header::HeaderName::from_static("x-api-version"),
             HeaderValue::from_static("v1"),
         ))
-        // Basic security headers
         .layer(SetResponseHeaderLayer::if_not_present(
             axum::http::header::HeaderName::from_static("x-content-type-options"),
             HeaderValue::from_static("nosniff"),
@@ -143,6 +137,5 @@ pub fn create_router(state: SharedState) -> Router {
         .fallback_service(
             ServeDir::new("dashboard").not_found_service(ServeFile::new("dashboard/index.html")),
         )
-        // State available to all handlers
         .with_state(state)
 }

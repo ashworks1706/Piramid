@@ -3,7 +3,7 @@ use serde::{Deserialize, Serialize};
 // Storage configuration for the database
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct StorageConfig {
-    // Base path where all collection data will be stored. Each collection will have its own subdirectory under this path.
+    /// Root directory for collection data; each collection gets a subdirectory.
     pub storage_path: String,
 }
 

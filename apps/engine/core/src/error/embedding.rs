@@ -1,6 +1,10 @@
+//! Embedding provider errors.
+//!
+//! `is_recoverable` distinguishes transient failures worth retrying from permanent ones; see
+//! `retry::RetryEmbedder`, which is its only consumer.
+
 use thiserror::Error;
 
-// Each variant includes a message that provides more details about the error. The is_recoverable method determine if an error is something that we can retry or if it is a fatal error that should not be retried.
 #[derive(Error, Debug)]
 pub enum EmbeddingError {
     #[error("HTTP request failed: {0}")]

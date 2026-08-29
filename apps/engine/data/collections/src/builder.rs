@@ -1,4 +1,4 @@
-// Collection builder and initialization
+//! Opening a collection: load sidecars, replay the WAL, rebuild what is missing.
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -10,7 +10,7 @@ use piramid_core::error::Result;
 use piramid_index::load_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
-use piramid_storage::metadata::CollectionMetadata;
+use piramid_storage::manifest::CollectionMetadata;
 use piramid_storage::persistence::{get_wal_path, load_index, load_metadata};
 use piramid_storage::record_store::RecordStore;
 use piramid_storage::wal::{Wal, WalEntry};
@@ -21,21 +21,17 @@ impl CollectionBuilder {
     pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
         let config = options.config;
 
-        // Initialize Rayon thread pool based on config
         Collection::init_rayon_pool(&config.parallelism);
 
-        // Derive collection name from file path
         let collection_name = std::path::Path::new(path)
             .file_stem()
             .and_then(|s| s.to_str())
             .unwrap_or("unknown")
             .to_string();
 
-        // Load existing index and metadata if they exist
         let index = load_index(path)?;
         let record_store = RecordStore::open(path, &config, &index)?;
 
-        // If metadata exists, update vector count based on loaded index
         let metadata = match load_metadata(path)? {
             Some(meta) => {
                 let mut meta = meta;
@@ -45,7 +41,6 @@ impl CollectionBuilder {
             None => CollectionMetadata::new(collection_name),
         };
 
-        // Load or create vector index
         let loaded_vector_index = load_vector_index(path)?;
         let vector_index_missing = loaded_vector_index.is_none();
         let mut vector_index = match loaded_vector_index {
@@ -53,7 +48,6 @@ impl CollectionBuilder {
             None => piramid_index::create_index(&config.index, index.len()),
         };
 
-        // If WAL is enabled, determine the minimum sequence number to replay from
         let min_seq = if config.wal.enabled {
             load_wal_meta(path)?
         } else {
@@ -63,7 +57,6 @@ impl CollectionBuilder {
 
         let wal_path = get_wal_path(path);
 
-        // Initialize WAL and checkpoint manager
         let wal = if config.wal.enabled {
             Wal::new(wal_path.into(), next_seq)?
         } else {
@@ -72,15 +65,15 @@ impl CollectionBuilder {
 
         let checkpoint = CheckpointManager::new(wal);
 
-        // If WAL is enabled, replay entries from the WAL starting from the minimum sequence number
         let wal_entries = if config.wal.enabled {
             checkpoint.wal.replay(min_seq)?
         } else {
             Vec::new()
         };
 
-        // If there are WAL entries to replay, we need to apply them to a temporary collection before checkpointing
-        // why? Because we need to ensure that the collection state is consistent with the WAL entries before we can checkpoint and clear the WAL. By applying the WAL entries to a temporary collection, we can bring it up to date with all the changes recorded in the WAL, and then checkpoint that state to persist it. This way, we ensure that no changes are lost and that the collection is in sync with the WAL before we clear it.
+        // Replay into a temporary collection and checkpoint that, rather than mutating the live
+        // one: the WAL is only safe to clear once the replayed state is durable, so the
+        // checkpoint has to succeed before anything is discarded.
 
         if !wal_entries.is_empty() {
             let mut recovered_collection = Collection {
@@ -94,25 +87,20 @@ impl CollectionBuilder {
                 checkpoint,
             };
 
-            // Replay WAL entries to bring the collection up to date
             Self::replay_wal(&mut recovered_collection, wal_entries)?;
 
-            // After replaying, rebuild the vector cache to ensure it's in sync with the index
             recovered_collection.rebuild_vector_cache()?;
 
-            // Checkpoint the collection to persist the changes from the WAL replay, which will also clear the WAL
             super::checkpoint::checkpoint(&mut recovered_collection)?;
 
-            // After checkpointing, we can use the updated collection as our main collection instance
             return Ok(recovered_collection);
         }
 
-        // If the index is not empty but the vector index is missing, we need to rebuild the vector index from the existing data
+        // Records exist but the ANN sidecar does not — rebuild it from the record store.
         if !index.is_empty() && vector_index_missing {
             Self::rebuild_vector_index(&mut vector_index, &index, &record_store)?;
         }
 
-        // Finally, create the collection instance with the loaded index, metadata, and vector index
         let mut collection = Collection {
             record_store,
             index,
@@ -129,10 +117,9 @@ impl CollectionBuilder {
     }
 
     fn replay_wal(collection: &mut Collection, entries: Vec<WalEntry>) -> Result<()> {
-        // Apply each WAL entry to the collection. Inserts and updates will add or modify entries, while deletes will remove them.
         for entry in entries {
             match entry {
-                // For inserts and updates, we create a Document from the WAL entry and insert it into the collection. Updates are treated as a delete followed by an insert to ensure the index is updated correctly.
+                // An update is a delete followed by an insert so the ANN index sees the change.
                 WalEntry::Insert {
                     id,
                     vector,
@@ -179,14 +166,13 @@ impl CollectionBuilder {
         index: &HashMap<Uuid, piramid_storage::persistence::EntryPointer>,
         record_store: &RecordStore,
     ) -> Result<()> {
-        // If the vector index is missing but we have an existing index, we need to rebuild the vector index from the existing data. We read each entry from the memory-mapped file based on the offsets and lengths in the index, deserialize it into a Document, and then insert it into the vector index.
+        // Read every live record through the offset index and re-insert it, which is what makes
+        // the ANN index disposable: it can always be reconstructed from the record store.
         let mut vectors: HashMap<Uuid, Vec<f32>> = HashMap::new();
         for (id, idx_entry) in index {
             let entry = record_store.read_document(idx_entry)?;
             vectors.insert(*id, entry.try_get_vector()?);
         }
-
-        // Once we have all the vectors loaded from the existing data, we can insert them into the vector index. This will rebuild the vector index so that it is in sync with the existing data in the collection.
 
         let reader = HashMapVectorReader::new(&vectors);
         for (id, vector) in &vectors {

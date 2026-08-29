@@ -132,7 +132,7 @@ The thesis: **knowledge does not have to live in the weights, and it does not ha
 prompt either.** Retrieval that enters through cross-attention costs no context window, and can
 happen *during* generation rather than once before it.
 
-Piramid commits to the **seam** for that, not to one mechanism. `inference::retrieval::RetrievalHook`
+Piramid commits to the **seam** for that, not to one mechanism. `inference::augment::RetrievalHook`
 defines when retrieval may occur and what it may touch; chunked cross-attention, residual-stream
 gating, and learned index routing are all implementations of one trait. The trait exists before any
 code calls it, because a forward-pass driver written without the seam is very hard to retrofit with
