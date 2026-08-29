@@ -88,8 +88,9 @@ log = "0.4"
 [workspace.lints.rust]
 unsafe_code = "deny"
 unused_must_use = "deny"
-# Ratchet: flip to "warn" per crate as public items are documented. The new crates
-# (compute, gpu, inference) already enforce it via `#![deny(missing_docs)]`.
+# Ratchet. compute, gpu, and inference enforce this themselves with
+# `#![deny(missing_docs)]`; the rest have roughly 860 undocumented public items between them.
+# Raise this once that is worked down. See docs/ROADMAP.md.
 missing_docs = "allow"
 
 [workspace.lints.clippy]
@@ -100,7 +101,7 @@ unimplemented = "deny"
 dbg_macro = "deny"
 print_stdout = "deny"
 print_stderr = "deny"
-# Ratchet: currently ~20 call sites outside tests. Fix at the source, then flip to "deny".
+# Ratchet: 21 call sites outside tests. Fix at the source, then flip to "deny".
 unwrap_used = "allow"
 expect_used = "allow"
 

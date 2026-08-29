@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! Device runtime: contexts, memory, streams, and compiled kernels.
 //!
 //! # What belongs here

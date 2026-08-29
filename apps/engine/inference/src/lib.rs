@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! Model execution.
 //!
 //! # Layout

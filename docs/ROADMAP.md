@@ -8,34 +8,70 @@ range search, metadata filtering, embedding ingestion, WAL and checkpoints, thre
 families, SIMD distance kernels. Eleven crates with an enforced dependency rule. Inference is
 scaffolding.
 
+The order below is a dependency order, not a wish list. Each block needs the one above it.
+
 ## Now (v0.3.0)
 
-Infrastructure that pays off whichever fusion mechanism turns out to be right. See
-[ADR 0006](decisions/0006-retrieval-fusion-seam.md).
+The goal of this release is that a GPU kernel, when written, has somewhere to plug in and a
+baseline to be measured against. Neither is true today.
 
-Vector layout:
+### 1. Make the batch path reachable
+
+Every scoring call site currently uses the pairwise API — `metric.calculate(a, b, mode)` in
+`flat/index.rs`, `hnsw/index.rs`, and `search/engine.rs`. Nothing calls
+`DistanceKernels::cosine_batch`. A GPU kernel written now would be code nothing invokes, so this
+comes first.
+
+- [ ] add unit tests for `VectorSlab` — push, replace, ordinals, row bounds, gather. It's about
+      180 lines with no coverage, and everything below builds on it
+- [ ] add a criterion bench for `compute`, comparing scalar, SIMD, and parallel across realistic
+      dimensions. There is no compute bench today, only `hnsw_performance`, so there is nothing to
+      measure a change against
+- [ ] route the flat index scan through `cosine_batch` rather than a per-vector loop. Flat is the
+      right first consumer because it already touches every vector
+- [ ] route the rerank loop in `search::engine` through the batch API
+
+### 2. Contiguous layout
+
+Now measurable, because step 1 gave us a bench and a batch call site.
 
 - [ ] migrate `CacheManager` onto `VectorSlab` and make `SlabVectorReader` the default reader
-- [ ] benchmark SIMD before and after, scattered versus contiguous candidates with the same kernel
-- [ ] use `u32` ordinals instead of `Uuid` inside HNSW adjacency lists (changes the sidecar format)
+- [ ] re-run the compute bench: scattered versus contiguous candidates, same kernel. This number
+      is the one that justifies GPU work, or doesn't
+- [ ] use `u32` ordinals instead of `Uuid` inside HNSW adjacency lists. Changes the sidecar
+      format, so it needs a version bump and a load path for old files
 
-GPU device runtime:
+### 3. GPU
+
+Only meaningful once 1 and 2 land. Order matters here too: a kernel debugged on top of broken
+transfer is unfixable.
 
 - [ ] wire `cudarc` behind `gpu-cuda`: a real `Device`, `DeviceBuffer`, and `Stream`
 - [ ] round-trip test — allocate, upload, download, compare — before writing any kernel
 - [ ] a `cosine_batch` CUDA kernel, benched against the scalar reference for parity and speed
-- [ ] keep a device-resident candidate slab across queries and measure it against per-call upload
+- [ ] keep a device-resident candidate slab across queries and measure against per-call upload
 
-Quantization:
+### Independent of the above
 
-- [ ] wire the existing PQ implementation into the search path, where it currently isn't used
+These don't block anything and can be picked up in any order.
+
+- [ ] wire the existing PQ implementation into the search path. `piramid-storage::quantization` is
+      fully implemented and has zero callers outside its own module
 - [ ] binary pre-filter into full-precision rerank, with a recall measurement
+- [ ] fix the 21 `unwrap`/`expect` call sites outside tests, then flip `unwrap_used` and
+      `expect_used` to `deny`
+- [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn`. Around 860 public
+      items, concentrated in `server/services/types` (165) and `core/config` (roughly 130).
+      `compute`, `gpu`, and `inference` already pass and enforce it themselves
+- [ ] decide what happens to `cluster`. It always returns `RouteDecision::Local` and is threaded
+      through `AppState` in six places for no behaviour
 
-Observability:
+### Done
 
 - [x] Prometheus text format at `/metrics`
 - [x] spans on search, write, embed, rebuild, and compact
-- [ ] spans on kernel launches, once there are kernels to launch
+- [x] `piramid support-bundle` for bug reports
+- [x] `#![deny(missing_docs)]` on `compute`, `gpu`, and `inference`
 
 ## Next (v0.4.0)
 
@@ -51,10 +87,12 @@ If it holds:
 - [ ] `candle` behind `inference-candle`, loading weights onto the same device retrieval uses
 - [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit
 - [ ] paged KV cache
-- [ ] the first real `RetrievalHook` implementation
+- [ ] the first real `RetrievalHook` implementation, as its own crate depending on both
+      `piramid-inference` and `piramid-search`
 - [ ] `/api/infer` and an OpenAI-compatible `/v1/chat/completions`
 - [ ] SSE streaming
 - [ ] continuous batching
+- [ ] spans on kernel launches and forward-pass stages, which is when OTLP starts earning its place
 
 ## Later (v0.5.0 and beyond)
 
@@ -85,15 +123,18 @@ Vendor telemetry integrations. Protocols are in scope, products aren't. See
 
 ## Known gaps
 
-Things that are wrong or missing today.
+Things that are wrong or missing today, verified against the code rather than remembered.
 
-- `cluster` always returns `RouteDecision::Local` and is threaded into `AppState` for nothing.
-- `quantization` is implemented but nothing in the search path reaches it.
+- The batch kernel API has no callers. `DistanceKernels::cosine_batch` and its siblings exist and
+  every scoring path uses the pairwise methods instead.
+- `VectorSlab` has no tests, and `as_slab`/`gather_into` have no callers. The seam is defined and
+  unused.
+- There is no benchmark for `compute`. The only bench in the workspace is `hnsw_performance`.
+- `quantization` is fully implemented and unreachable from the search path.
+- `cluster` always routes locally and is carried through `AppState` for nothing.
 - IVF works but is untuned. HNSW covers the sizes we actually test at.
-- `missing_docs` is `allow` at the workspace level. The newer crates enforce it; the older ones
-  haven't been backfilled.
-- `unwrap_used` and `expect_used` are `allow`. Around twenty call sites outside tests need fixing
-  before they can be flipped to `deny`.
+- 21 `unwrap`/`expect` call sites outside tests, so `unwrap_used` is still `allow`.
+- Roughly 860 undocumented public items outside `compute`, `gpu`, and `inference`.
 - The website is fourteen components for a product whose headline feature isn't built.
 - The npm and python SDKs are 11 and 7 lines, published under names already claimed on their
   registries. Either make them real clients or unpublish them; a stub under an installable name is

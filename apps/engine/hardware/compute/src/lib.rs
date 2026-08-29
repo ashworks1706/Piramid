@@ -1,3 +1,5 @@
+#![deny(missing_docs)]
+
 //! Distance and similarity math, and the backend dispatch that runs it.
 //!
 //! # Layout
