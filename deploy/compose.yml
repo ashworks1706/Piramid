@@ -1,0 +1,41 @@
+# Development stack: builds from source. `just up` / `just down` / `just logs`.
+# For prebuilt GHCR images, layer compose.prod.yml on top (`just prod-up`).
+
+services:
+  piramid:
+    build:
+      context: ..
+      dockerfile: deploy/docker/piramid.Dockerfile
+    ports:
+      - "6333:6333"
+    volumes:
+      - piramid-data:/data
+    env_file:
+      - path: ../.env
+        required: false
+    environment:
+      PORT: 6333
+      DATA_DIR: /data
+      RUST_LOG: ${RUST_LOG:-info}
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-fsS", "http://localhost:6333/api/health"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 10s
+
+  # Local embeddings, so the /embed endpoints work without an API key.
+  # Start with: just up ollama
+  ollama:
+    image: ollama/ollama:latest
+    profiles: ["ollama"]
+    ports:
+      - "11434:11434"
+    volumes:
+      - ollama-data:/root/.ollama
+    restart: unless-stopped
+
+volumes:
+  piramid-data:
+  ollama-data:

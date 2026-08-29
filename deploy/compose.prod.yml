@@ -1,0 +1,19 @@
+# Production overlay: prebuilt GHCR images instead of a local build.
+#   PIRAMID_IMAGE_TAG=main just prod-up
+# Layered over compose.yml, so it only states what differs.
+
+services:
+  piramid:
+    build: !reset null
+    image: ghcr.io/ashworks1706/piramid:${PIRAMID_IMAGE_TAG:-main}
+    environment:
+      RUST_LOG: ${RUST_LOG:-info}
+    deploy:
+      resources:
+        limits:
+          memory: ${PIRAMID_MEMORY_LIMIT:-4g}
+    logging:
+      driver: json-file
+      options:
+        max-size: "10m"
+        max-file: "3"

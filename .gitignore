@@ -1,6 +1,5 @@
 # rust build artifacts
-target/
-/target/
+/target
 **/*.rs.bk
 
 # debug files
@@ -21,8 +20,9 @@ debug/
 *.swo
 *~
 
-# claude code
-.claude/
+# claude code — .claude/ is committed (agent config, skills, settings).
+# Only local, machine-specific overrides stay out.
+.claude/settings.local.json
 .copilot/
 .agents/
 .github/instructions
@@ -70,6 +70,3 @@ venv/
 ENV/
 env/
 .venv
-
-# Workspace build artifacts
-/target
