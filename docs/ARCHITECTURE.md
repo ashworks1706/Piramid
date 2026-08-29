@@ -15,16 +15,18 @@ edge that is not in the law below.
 
 ```text
 apps/                     everything first-party
-  engine/                 the library crates — grouped by subsystem
-    foundation/core       shared vocabulary
+  engine/                 the library crates
+    core/                 shared vocabulary — errors, config, metadata, telemetry
     hardware/             code that cares what machine it runs on
       compute  gpu
-    retrieval/            everything that finds vectors
-      storage  index  search  collections  embeddings
-    inference/            everything that runs a model
-      fusion   runtime
+    data/                 where vectors live and who owns them
+      storage  collections
+    retrieval/            how you find them
+      index  search  embeddings
+    inference/            how you run a model over them
+      fusion  runtime
     service/              how the outside world reaches it
-      server   observability
+      server  observability
   cli/                    the piramid binary — fuses the engine into one artifact
   website/                piramiddb.com, with blog content and images inside it
   sdk/                    npm and python clients
@@ -41,9 +43,25 @@ artifact.
 engine and the SDKs sit beside the binary and the site. `deploy/` stays outside it because it
 describes how those are packaged, not something we author.
 
-The subsystem groups are for navigation. They are *not* the dependency order — that is the law
-below, and it does not line up one-to-one with the folders (`foundation/core` depends on
-`hardware/compute` for the `ExecutionMode` and `Metric` types configuration carries).
+The groups answer "what is this for", and each cut is a real one:
+
+- **`hardware/`** is the code that changes when the machine changes. `compute` owns what cosine
+  *means* and which backend runs it; `gpu` owns the device — contexts, buffers, streams, modules.
+  Split because *two* subsystems need a device (`compute` for distance kernels, `inference` for
+  model execution) and neither should depend on the other to allocate memory.
+- **`data/`** is where vectors live and who owns them. `storage` is bytes — records, WAL, mmap,
+  layout. `collections` is the domain object that owns a store, a cache, a checkpoint policy, and
+  an index. A collection is *acted on* by search; it is not itself a way of finding things.
+- **`retrieval/`** is how you find them: `index` (ANN structure), `search` (planning, scoring,
+  ranking), `embeddings` (turning text into a vector to search with).
+- **`inference/`** splits the seam from the driver. `fusion` is the `RetrievalHook` trait and
+  depends only on `core`; `runtime` drives the forward pass. A fusion *strategy* needs the index,
+  so it will be a third crate depending on `fusion` and `search` — which is what keeps `runtime`
+  free of retrieval entirely.
+
+Groups are for navigation, not stratification. They deliberately do **not** line up with the
+dependency order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types
+that configuration carries. The law below is the authority on direction; the folders are an index.
 
 ## Crates
 
@@ -284,14 +302,14 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 
 1. HTTP-specific → `apps/engine/service/server/src/http`.
 2. Coordinates a user-facing operation → `apps/engine/service/server/src/services`.
-3. Changes one collection's state → `apps/engine/retrieval/collections`.
-4. Reads or writes bytes, mmap, WAL, sidecars → `apps/engine/retrieval/storage`.
+3. Changes one collection's state → `apps/engine/data/collections`.
+4. Reads or writes bytes, mmap, WAL, sidecars → `apps/engine/data/storage`.
 5. ANN implementation detail → `apps/engine/retrieval/index`.
 6. Distance math or backend dispatch → `apps/engine/hardware/compute`.
 7. Device memory, streams, kernels → `apps/engine/hardware/gpu`.
 8. Model execution → `apps/engine/inference/runtime`.
 9. Retrieval inside the forward pass → `apps/engine/inference/fusion`.
-10. Shared vocabulary (error, config, metadata) → `apps/engine/foundation/core`.
+10. Shared vocabulary (error, config, metadata) → `apps/engine/core`.
 11. A deployable, a site, or a client library → `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow

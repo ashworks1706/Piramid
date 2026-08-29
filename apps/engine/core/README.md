@@ -7,4 +7,4 @@ The vocabulary every other crate shares. Transport-agnostic by rule — `Piramid
 `Result` so the binary decides.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.

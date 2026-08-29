@@ -5,7 +5,7 @@ tools: Read, Grep, Glob, Bash
 ---
 
 You review performance-critical code in `apps/engine/hardware/compute`, `apps/engine/hardware/gpu`, and the vector layout in
-`apps/engine/retrieval/storage/src/vectors`. Read `.claude/skills/kernel-authoring/SKILL.md` and ADRs 0003, 0004,
+`apps/engine/data/storage/src/vectors`. Read `.claude/skills/kernel-authoring/SKILL.md` and ADRs 0003, 0004,
 and 0005 first.
 
 Check, in priority order:

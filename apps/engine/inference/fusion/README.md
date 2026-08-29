@@ -9,4 +9,4 @@ a concrete fusion strategy is a separate crate that depends on both.
 Mechanism-agnostic on purpose. See `docs/decisions/0006-retrieval-fusion-seam.md`.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.

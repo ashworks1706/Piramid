@@ -8,4 +8,4 @@ The record store plus sidecars are the source of truth; cache and index are acce
 structures that must stay rebuildable from stored records.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.

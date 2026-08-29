@@ -9,4 +9,4 @@ search semantics, or collection lifecycle.
 `VectorReader::as_slab` is the seam for adopting it incrementally.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.

@@ -19,12 +19,13 @@ be built or deployed standalone.
 **Decision.** `apps/engine/` for the library tree, grouped by subsystem; `apps/` for everything we ship.
 
 ```
-apps/engine/foundation/  core
+apps/engine/core         shared vocabulary
 apps/engine/hardware/    compute  gpu
-apps/engine/retrieval/   storage  index  search  collections  embeddings
+apps/engine/data/        storage  collections
+apps/engine/retrieval/   index  search  embeddings
 apps/engine/inference/   fusion  runtime
 apps/engine/service/     server  observability
-apps/               cli  website  sdk
+apps/                    cli  website  sdk
 ```
 
 "One binary" describes the artifact, not the tree. The engine is twelve crates across five
@@ -36,7 +37,7 @@ rather than deployables. The alternative — reserving `apps/` for deployables o
 third top-level `sdks/` — splits hairs the repo does not need.
 
 Subsystem groups are for navigation, not stratification. They deliberately do not line up with the
-dependency order: `foundation/core` depends on `hardware/compute` for the `ExecutionMode` and
+dependency order: `core` depends on `hardware/compute` for the `ExecutionMode` and
 `Metric` types that configuration carries. The law in `scripts/check-deps.sh` is the authority on
 direction; the folders are an index.
 

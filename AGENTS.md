@@ -32,20 +32,29 @@ One repo, one binary. Library layers are `apps/engine/`; the only deployable is 
 Language is never a folder. Hardware is never a folder.
 
 ```
-apps/engine/foundation/core          errors, config, metadata + filters, validation, telemetry
-apps/engine/hardware/compute       distance kernels + backend registry          (leaf: no workspace deps)
-apps/engine/hardware/gpu           device, buffer, stream, module, kernels      (leaf: no workspace deps)
-apps/engine/retrieval/storage       records, WAL, sidecars, mmap, VectorSlab, quantization
-apps/engine/retrieval/index         flat, hnsw, ivf, selector, sidecar persistence
-apps/engine/retrieval/search        query planning, filtering, scoring, ranking
-apps/engine/retrieval/collections   Collection domain object, cache, checkpoint, compact
-apps/engine/retrieval/embeddings    openai, ollama, local providers
-apps/engine/inference/runtime     model, runtime, kv_cache, batching, sampling, fusion
+apps/engine/core                  errors, config, metadata + filters, validation, telemetry
+apps/engine/hardware/compute      distance kernels + backend registry    (leaf: no workspace deps)
+apps/engine/hardware/gpu          device, buffer, stream, module, kernels (leaf: no workspace deps)
+apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quantization
+apps/engine/data/collections      Collection domain object, cache, checkpoint, compact
+apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
+apps/engine/retrieval/search      query planning, filtering, scoring, ranking
+apps/engine/retrieval/embeddings  openai, ollama, local providers
+apps/engine/inference/fusion      the RetrievalHook seam        (depends on core only)
+apps/engine/inference/runtime     model, forward pass, kv_cache, batching, sampling
 apps/engine/service/server        http, services, runtime state, cluster
-apps/cli             the `piramid` binary + the umbrella `piramid` facade crate
-docs/                ARCHITECTURE.md, ROADMAP.md, decisions/
-deploy/              compose + one Dockerfile per image
+apps/engine/service/observability tracing subscriber, OTLP, Sentry, Prometheus rendering
+apps/cli                          the `piramid` binary + the umbrella `piramid` facade crate
+apps/website                      piramiddb.com, blog content and images included
+apps/sdk                          npm and python clients
+docs/                             ARCHITECTURE.md, ROADMAP.md, decisions/
+deploy/                           compose + one Dockerfile per image
 ```
+
+Groups say what a thing is for: `hardware/` changes when the machine changes, `data/` is where
+vectors live and who owns them, `retrieval/` is how you find them, `inference/` how you run a model
+over them, `service/` how the outside world reaches it. They are navigation, not dependency order —
+the law below is the authority on direction.
 
 ## The dependency law
 

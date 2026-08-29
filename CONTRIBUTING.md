@@ -38,13 +38,13 @@ is a design conversation — open an issue first.
 |---|---|
 | HTTP-specific | `apps/engine/service/server/src/http` |
 | A user-facing operation | `apps/engine/service/server/src/services` |
-| One collection's state | `apps/engine/retrieval/collections` |
-| Bytes, mmap, WAL, sidecars | `apps/engine/retrieval/storage` |
+| One collection's state | `apps/engine/data/collections` |
+| Bytes, mmap, WAL, sidecars | `apps/engine/data/storage` |
 | An ANN implementation detail | `apps/engine/retrieval/index` |
 | Distance math or backend dispatch | `apps/engine/hardware/compute` |
 | Device memory, streams, kernels | `apps/engine/hardware/gpu` |
 | Model execution | `apps/engine/inference/runtime` |
-| Shared vocabulary | `apps/engine/foundation/core` |
+| Shared vocabulary | `apps/engine/core` |
 
 ## Adding a compute backend
 

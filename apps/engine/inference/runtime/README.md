@@ -11,4 +11,4 @@ seam is very hard to retrofit with one. It is mechanism-agnostic on purpose — 
 `docs/decisions/0006-retrieval-fusion-seam.md`.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.
