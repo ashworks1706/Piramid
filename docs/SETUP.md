@@ -65,7 +65,7 @@ changes touch. `git commit --no-verify` skips it once.
 
 Settings resolve in this order, later winning:
 
-1. defaults in `engine/foundation/core/src/config`
+1. defaults in `apps/engine/foundation/core/src/config`
 2. a YAML or JSON file named by `CONFIG_FILE`
 3. environment variables
 

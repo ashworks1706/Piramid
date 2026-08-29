@@ -1,7 +1,7 @@
 # 0001 — One binary, layers as crates
 
 > Superseded in part by [0008](0008-engine-and-apps.md): the library tree moved from `crates/`
-> to `engine/`, and `apps/` widened to hold the website and SDKs alongside the CLI. The
+> to `apps/engine/`, and `apps/` widened to hold the website and SDKs alongside the CLI. The
 > one-deployable decision here is unchanged.
 
 

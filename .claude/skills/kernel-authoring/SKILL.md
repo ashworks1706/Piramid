@@ -1,6 +1,6 @@
 ---
 name: kernel-authoring
-description: Add a compute backend or GPU kernel to Piramid. Use when implementing a DistanceKernels backend, writing CUDA kernels, touching engine/hardware/compute or engine/hardware/gpu, or working on vector memory layout and device transfer.
+description: Add a compute backend or GPU kernel to Piramid. Use when implementing a DistanceKernels backend, writing CUDA kernels, touching apps/engine/hardware/compute or apps/engine/hardware/gpu, or working on vector memory layout and device transfer.
 ---
 
 # kernel-authoring
@@ -13,19 +13,19 @@ explain why the shapes below are what they are.
 
 ## The boundary
 
-`engine/hardware/gpu` owns the **device**: contexts, buffers, streams, module loading. No math semantics.
-`engine/hardware/compute` owns the **math**: what cosine means, which backend runs it.
+`apps/engine/hardware/gpu` owns the **device**: contexts, buffers, streams, module loading. No math semantics.
+`apps/engine/hardware/compute` owns the **math**: what cosine means, which backend runs it.
 
 Both are leaf crates — they depend on nothing else in the workspace. Do not add a dependency to
-either; `scripts/check-deps.sh` will reject it, and the reason is that `engine/inference/runtime` needs a
+either; `scripts/check-deps.sh` will reject it, and the reason is that `apps/engine/inference/runtime` needs a
 device too and must not reach through retrieval math to get one.
 
-Vendor SDK types (`cudarc`) appear only in `engine/hardware/gpu/src/backends/`. If `cudarc::` shows up
+Vendor SDK types (`cudarc`) appear only in `apps/engine/hardware/gpu/src/backends/`. If `cudarc::` shows up
 anywhere else, the abstraction has leaked.
 
 ## Adding a CPU backend
 
-One file in `engine/hardware/compute/src/backends/`, one arm in `for_mode` in `backends/mod.rs`. Nothing
+One file in `apps/engine/hardware/compute/src/backends/`, one arm in `for_mode` in `backends/mod.rs`. Nothing
 else in the workspace changes. If you find yourself editing a third file, stop and reconsider.
 
 1. Implement `DistanceKernels`: `mode`, `name`, `is_available`, and the four pairwise methods.
@@ -57,9 +57,9 @@ Order of work:
 1. **Device runtime first, kernels second.** `Device`, `DeviceBuffer`, `Stream` must round-trip —
    allocate, upload, download, compare — before any kernel is written. A kernel debugged on top of
    broken transfer is unfixable.
-2. Kernel source in `engine/hardware/gpu/src/kernels/<family>.cu`, typed launch wrapper beside it in
+2. Kernel source in `apps/engine/hardware/gpu/src/kernels/<family>.cu`, typed launch wrapper beside it in
    `<family>.rs`. The wrapper owns launch geometry and argument binding, not device lifetime.
-3. Wire it in `engine/hardware/compute/src/backends/cuda.rs` by overriding the batch methods only. Leave
+3. Wire it in `apps/engine/hardware/compute/src/backends/cuda.rs` by overriding the batch methods only. Leave
    the pairwise methods delegating to CPU — a single-pair distance will never justify a launch.
 4. Flip `CudaBackend::is_available` to a real device probe.
 
@@ -81,7 +81,7 @@ is unfalsifiable.
 
 - Measuring a GPU path against a *scattered* CPU baseline. Fix the layout first (`VectorSlab`), or
   you will attribute the layout win to the device.
-- `#[allow(unsafe_code)]` outside `engine/hardware/gpu` — the security workflow fails on a new site.
+- `#[allow(unsafe_code)]` outside `apps/engine/hardware/gpu` — the security workflow fails on a new site.
 - Panicking in a kernel. Dispatch must degrade with a warning, never abort a query.
 - Adding a match arm instead of a file. If new hardware means editing existing dispatch code, the
   registry pattern has been broken.

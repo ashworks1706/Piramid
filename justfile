@@ -1,6 +1,6 @@
 # Piramid tasks. `just` lists them; `just <recipe>`.
-# engine/ holds the library crates, grouped by subsystem: foundation, hardware, retrieval,
-# inference, service. apps/ holds what we ship: cli (the binary), website, sdk.
+# Everything first-party is under apps/: engine (the library crates, grouped by subsystem —
+# foundation, hardware, retrieval, inference, service), cli (the binary), website, sdk.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 

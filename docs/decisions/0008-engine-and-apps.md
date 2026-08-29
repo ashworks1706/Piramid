@@ -1,4 +1,4 @@
-# 0008 — `engine/` for the library tree, `apps/` for what we ship
+# 0008 — `apps/engine/` for the library tree, `apps/` for what we ship
 
 Supersedes the folder naming in [0002](0002-workspace-crate-boundaries.md); the crate boundaries
 and the dependency law it established are unchanged.
@@ -16,19 +16,19 @@ which said the site and the clients were somehow not part of the project. And th
 outside its own directory for content (`path.join(process.cwd(), "..", "blogs")`), so it could not
 be built or deployed standalone.
 
-**Decision.** `engine/` for the library tree, grouped by subsystem; `apps/` for everything we ship.
+**Decision.** `apps/engine/` for the library tree, grouped by subsystem; `apps/` for everything we ship.
 
 ```
-engine/foundation/  core
-engine/hardware/    compute  gpu
-engine/retrieval/   storage  index  search  collections  embeddings
-engine/inference/   fusion  runtime
-engine/service/     server  observability
+apps/engine/foundation/  core
+apps/engine/hardware/    compute  gpu
+apps/engine/retrieval/   storage  index  search  collections  embeddings
+apps/engine/inference/   fusion  runtime
+apps/engine/service/     server  observability
 apps/               cli  website  sdk
 ```
 
 "One binary" describes the artifact, not the tree. The engine is twelve crates across five
-subsystems; `apps/cli` is what fuses them into one binary. Naming the library tree `engine/` makes
+subsystems; `apps/cli` is what fuses them into one binary. Naming the library tree `apps/engine/` makes
 that relationship legible, and the product is literally called an inference engine.
 
 `apps/` means "what we author and ship", which is why the SDKs live there despite being libraries
@@ -55,7 +55,7 @@ images were duplicated between `assets/blogs/` and `website/public/assets/blogs/
 drifted, and the public copy was missing `lsm.png` entirely — so that image had not been rendering
 on the site. There is now one copy.
 
-The tree is three levels deep to a crate (`engine/retrieval/index`), which is one more than before.
+The tree is three levels deep to a crate (`apps/engine/retrieval/index`), which is one more than before.
 That is the cost of the grouping and it is worth it at twelve crates; it would not be at four.
 
 **Not decided.** Whether the SDKs survive at all. They are 11 and 7 lines, published under names

@@ -55,7 +55,7 @@ which is gitignored. They are never logged. Do not put them in a compose file or
 
 ## Unsafe code
 
-`unsafe_code` is denied workspace-wide. It is permitted in `engine/hardware/gpu` (device memory) and at
+`unsafe_code` is denied workspace-wide. It is permitted in `apps/engine/hardware/gpu` (device memory) and at
 exactly two audited sites — `storage::persistence::mmap::create_mmap` and `server::runtime::disk`
 — each carrying a `// SAFETY:` comment stating its precondition. A PR introducing `unsafe`
 anywhere else will not pass CI.

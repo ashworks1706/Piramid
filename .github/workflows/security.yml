@@ -37,13 +37,13 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              engine/hardware/gpu/*|engine/retrieval/storage/src/persistence/mmap.rs|engine/service/server/src/runtime/disk.rs)
+              apps/engine/hardware/gpu/*|apps/engine/retrieval/storage/src/persistence/mmap.rs|apps/engine/service/server/src/runtime/disk.rs)
                 echo "  ok   $f" ;;
               *)
                 echo "  FAIL $f — unreviewed unsafe_code allowance"
                 status=1 ;;
             esac
-          done < <(grep -rl 'allow(unsafe_code)' engine apps --include='*.rs' | sort)
+          done < <(grep -rl 'allow(unsafe_code)' apps --include='*.rs' | sort)
           if [ $status -ne 0 ]; then
             echo
             echo "If this allowance is intended, document it in SECURITY.md and add it here."

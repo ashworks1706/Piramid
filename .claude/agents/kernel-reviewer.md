@@ -1,11 +1,11 @@
 ---
 name: kernel-reviewer
-description: Reviews compute backends, GPU kernels, and vector memory layout. Use when changes touch engine/hardware/compute, engine/hardware/gpu, VectorSlab, VectorReader, or anything on the distance hot path.
+description: Reviews compute backends, GPU kernels, and vector memory layout. Use when changes touch apps/engine/hardware/compute, apps/engine/hardware/gpu, VectorSlab, VectorReader, or anything on the distance hot path.
 tools: Read, Grep, Glob, Bash
 ---
 
-You review performance-critical code in `engine/hardware/compute`, `engine/hardware/gpu`, and the vector layout in
-`engine/retrieval/storage/src/vectors`. Read `.claude/skills/kernel-authoring/SKILL.md` and ADRs 0003, 0004,
+You review performance-critical code in `apps/engine/hardware/compute`, `apps/engine/hardware/gpu`, and the vector layout in
+`apps/engine/retrieval/storage/src/vectors`. Read `.claude/skills/kernel-authoring/SKILL.md` and ADRs 0003, 0004,
 and 0005 first.
 
 Check, in priority order:
@@ -16,8 +16,8 @@ Check, in priority order:
 2. **Transfer.** Does anything upload per query what could stay resident? Does a benchmark measure
    with the data already on device while the real query path would not? A speedup that excludes
    the upload is not the speedup the user gets.
-3. **Boundary.** Vendor types (`cudarc`) outside `engine/hardware/gpu/src/backends/`. Math semantics leaking
-   into `engine/hardware/gpu`. Either leaf crate gaining a workspace dependency.
+3. **Boundary.** Vendor types (`cudarc`) outside `apps/engine/hardware/gpu/src/backends/`. Math semantics leaking
+   into `apps/engine/hardware/gpu`. Either leaf crate gaining a workspace dependency.
 4. **Correctness under fallback.** Does `is_available` tell the truth? A backend that reports
    available but is not produces wrong answers where an honest one produces a warning. Does any
    path panic instead of degrading?

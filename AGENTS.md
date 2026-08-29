@@ -28,20 +28,20 @@ A change is not done until `just check` passes. CI and the pre-commit hook run t
 
 ## Layout
 
-One repo, one binary. Library layers are `engine/`; the only deployable is `apps/cli`.
+One repo, one binary. Library layers are `apps/engine/`; the only deployable is `apps/cli`.
 Language is never a folder. Hardware is never a folder.
 
 ```
-engine/foundation/core          errors, config, metadata + filters, validation, telemetry
-engine/hardware/compute       distance kernels + backend registry          (leaf: no workspace deps)
-engine/hardware/gpu           device, buffer, stream, module, kernels      (leaf: no workspace deps)
-engine/retrieval/storage       records, WAL, sidecars, mmap, VectorSlab, quantization
-engine/retrieval/index         flat, hnsw, ivf, selector, sidecar persistence
-engine/retrieval/search        query planning, filtering, scoring, ranking
-engine/retrieval/collections   Collection domain object, cache, checkpoint, compact
-engine/retrieval/embeddings    openai, ollama, local providers
-engine/inference/runtime     model, runtime, kv_cache, batching, sampling, fusion
-engine/service/server        http, services, runtime state, cluster
+apps/engine/foundation/core          errors, config, metadata + filters, validation, telemetry
+apps/engine/hardware/compute       distance kernels + backend registry          (leaf: no workspace deps)
+apps/engine/hardware/gpu           device, buffer, stream, module, kernels      (leaf: no workspace deps)
+apps/engine/retrieval/storage       records, WAL, sidecars, mmap, VectorSlab, quantization
+apps/engine/retrieval/index         flat, hnsw, ivf, selector, sidecar persistence
+apps/engine/retrieval/search        query planning, filtering, scoring, ranking
+apps/engine/retrieval/collections   Collection domain object, cache, checkpoint, compact
+apps/engine/retrieval/embeddings    openai, ollama, local providers
+apps/engine/inference/runtime     model, runtime, kv_cache, batching, sampling, fusion
+apps/engine/service/server        http, services, runtime state, cluster
 apps/cli             the `piramid` binary + the umbrella `piramid` facade crate
 docs/                ARCHITECTURE.md, ROADMAP.md, decisions/
 deploy/              compose + one Dockerfile per image
@@ -85,7 +85,7 @@ Everything else is infrastructure for these. Change them deliberately.
   `todo!`, `unimplemented!`, `dbg!`, `println!`, `eprintln!` outside `apps/cli`. Fix at the source
   — never `#[allow]` a lint to get green. A genuine exception gets the narrowest possible scope
   and a one-line reason.
-- `unsafe_code` is denied workspace-wide. It is allowed in `engine/hardware/gpu` (device memory) and at
+- `unsafe_code` is denied workspace-wide. It is allowed in `apps/engine/hardware/gpu` (device memory) and at
   exactly two audited sites: `storage::persistence::mmap::create_mmap` and
   `server::runtime::disk`. Every block carries a `// SAFETY:` comment stating the precondition.
 - **A library never ends the process.** No `std::process::exit` outside `apps/cli`. Loading
@@ -101,7 +101,7 @@ Everything else is infrastructure for these. Change them deliberately.
 
 ## Conventions
 
-- Unit tests next to the code (`#[cfg(test)] mod tests`); integration tests in `engine/<group>/<crate>/tests/`.
+- Unit tests next to the code (`#[cfg(test)] mod tests`); integration tests in `apps/engine/<group>/<crate>/tests/`.
 - Every public item has a `///` doc comment saying *what*, not *how*. Every module has `//!`.
 - Traits are named for the capability, not the implementation. Backends are named for the
   technology, one file each — new hardware is a new file, never a new match arm.

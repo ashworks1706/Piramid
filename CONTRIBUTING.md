@@ -36,19 +36,19 @@ is a design conversation — open an issue first.
 
 | If it is… | It belongs in |
 |---|---|
-| HTTP-specific | `engine/service/server/src/http` |
-| A user-facing operation | `engine/service/server/src/services` |
-| One collection's state | `engine/retrieval/collections` |
-| Bytes, mmap, WAL, sidecars | `engine/retrieval/storage` |
-| An ANN implementation detail | `engine/retrieval/index` |
-| Distance math or backend dispatch | `engine/hardware/compute` |
-| Device memory, streams, kernels | `engine/hardware/gpu` |
-| Model execution | `engine/inference/runtime` |
-| Shared vocabulary | `engine/foundation/core` |
+| HTTP-specific | `apps/engine/service/server/src/http` |
+| A user-facing operation | `apps/engine/service/server/src/services` |
+| One collection's state | `apps/engine/retrieval/collections` |
+| Bytes, mmap, WAL, sidecars | `apps/engine/retrieval/storage` |
+| An ANN implementation detail | `apps/engine/retrieval/index` |
+| Distance math or backend dispatch | `apps/engine/hardware/compute` |
+| Device memory, streams, kernels | `apps/engine/hardware/gpu` |
+| Model execution | `apps/engine/inference/runtime` |
+| Shared vocabulary | `apps/engine/foundation/core` |
 
 ## Adding a compute backend
 
-One file in `engine/hardware/compute/src/backends/` implementing `DistanceKernels`, one arm in the registry
+One file in `apps/engine/hardware/compute/src/backends/` implementing `DistanceKernels`, one arm in the registry
 in `backends/mod.rs`. Nothing else changes — that is the point of the trait.
 
 The batch methods take a contiguous row-major slab and a caller-owned `out`. Do not change that

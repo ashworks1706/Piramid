@@ -14,26 +14,32 @@ edge that is not in the law below.
 ## The tree
 
 ```text
-engine/                   the library crates — grouped by subsystem
-  foundation/core         shared vocabulary
-  hardware/               code that cares what machine it runs on
-    compute  gpu
-  retrieval/              everything that finds vectors
-    storage  index  search  collections  embeddings
-  inference/              everything that runs a model
-    fusion   runtime
-  service/                how the outside world reaches it
-    server   observability
-apps/                     what we ship
+apps/                     everything first-party
+  engine/                 the library crates — grouped by subsystem
+    foundation/core       shared vocabulary
+    hardware/             code that cares what machine it runs on
+      compute  gpu
+    retrieval/            everything that finds vectors
+      storage  index  search  collections  embeddings
+    inference/            everything that runs a model
+      fusion   runtime
+    service/              how the outside world reaches it
+      server   observability
   cli/                    the piramid binary — fuses the engine into one artifact
   website/                piramiddb.com, with blog content and images inside it
   sdk/                    npm and python clients
+
+deploy/  docs/  scripts/  .claude/  .github/     how it is built, shipped, and explained
 ```
 
 Two things this naming is doing. `engine/` says what the thing *is* — "crates" describes Rust's
 compilation model, not the product. And **one binary does not mean one folder**: the engine is
 twelve crates across five subsystems, and `apps/cli` is the thing that fuses them into an
 artifact.
+
+`apps/` means "everything we author", not "everything separately deployable" — which is why the
+engine and the SDKs sit beside the binary and the site. `deploy/` stays outside it because it
+describes how those are packaged, not something we author.
 
 The subsystem groups are for navigation. They are *not* the dependency order — that is the law
 below, and it does not line up one-to-one with the folders (`foundation/core` depends on
@@ -266,7 +272,7 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 2. No library crate calls `std::process::exit`. Configuration loading returns `Result`.
 3. `core` never names an HTTP type.
 4. Vendor SDK types (`cudarc`, `candle`) never escape their backend module.
-5. `unsafe` appears only in `engine/hardware/gpu` and two audited sites, each with a `// SAFETY:` comment.
+5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
 7. Retrieval works with no model loaded, and `inference/runtime` depends on nothing in the
    retrieval stack. `fusion` is the seam between them and holds only the trait; a concrete
@@ -276,16 +282,16 @@ This is also why the orphan rule is not a problem: the `IntoResponse` impl is on
 
 ## Adding code
 
-1. HTTP-specific → `engine/service/server/src/http`.
-2. Coordinates a user-facing operation → `engine/service/server/src/services`.
-3. Changes one collection's state → `engine/retrieval/collections`.
-4. Reads or writes bytes, mmap, WAL, sidecars → `engine/retrieval/storage`.
-5. ANN implementation detail → `engine/retrieval/index`.
-6. Distance math or backend dispatch → `engine/hardware/compute`.
-7. Device memory, streams, kernels → `engine/hardware/gpu`.
-8. Model execution → `engine/inference/runtime`.
-9. Retrieval inside the forward pass → `engine/inference/fusion`.
-10. Shared vocabulary (error, config, metadata) → `engine/foundation/core`.
+1. HTTP-specific → `apps/engine/service/server/src/http`.
+2. Coordinates a user-facing operation → `apps/engine/service/server/src/services`.
+3. Changes one collection's state → `apps/engine/retrieval/collections`.
+4. Reads or writes bytes, mmap, WAL, sidecars → `apps/engine/retrieval/storage`.
+5. ANN implementation detail → `apps/engine/retrieval/index`.
+6. Distance math or backend dispatch → `apps/engine/hardware/compute`.
+7. Device memory, streams, kernels → `apps/engine/hardware/gpu`.
+8. Model execution → `apps/engine/inference/runtime`.
+9. Retrieval inside the forward pass → `apps/engine/inference/fusion`.
+10. Shared vocabulary (error, config, metadata) → `apps/engine/foundation/core`.
 11. A deployable, a site, or a client library → `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow
