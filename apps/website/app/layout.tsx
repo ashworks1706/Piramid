@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { JetBrains_Mono } from "next/font/google";
+import localFont from "next/font/local";
 import "./globals.css";
 import "katex/dist/katex.min.css";
 
@@ -8,6 +9,20 @@ const mono = JetBrains_Mono({
   subsets: ["latin"],
   display: "swap",
   variable: "--font-mono",
+});
+
+// Google's `latin` subset stops at U+00FF plus a little punctuation, so it carries none of the
+// box-drawing or block characters the logo is drawn with. Those glyphs fell through to whatever
+// the OS happened to pick, and the two ranges can land on *different* fallbacks — which is what
+// smeared the wordmark on Windows while leaving the pyramid roughly intact. JetBrains Mono itself
+// has all 160 of them at the same 600/1000 advance as its ASCII, so this ships exactly that block.
+// `display: "block"` because the fallback is the bug: better a beat of nothing than a beat of
+// broken art.
+const blocks = localFont({
+  src: "./fonts/jetbrains-mono-blocks.woff2",
+  display: "block",
+  variable: "--font-blocks",
+  declarations: [{ prop: "unicode-range", value: "U+2500-259F" }],
 });
 
 export const metadata: Metadata = {
@@ -82,7 +97,7 @@ export default function RootLayout({
   return (
     // Browser extensions add attributes to <html> before hydration; this only covers this
     // element, so a real mismatch further down still reports.
-    <html lang="en" className={`dark ${mono.variable}`} suppressHydrationWarning>
+    <html lang="en" className={`dark ${mono.variable} ${blocks.variable}`} suppressHydrationWarning>
       <body className="antialiased">{children}</body>
     </html>
   );
