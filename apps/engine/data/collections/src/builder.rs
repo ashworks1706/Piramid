@@ -29,7 +29,7 @@ impl CollectionBuilder {
             .file_stem()
             .and_then(|stem| stem.to_str())
             .ok_or_else(|| {
-                StorageError::InvalidVectorData(format!(
+                StorageError::InvalidPath(format!(
                     "collection path '{path}' has no usable file stem to name the collection"
                 ))
             })?

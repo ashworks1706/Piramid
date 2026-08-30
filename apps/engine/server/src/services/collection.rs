@@ -6,16 +6,6 @@ use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
 
-fn ensure_available(state: &SharedState) -> Result<()> {
-    if state
-        .shutting_down
-        .load(std::sync::atomic::Ordering::Relaxed)
-    {
-        return Err(ServerError::ServiceUnavailable("Server is shutting down".to_string()).into());
-    }
-    Ok(())
-}
-
 fn collection_info(name: String, collection: &piramid_collections::Collection) -> CollectionInfo {
     let meta = collection.metadata();
     CollectionInfo {
@@ -28,7 +18,7 @@ fn collection_info(name: String, collection: &piramid_collections::Collection) -
 }
 
 pub fn list_collections(state: &SharedState) -> Result<CollectionsResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let mut collections = Vec::new();
     for (name, collection_handle) in state.collection_manager.loaded_collections() {
@@ -48,7 +38,7 @@ pub fn create_collection(
     state: &SharedState,
     req: CreateCollectionRequest,
 ) -> Result<CollectionInfo> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     validation::validate_collection_name(&req.name)?;
 
     let collection_handle = state.get_or_create_collection(&req.name)?;
@@ -62,7 +52,7 @@ pub fn create_collection(
 }
 
 pub fn get_collection(state: &SharedState, collection: String) -> Result<CollectionInfo> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let lock_start = Instant::now();
@@ -78,7 +68,7 @@ pub fn delete_collection(
     state: &SharedState,
     collection: String,
 ) -> Result<DeleteCollectionResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let existed = state.collection_manager.remove(&collection).is_some();
     if existed {
@@ -107,7 +97,7 @@ pub fn delete_collection(
 }
 
 pub fn collection_count(state: &SharedState, collection: String) -> Result<CountResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let lock_start = Instant::now();
@@ -123,7 +113,7 @@ pub fn collection_count(state: &SharedState, collection: String) -> Result<Count
 }
 
 pub fn index_stats(state: &SharedState, collection: String) -> Result<IndexStatsResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let lock_start = Instant::now();
@@ -150,7 +140,7 @@ pub fn index_stats(state: &SharedState, collection: String) -> Result<IndexStats
     fields(collection = %collection)
 )]
 pub fn rebuild_index(state: &SharedState, collection: String) -> Result<RebuildIndexResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let started_at = piramid_core::clock::unix_secs();
@@ -222,7 +212,7 @@ pub fn find_duplicates(
     collection: String,
     req: DuplicateRequest,
 ) -> Result<DuplicateResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let lock_start = Instant::now();
@@ -263,7 +253,7 @@ pub fn find_duplicates(
     fields(collection = %collection)
 )]
 pub fn compact_collection(state: &SharedState, collection: String) -> Result<RebuildIndexResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let mut collection_guard = collection_handle.write();
@@ -289,7 +279,7 @@ pub fn rebuild_index_status(
     state: &SharedState,
     collection: String,
 ) -> Result<RebuildIndexStatusResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let job = state
         .rebuild_jobs

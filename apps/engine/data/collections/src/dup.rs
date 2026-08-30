@@ -19,7 +19,7 @@ pub struct DuplicateHit {
 }
 
 pub fn find_duplicates(
-    collection: &Collection,
+    storage: &Collection,
     metric: Metric,
     threshold: f32,
     limit: Option<usize>,
@@ -28,11 +28,11 @@ pub fn find_duplicates(
     nprobe_override: Option<usize>,
 ) -> Result<Vec<DuplicateHit>> {
     let mut pairs = Vec::new();
-    let vectors = collection.vectors_view();
-    let metadatas = collection.metadata_view();
+    let vectors = storage.vectors_view();
+    let metadatas = storage.metadata_view();
     let ids: Vec<Uuid> = vectors.keys().cloned().collect();
-    let kernels = for_mode(collection.config.execution)?;
-    let mut search_cfg = collection.config.search;
+    let kernels = for_mode(storage.config.execution)?;
+    let mut search_cfg = storage.config.search;
     if let Some(ef) = ef_override {
         search_cfg.ef = Some(ef);
     }
@@ -51,10 +51,10 @@ pub fn find_duplicates(
         let Some(vec) = vectors.get(id) else {
             continue;
         };
-        let neighbors = collection.vector_index().search(IndexSearchRequest::new(
+        let neighbors = storage.vector_index().search(IndexSearchRequest::new(
             vec,
             neighbor_k,
-            collection.vector_reader(),
+            storage.vector_reader(),
             search_cfg,
             metadatas,
         ))?;

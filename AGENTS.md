@@ -45,7 +45,8 @@ One repo, one binary. Everything we author is under `apps/`. The library crates 
 folder and neither is hardware.
 
 ```
-apps/engine/core                  errors, config, metadata and filters, validation,
+apps/engine/core                  errors (every one the app wraps), config (including each
+                                  index family's parameters), metadata and filters, validation,
                                   stats (what the engine measures about itself)
 apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
@@ -54,7 +55,7 @@ apps/engine/hardware/gpu          device, buffer, stream, module, kernels
 apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorReader
 apps/engine/data/collections      the Collection object, checkpoint, compact,
                                   cache/ (VectorStore resident + MetadataCache bounded)
-apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
+apps/engine/retrieval/index       flat, hnsw, ivf traversal, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
 apps/engine/inference             forward pass, kv_cache, batching, sampling,

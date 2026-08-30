@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::SearchConfig;
+use crate::config::{FlatConfig, HnswConfig, IvfConfig, SearchConfig};
 use piramid_compute::{ExecutionMode, Metric};
 
 /// Which index family a configuration resolves to.
@@ -66,32 +66,30 @@ pub enum IndexConfig {
         #[serde(default)]
         auto: AutoIndexConfig,
     },
+    /// Brute-force scan. `params` is flattened, so the wire format is unchanged.
     Flat {
-        metric: Metric,
-        #[serde(default)]
-        mode: ExecutionMode,
+        /// Scan parameters.
+        #[serde(flatten)]
+        params: FlatConfig,
+        /// Per-query recall/speed knobs.
         #[serde(default)]
         search: SearchConfig,
     },
+    /// Graph index.
     Hnsw {
-        m: usize,
-        m_max: usize,
-        ef_construction: usize,
-        ef_search: usize,
-        ml: f32,
-        metric: Metric,
-        #[serde(default)]
-        mode: ExecutionMode,
+        /// Graph parameters.
+        #[serde(flatten)]
+        params: HnswConfig,
+        /// Per-query recall/speed knobs.
         #[serde(default)]
         search: SearchConfig,
     },
+    /// Inverted-file index.
     Ivf {
-        num_clusters: usize,
-        num_probes: usize,
-        max_iterations: usize,
-        metric: Metric,
-        #[serde(default)]
-        mode: ExecutionMode,
+        /// Partition parameters.
+        #[serde(flatten)]
+        params: IvfConfig,
+        /// Per-query recall/speed knobs.
         #[serde(default)]
         search: SearchConfig,
     },
@@ -130,10 +128,10 @@ impl IndexConfig {
     /// Metric and execution mode shared by every variant.
     pub fn get_metric_and_mode(&self) -> (Metric, ExecutionMode) {
         match self {
-            IndexConfig::Auto { metric, mode, .. }
-            | IndexConfig::Flat { metric, mode, .. }
-            | IndexConfig::Hnsw { metric, mode, .. }
-            | IndexConfig::Ivf { metric, mode, .. } => (*metric, *mode),
+            IndexConfig::Auto { metric, mode, .. } => (*metric, *mode),
+            IndexConfig::Flat { params, .. } => (params.metric, params.mode),
+            IndexConfig::Hnsw { params, .. } => (params.metric, params.mode),
+            IndexConfig::Ivf { params, .. } => (params.metric, params.mode),
         }
     }
 

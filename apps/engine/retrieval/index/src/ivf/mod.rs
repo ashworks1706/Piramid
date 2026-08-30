@@ -1,5 +1,4 @@
-mod config;
 mod index;
 
-pub use config::IvfConfig;
 pub use index::IvfIndex;
+pub use piramid_core::config::IvfConfig;

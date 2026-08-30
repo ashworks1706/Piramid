@@ -10,5 +10,6 @@ pub use admin::*;
 pub use collections::*;
 pub use common::*;
 pub use embeddings::*;
+pub use range::*;
 pub use search::*;
 pub use vectors::*;

@@ -6,10 +6,11 @@ mod collection;
 mod embedding;
 mod hardware;
 mod index;
+mod index_params;
 mod limits;
 pub mod loader;
 
-pub use loader::{ConfigError, RuntimeConfig};
+pub use loader::RuntimeConfig;
 mod logging;
 mod memory;
 mod parallelism;
@@ -26,6 +27,7 @@ pub use embedding::EmbeddingConfig;
 // Re-exported here so configuration callers keep a single import path.
 pub use hardware::{HardwareConfig, HardwareProfile};
 pub use index::{AutoIndexConfig, IndexConfig, IndexKind};
+pub use index_params::{FlatConfig, HnswConfig, IvfConfig};
 pub use limits::LimitsConfig;
 pub use logging::{LogLevel, LoggingConfig};
 pub use memory::MemoryConfig;

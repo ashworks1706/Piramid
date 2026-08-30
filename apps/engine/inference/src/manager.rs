@@ -11,7 +11,7 @@ pub struct InferenceManager {
 
 impl InferenceManager {
     /// A manager with retrieval fusion disabled.
-    pub fn new() -> Self {
+    pub fn disabled() -> Self {
         Self {
             hook: Box::new(NoopRetrievalHook),
         }
@@ -30,6 +30,6 @@ impl InferenceManager {
 
 impl Default for InferenceManager {
     fn default() -> Self {
-        Self::new()
+        Self::disabled()
     }
 }

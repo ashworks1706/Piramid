@@ -1,6 +1,15 @@
 //! Observability configuration, read from the environment.
 
 use std::env;
+use thiserror::Error;
+
+/// An environment variable held a value the config could not parse.
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
+#[error("{0}")]
+pub struct ObservabilityError(pub String);
+
+/// Convenience alias for observability config results.
+pub type ObservabilityResult<T> = Result<T, ObservabilityError>;
 
 /// Where telemetry goes.
 #[derive(Debug, Clone, Default)]
@@ -22,7 +31,7 @@ pub struct OtlpConfig {
 
 impl ObservabilityConfig {
     /// Read configuration from the environment.
-    pub fn from_env() -> Result<Self, String> {
+    pub fn from_env() -> ObservabilityResult<Self> {
         let otlp = env::var("PIRAMID_OTLP_ENDPOINT")
             .ok()
             .filter(|value| !value.trim().is_empty())
@@ -37,9 +46,9 @@ impl ObservabilityConfig {
                 "true" => true,
                 "false" => false,
                 other => {
-                    return Err(format!(
+                    return Err(ObservabilityError(format!(
                         "PIRAMID_LOG_SPANS: expected 'true' or 'false', got '{other}'"
-                    ))
+                    )))
                 }
             },
             Err(_) => false,

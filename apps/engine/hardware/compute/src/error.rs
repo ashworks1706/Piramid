@@ -25,11 +25,11 @@ pub enum ComputeError {
     /// quantization level has no encoder.
     #[error("invalid quantized encoding: {0}")]
     InvalidEncoding(String),
-    /// The underlying vendor backend ran but failed.
-    #[error("compute backend '{backend}' failed: {message}")]
-    Backend {
-        /// Vendor backend that failed.
-        backend: &'static str,
+    /// The underlying vendor strategy ran but failed.
+    #[error("compute strategy '{strategy}' failed: {message}")]
+    StrategyFailed {
+        /// Vendor strategy that failed.
+        strategy: &'static str,
         /// Underlying message.
         message: String,
     },

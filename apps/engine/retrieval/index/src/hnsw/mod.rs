@@ -1,8 +1,8 @@
-mod config;
 mod index;
 
-pub use config::{HnswConfig, HnswStats};
 pub use index::HnswIndex;
+pub use index::HnswStats;
+pub use piramid_core::config::HnswConfig;
 
 use crate::traits::{
     IndexDetails, IndexSearchRequest, IndexStats, IndexType, VectorIndex, VectorReader,

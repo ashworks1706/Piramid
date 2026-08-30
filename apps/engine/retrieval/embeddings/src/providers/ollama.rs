@@ -37,15 +37,6 @@ impl OllamaEmbedder {
             base_url,
         })
     }
-
-    fn get_dimensions(&self) -> Option<usize> {
-        match self.model.as_str() {
-            "nomic-embed-text" => Some(768),
-            "mxbai-embed-large" => Some(1024),
-            "all-minilm" => Some(384),
-            _ => None,
-        }
-    }
 }
 
 #[async_trait]
@@ -98,7 +89,12 @@ impl Embedder for OllamaEmbedder {
     }
 
     fn dimensions(&self) -> Option<usize> {
-        self.get_dimensions()
+        match self.model.as_str() {
+            "nomic-embed-text" => Some(768),
+            "mxbai-embed-large" => Some(1024),
+            "all-minilm" => Some(384),
+            _ => None,
+        }
     }
 }
 

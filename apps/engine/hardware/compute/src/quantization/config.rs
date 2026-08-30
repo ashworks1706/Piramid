@@ -54,22 +54,6 @@ pub struct QuantizationConfig {
     /// Keep full-precision vectors alongside the quantized copies.
     #[serde(default = "default_preserve_raw_vectors")]
     pub preserve_raw_vectors: bool,
-
-    /// Quantize what is written to disk.
-    #[serde(default)]
-    pub storage_enabled: bool,
-
-    /// Quantize what the index scores against.
-    #[serde(default)]
-    pub index_enabled: bool,
-
-    /// Quantize the query before searching.
-    #[serde(default)]
-    pub query_enabled: bool,
-
-    /// Quantize results after searching.
-    #[serde(default)]
-    pub result_enabled: bool,
 }
 
 impl Default for QuantizationConfig {
@@ -79,10 +63,6 @@ impl Default for QuantizationConfig {
             disk_only: false,
             stage: QuantizationStage::Disabled,
             preserve_raw_vectors: true,
-            storage_enabled: false,
-            index_enabled: false,
-            query_enabled: false,
-            result_enabled: false,
         }
     }
 }
@@ -95,10 +75,6 @@ impl QuantizationConfig {
             disk_only: false,
             stage: QuantizationStage::Index,
             preserve_raw_vectors: true,
-            storage_enabled: false,
-            index_enabled: true,
-            query_enabled: false,
-            result_enabled: false,
         }
     }
 
@@ -109,17 +85,12 @@ impl QuantizationConfig {
             disk_only: false,
             stage: QuantizationStage::Index,
             preserve_raw_vectors: true,
-            storage_enabled: false,
-            index_enabled: true,
-            query_enabled: false,
-            result_enabled: false,
         }
     }
 
     /// Switch the stage to quantizing results after search.
     pub fn post_search(mut self) -> Self {
         self.stage = QuantizationStage::ResultPostSearch;
-        self.result_enabled = true;
         self
     }
 }

@@ -84,10 +84,15 @@ impl AppState {
         })
     }
 
-    fn check_routable(&self, name: &str) -> Result<()> {
+    pub fn ensure_available(&self) -> Result<()> {
         if self.shutting_down.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
         }
+        Ok(())
+    }
+
+    fn check_routable(&self, name: &str) -> Result<()> {
+        self.ensure_available()?;
         if let RouteDecision::Remote(node_id) = self.cluster_router.route_collection(name) {
             return Err(ServerError::ServiceUnavailable(format!(
                 "collection '{name}' is assigned to remote node '{node_id}', but remote routing is not implemented"
@@ -142,9 +147,7 @@ impl AppState {
     }
 
     pub fn ensure_write_allowed(&self) -> Result<()> {
-        if self.shutting_down.load(Ordering::Relaxed) {
-            return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
-        }
+        self.ensure_available()?;
         if self.read_only.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable(
                 "Server is in read-only mode due to low disk space".into(),

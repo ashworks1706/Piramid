@@ -7,7 +7,7 @@ use super::{
     LoggingConfig, MemoryConfig, ParallelismConfig, QuantizationConfig, QuantizationStage,
     SearchConfig, WalConfig,
 };
-use crate::config::{AutoIndexConfig, IndexConfig};
+use crate::config::{AutoIndexConfig, FlatConfig, HnswConfig, IndexConfig, IvfConfig};
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
@@ -58,14 +58,6 @@ impl AppConfig {
         {
             return Err("QUANTIZATION stage must be disabled when level is none".into());
         }
-        if self.quantization.level == crate::config::QuantizationLevel::None
-            && (self.quantization.storage_enabled
-                || self.quantization.index_enabled
-                || self.quantization.query_enabled
-                || self.quantization.result_enabled)
-        {
-            return Err("QUANTIZATION enabled flags require a non-none level".into());
-        }
         if self.hardware.gpu_enabled && matches!(self.execution, ExecutionMode::Scalar) {
             return Err("HARDWARE gpu_enabled conflicts with scalar execution mode".into());
         }
@@ -93,26 +85,20 @@ impl AppConfig {
         if let Ok(val) = std::env::var("INDEX_TYPE") {
             self.index = match val.to_lowercase().as_str() {
                 "flat" => IndexConfig::Flat {
-                    metric: piramid_compute::Metric::Cosine,
-                    mode: ExecutionMode::Auto,
+                    params: FlatConfig::default(),
                     search: self.search,
                 },
                 "hnsw" => IndexConfig::Hnsw {
-                    m: 16,
-                    m_max: 32,
-                    ef_construction: 200,
-                    ef_search: 200,
-                    ml: 1.0 / (16.0_f32).ln(),
-                    metric: piramid_compute::Metric::Cosine,
-                    mode: ExecutionMode::Auto,
+                    params: HnswConfig::default(),
                     search: self.search,
                 },
                 "ivf" => IndexConfig::Ivf {
-                    num_clusters: 256,
-                    num_probes: 8,
-                    max_iterations: 20,
-                    metric: piramid_compute::Metric::Cosine,
-                    mode: ExecutionMode::Auto,
+                    params: IvfConfig {
+                        num_clusters: 256,
+                        num_probes: 8,
+                        max_iterations: 20,
+                        ..IvfConfig::default()
+                    },
                     search: self.search,
                 },
                 _ => return Err(format!("Invalid INDEX_TYPE '{val}'")),
@@ -230,19 +216,6 @@ impl AppConfig {
             self.quantization.preserve_raw_vectors =
                 parse_bool_env("QUANTIZATION_PRESERVE_RAW", &val)?;
         }
-        if let Ok(val) = std::env::var("QUANTIZATION_STORAGE_ENABLED") {
-            self.quantization.storage_enabled =
-                parse_bool_env("QUANTIZATION_STORAGE_ENABLED", &val)?;
-        }
-        if let Ok(val) = std::env::var("QUANTIZATION_INDEX_ENABLED") {
-            self.quantization.index_enabled = parse_bool_env("QUANTIZATION_INDEX_ENABLED", &val)?;
-        }
-        if let Ok(val) = std::env::var("QUANTIZATION_QUERY_ENABLED") {
-            self.quantization.query_enabled = parse_bool_env("QUANTIZATION_QUERY_ENABLED", &val)?;
-        }
-        if let Ok(val) = std::env::var("QUANTIZATION_RESULT_ENABLED") {
-            self.quantization.result_enabled = parse_bool_env("QUANTIZATION_RESULT_ENABLED", &val)?;
-        }
 
         if let Ok(val) = std::env::var("LIMIT_MAX_VECTORS") {
             self.limits.max_vectors = Some(parse_env::<usize>("LIMIT_MAX_VECTORS", &val)?);
@@ -343,14 +316,14 @@ fn validate_index(index: &IndexConfig) -> Result<(), String> {
     match index {
         IndexConfig::Auto { auto, .. } => validate_auto_index(auto),
         IndexConfig::Flat { .. } => Ok(()),
-        IndexConfig::Hnsw {
-            m,
-            m_max,
-            ef_construction,
-            ef_search,
-            ml,
-            ..
-        } => {
+        IndexConfig::Hnsw { params, .. } => {
+            let (m, m_max, ef_construction, ef_search, ml) = (
+                &params.m,
+                &params.m_max,
+                &params.ef_construction,
+                &params.ef_search,
+                &params.ml,
+            );
             if *m == 0 || *m_max == 0 {
                 return Err("INDEX hnsw m and m_max must be > 0".into());
             }
@@ -366,12 +339,12 @@ fn validate_index(index: &IndexConfig) -> Result<(), String> {
             }
             Ok(())
         }
-        IndexConfig::Ivf {
-            num_clusters,
-            num_probes,
-            max_iterations,
-            ..
-        } => {
+        IndexConfig::Ivf { params, .. } => {
+            let (num_clusters, num_probes, max_iterations) = (
+                &params.num_clusters,
+                &params.num_probes,
+                &params.max_iterations,
+            );
             if *num_clusters == 0 {
                 return Err("INDEX ivf num_clusters must be > 0".into());
             }

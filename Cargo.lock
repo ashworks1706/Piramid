@@ -1335,6 +1335,7 @@ dependencies = [
  "opentelemetry-otlp",
  "opentelemetry_sdk",
  "piramid-core",
+ "thiserror 1.0.69",
  "tracing",
  "tracing-opentelemetry",
  "tracing-subscriber",

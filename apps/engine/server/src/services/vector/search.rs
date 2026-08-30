@@ -3,14 +3,13 @@ use std::time::Instant;
 use crate::services::convert::{
     apply_search_overrides, hit_to_response, parse_filter, parse_metric,
 };
-use crate::services::types::range::RangeSearchRequest;
-use crate::services::types::{SearchRequest, SearchResponse};
+use crate::services::types::{RangeSearchRequest, SearchRequest, SearchResponse};
 use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
 
-use super::{ensure_available, MAX_BATCH_SIZE};
+use super::MAX_BATCH_SIZE;
 
 /// Search a collection with one or more query vectors.
 #[tracing::instrument(
@@ -35,7 +34,7 @@ pub fn search_vectors(
     request_id: &str,
     req: SearchRequest,
 ) -> Result<SearchResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     validation::validate_collection_name(&collection)?;
 
     let SearchRequest {
@@ -131,7 +130,7 @@ pub fn range_search_vectors(
     request_id: &str,
     req: RangeSearchRequest,
 ) -> Result<SearchResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     validation::validate_collection_name(&collection)?;
 
     let RangeSearchRequest {

@@ -57,6 +57,11 @@ impl<'a> SidecarManager<'a> {
         format!("{}.vecindex.db", self.base)
     }
 
+    /// Path of the scratch record file a compaction rewrites into before the rename.
+    pub fn compact_path(&self) -> String {
+        format!("{}.compact", self.base)
+    }
+
     /// Persist the offset index.
     pub fn save_offsets(&self, index: &HashMap<Uuid, EntryPointer>) -> Result<()> {
         Self::write_bincode(&self.offsets_path(), index)

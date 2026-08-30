@@ -14,7 +14,7 @@ use piramid_core::stats::record_lock_write;
 use piramid_core::validation;
 use piramid_storage::Document;
 
-use super::{ensure_available, MAX_BATCH_SIZE};
+use super::MAX_BATCH_SIZE;
 
 /// Turn a request into documents, rejecting any length disagreement between its lists.
 fn build_entries(req: InsertRequest) -> Result<Vec<Document>> {
@@ -81,7 +81,7 @@ pub fn insert_vector(
     collection: String,
     req: InsertRequest,
 ) -> Result<InsertResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     state.ensure_write_allowed()?;
     validation::validate_collection_name(&collection)?;
 
@@ -117,7 +117,7 @@ pub fn delete_vector(
     collection: String,
     id: String,
 ) -> Result<DeleteResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     state.ensure_write_allowed()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
@@ -157,7 +157,7 @@ pub fn delete_vectors(
     collection: String,
     req: DeleteVectorsRequest,
 ) -> Result<DeleteResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     state.ensure_write_allowed()?;
     validation::validate_collection_name(&collection)?;
     validation::validate_batch_size(req.ids.len(), MAX_BATCH_SIZE, "Delete")?;
@@ -203,7 +203,7 @@ pub fn upsert_vector(
     collection: String,
     mut req: UpsertRequest,
 ) -> Result<UpsertResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     state.ensure_write_allowed()?;
     validation::validate_collection_name(&collection)?;
     validation::validate_text(&req.text)?;

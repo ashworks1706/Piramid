@@ -113,12 +113,12 @@ flowchart TD
 
 | Crate | Owns | Must not |
 |---|---|---|
-| `core` | Errors, configuration, metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
+| `core` | Every error the app wraps, all configuration (including per-index-family parameters), metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
 | `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product |
 | `compute` | Distance math, backend selection, quantization encodings | Depend on anything in the workspace |
 | `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics or leak vendor types |
 | `storage` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
-| `index` | ANN traversal, index settings, sidecar format | Own collection storage or the vectors themselves |
+| `index` | ANN traversal and the sidecar format | Own collection storage, the vectors, or a second copy of its own config |
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
 | `collections` | The `Collection` object, its `cache` (resident `VectorStore` + bounded `MetadataCache`), checkpoint, compaction | Serve HTTP, or evict a vector |
 | `embeddings` | Provider adapters, caching, retries, `EmbeddingsManager` | Know about collections, or depend on `inference` |

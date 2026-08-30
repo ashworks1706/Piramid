@@ -1,5 +1,4 @@
-mod config;
 mod index;
 
-pub use config::FlatConfig;
 pub use index::FlatIndex;
+pub use piramid_core::config::FlatConfig;

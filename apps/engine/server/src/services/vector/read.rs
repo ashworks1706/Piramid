@@ -9,10 +9,8 @@ use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 
-use super::ensure_available;
-
 pub fn get_vector(state: &SharedState, collection: String, id: String) -> Result<VectorResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let uuid = Uuid::parse_str(&id)
@@ -41,7 +39,7 @@ pub fn list_vectors(
     collection: String,
     params: ListVectorsQuery,
 ) -> Result<Vec<VectorResponse>> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let lock_start = Instant::now();

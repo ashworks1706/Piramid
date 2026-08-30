@@ -6,37 +6,37 @@ use piramid_search::{Hit, SearchParams, SearchTarget};
 
 use super::Collection;
 
-fn target(collection: &Collection) -> SearchTarget<'_> {
+fn target(storage: &Collection) -> SearchTarget<'_> {
     SearchTarget {
-        index: collection.vector_index(),
-        vectors: collection.vector_reader(),
-        metadata: collection.metadata_view(),
-        default_config: collection.config.search,
+        index: storage.vector_index(),
+        vectors: storage.vector_reader(),
+        metadata: storage.metadata_view(),
+        default_config: storage.config.search,
     }
 }
 
 /// Search one query, filling unset params from the collection's configuration.
 pub fn search(
-    collection: &Collection,
+    storage: &Collection,
     query: &[f32],
     k: usize,
     metric: Metric,
     mut params: SearchParams,
 ) -> Result<Vec<Hit>> {
     if matches!(params.mode, ExecutionMode::Auto) {
-        params.mode = collection.config().execution;
+        params.mode = storage.config().execution;
     }
     if params.filter_overfetch_override.is_none() {
-        params.filter_overfetch_override = Some(collection.config.search.filter_overfetch);
+        params.filter_overfetch_override = Some(storage.config.search.filter_overfetch);
     }
-    piramid_search::search(&target(collection), query, k, metric, params, &|id| {
-        collection.get(id)
+    piramid_search::search(&target(storage), query, k, metric, params, &|id| {
+        storage.get(id)
     })
 }
 
 /// Search many queries, in parallel when the collection's parallelism config allows.
 pub fn search_batch(
-    collection: &Collection,
+    storage: &Collection,
     queries: &[Vec<f32>],
     k: usize,
     metric: Metric,
@@ -44,15 +44,15 @@ pub fn search_batch(
 ) -> Result<Vec<Vec<Hit>>> {
     let mut params = params;
     if matches!(params.mode, ExecutionMode::Auto) {
-        params.mode = collection.config().execution;
+        params.mode = storage.config().execution;
     }
     piramid_search::search_batch(
-        &target(collection),
+        &target(storage),
         queries,
         k,
         metric,
         params,
-        collection.config().parallelism.parallel_search,
-        &|id| collection.get(id),
+        storage.config().parallelism.parallel_search,
+        &|id| storage.get(id),
     )
 }

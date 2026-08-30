@@ -21,16 +21,6 @@ fn require_embedder(
         .ok_or_else(|| ServerError::ServiceUnavailable(EMBEDDING_NOT_CONFIGURED.to_string()).into())
 }
 
-fn ensure_available(state: &SharedState) -> Result<()> {
-    if state
-        .shutting_down
-        .load(std::sync::atomic::Ordering::Relaxed)
-    {
-        return Err(ServerError::ServiceUnavailable("Server is shutting down".to_string()).into());
-    }
-    Ok(())
-}
-
 /// Embed texts through the configured provider and store the resulting vectors.
 #[tracing::instrument(
     name = "embed",
@@ -43,7 +33,7 @@ pub async fn embed_text(
     collection: String,
     req: EmbedRequest,
 ) -> Result<EmbedResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     state.ensure_write_allowed()?;
 
     let EmbedRequest { texts, metadata } = req;
@@ -124,7 +114,7 @@ pub async fn search_by_text(
     request_id: &str,
     req: TextSearchRequest,
 ) -> Result<SearchResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
     let embedder = require_embedder(state)?;

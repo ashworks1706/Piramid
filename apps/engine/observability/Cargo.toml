@@ -11,6 +11,7 @@ rust-version.workspace = true
 
 [dependencies]
 piramid-core.workspace = true
+thiserror.workspace = true
 tracing.workspace = true
 tracing-subscriber.workspace = true
 

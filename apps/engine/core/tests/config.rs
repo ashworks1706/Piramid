@@ -60,12 +60,10 @@ fn quantization_can_express_pre_and_post_search_experiments() {
     let mut cfg = AppConfig::default();
     cfg.quantization.level = QuantizationLevel::Int8;
     cfg.quantization.stage = QuantizationStage::QueryPreSearch;
-    cfg.quantization.query_enabled = true;
     cfg.validate().unwrap();
 
     cfg.quantization = cfg.quantization.post_search();
     assert_eq!(cfg.quantization.stage, QuantizationStage::ResultPostSearch);
-    assert!(cfg.quantization.result_enabled);
     cfg.validate().unwrap();
 }
 

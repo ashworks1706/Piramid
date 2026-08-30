@@ -170,7 +170,7 @@ fn handle_show_command(command: ShowCommands) -> std::io::Result<()> {
 }
 
 /// Report a configuration failure and exit.
-fn exit_on_config_error<T>(error: piramid::config::loader::ConfigError) -> T {
+fn exit_on_config_error<T>(error: piramid::error::ConfigError) -> T {
     eprintln!("piramid: {error}");
     std::process::exit(1);
 }

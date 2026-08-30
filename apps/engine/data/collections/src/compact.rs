@@ -11,21 +11,21 @@ use piramid_storage::record_store::RecordStore;
 use piramid_storage::SidecarManager;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
-pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
-    let original_entries = collection.index.len();
-    let docs: Vec<Document> = collection.get_all()?;
+pub fn compact(storage: &mut Collection) -> Result<CompactStats> {
+    let original_entries = storage.index.len();
+    let docs: Vec<Document> = storage.get_all()?;
 
-    let temp_path = format!("{}.compact", collection.path);
+    let temp_path = SidecarManager::at(&storage.path).compact_path();
     match std::fs::remove_file(&temp_path) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
-    let mut temp_store = RecordStore::open(&temp_path, &collection.config, &HashMap::new())?;
+    let mut temp_store = RecordStore::open(&temp_path, &storage.config, &HashMap::new())?;
     let mut new_index = HashMap::with_capacity(docs.len());
     let mut new_vectors = HashMap::with_capacity(docs.len());
-    let mut new_vector_index = piramid_index::create_index(&collection.config.index, docs.len());
-    let mut new_metadata = collection.metadata.clone();
+    let mut new_vector_index = piramid_index::create_index(&storage.config.index, docs.len());
+    let mut new_metadata = storage.metadata.clone();
     new_metadata.update_vector_count(0);
 
     for doc in docs {
@@ -43,25 +43,25 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
 
     temp_store.sync()?;
     drop(temp_store);
-    std::fs::rename(&temp_path, &collection.path)?;
+    std::fs::rename(&temp_path, &storage.path)?;
 
-    collection.record_store = RecordStore::open(&collection.path, &collection.config, &new_index)?;
-    collection.index = new_index;
-    collection.vector_index = new_vector_index;
-    collection.metadata = new_metadata;
-    collection.clear_caches_for_rebuild();
-    collection.rebuild_vector_cache()?;
+    storage.record_store = RecordStore::open(&storage.path, &storage.config, &new_index)?;
+    storage.index = new_index;
+    storage.vector_index = new_vector_index;
+    storage.metadata = new_metadata;
+    storage.clear_caches_for_rebuild();
+    storage.rebuild_vector_cache()?;
 
-    let sidecars = SidecarManager::at(&collection.path);
-    sidecars.save_offsets(&collection.index)?;
-    save_vector_index(&collection.path, collection.vector_index())?;
-    sidecars.save_manifest(&collection.metadata)?;
+    let sidecars = SidecarManager::at(&storage.path);
+    sidecars.save_offsets(&storage.index)?;
+    save_vector_index(&storage.path, storage.vector_index())?;
+    sidecars.save_manifest(&storage.metadata)?;
     // Sidecars are durable before we drop the WAL entries they made redundant.
-    collection.checkpoint.wal.rotate()?;
+    storage.checkpoint.wal.rotate()?;
 
     Ok(CompactStats {
         original_entries,
-        compacted_entries: collection.index.len(),
+        compacted_entries: storage.index.len(),
     })
 }
 

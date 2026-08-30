@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use super::config::IvfConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
 use piramid_compute::{strategies::for_mode, DistanceKernels};
+use piramid_core::config::IvfConfig;
 use piramid_core::error::{IndexError, Result};
 
 #[derive(Clone, Serialize, Deserialize)]

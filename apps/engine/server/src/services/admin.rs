@@ -2,18 +2,8 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::services::types::*;
 use crate::state::SharedState;
-use piramid_core::error::{Result, ServerError};
+use piramid_core::error::Result;
 use piramid_core::stats::record_lock_read;
-
-fn ensure_available(state: &SharedState) -> Result<()> {
-    if state
-        .shutting_down
-        .load(std::sync::atomic::Ordering::Relaxed)
-    {
-        return Err(ServerError::ServiceUnavailable("Server is shutting down".to_string()).into());
-    }
-    Ok(())
-}
 
 pub fn health() -> HealthResponse {
     HealthResponse {
@@ -27,7 +17,7 @@ pub fn embeddings_available(state: &SharedState) -> bool {
 }
 
 pub fn config_status(state: &SharedState) -> Result<ConfigStatusResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     Ok(ConfigStatusResponse {
         app_config: state.current_config(),
         reloaded_at: Some(
@@ -39,7 +29,7 @@ pub fn config_status(state: &SharedState) -> Result<ConfigStatusResponse> {
 }
 
 pub fn reload_config(state: &SharedState) -> Result<ConfigReloadResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
     let app_config = state.reload_config()?;
     Ok(ConfigReloadResponse {
         success: true,
@@ -89,12 +79,12 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
             | piramid_index::IndexConfig::Flat { search, .. } => {
                 (Some(search.filter_overfetch), None, None)
             }
-            piramid_index::IndexConfig::Hnsw {
-                ef_search, search, ..
-            } => (Some(search.filter_overfetch), Some(*ef_search), None),
-            piramid_index::IndexConfig::Ivf {
-                num_probes, search, ..
-            } => (Some(search.filter_overfetch), None, Some(*num_probes)),
+            piramid_index::IndexConfig::Hnsw { params, search } => {
+                (Some(search.filter_overfetch), Some(params.ef_search), None)
+            }
+            piramid_index::IndexConfig::Ivf { params, search } => {
+                (Some(search.filter_overfetch), None, Some(params.num_probes))
+            }
         };
 
         collection_metrics.push(CollectionMetrics {
@@ -141,7 +131,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
 }
 
 pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
-    ensure_available(state)?;
+    state.ensure_available()?;
 
     let mut collections = Vec::new();
     let mut total_vectors = 0usize;

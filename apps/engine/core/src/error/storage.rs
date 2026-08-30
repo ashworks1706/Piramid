@@ -17,6 +17,9 @@ pub enum StorageError {
     #[error("Invalid vector data: {0}")]
     InvalidVectorData(String),
 
+    #[error("Invalid collection path: {0}")]
+    InvalidPath(String),
+
     #[error("Storage corruption detected: {0}")]
     CorruptedData(String),
 

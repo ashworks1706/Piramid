@@ -8,7 +8,7 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
-pub use config::{ObservabilityConfig, OtlpConfig};
+pub use config::{ObservabilityConfig, ObservabilityError, ObservabilityResult, OtlpConfig};
 
 /// Holds exporters alive; dropping this flushes pending telemetry.
 #[must_use = "dropping the guard shuts down telemetry export"]

@@ -4,9 +4,26 @@ use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
 use uuid::Uuid;
 
-use super::config::{HnswConfig, HnswStats};
 use crate::{MetadataReader, VectorReader};
+use piramid_core::config::HnswConfig;
 use piramid_core::error::{IndexError, Result};
+
+/// Graph shape and occupancy, for the admin surface.
+#[derive(Debug, Clone, Serialize, Deserialize)]
+pub struct HnswStats {
+    /// Live nodes, excluding tombstones.
+    pub total_nodes: usize,
+    /// Highest layer index in use, `-1` when empty.
+    pub max_layer: isize,
+    /// Node count per layer, lowest first.
+    pub layer_sizes: Vec<usize>,
+    /// Nodes removed but still linked for traversal.
+    pub tombstones: usize,
+    /// Mean edges per node at layer 0.
+    pub avg_connections: f32,
+    /// Approximate resident size.
+    pub memory_usage_bytes: usize,
+}
 
 fn cmp_scores(a: f32, b: f32) -> Ordering {
     a.partial_cmp(&b).unwrap_or(Ordering::Equal)
