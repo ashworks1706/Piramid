@@ -7,7 +7,7 @@ use crate::mode::ExecutionMode;
 
 /// SIMD CPU kernels.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct SimdBackend;
+pub struct SimdStrategy;
 
 /// Load eight contiguous lanes starting at `offset`.
 #[inline(always)]
@@ -24,7 +24,7 @@ fn load(v: &[f32], offset: usize) -> f32x8 {
     ])
 }
 
-impl DistanceKernels for SimdBackend {
+impl DistanceKernels for SimdStrategy {
     fn mode(&self) -> ExecutionMode {
         ExecutionMode::Simd
     }

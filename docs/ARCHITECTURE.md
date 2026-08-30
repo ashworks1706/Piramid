@@ -147,7 +147,7 @@ engine, the indexes and the HTTP server are all in-process.
 
 Two features are reserved for hardware and model runtimes. Both are additive, off by default, and
 currently empty — the backend modules behind them are stubs, so `cargo build` needs no CUDA
-toolkit and no model runtime, and `CudaBackend::is_available` reports `false` rather than
+toolkit and no model runtime, and `CudaStrategy::is_available` reports `false` rather than
 pretending:
 
 | Feature | Intended crate | For |

@@ -8,7 +8,7 @@ use crate::mode::ExecutionMode;
 
 /// Binary-quantized approximate kernels.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct BinaryBackend;
+pub struct BinaryStrategy;
 
 /// Count positions where the two operands disagree in sign.
 #[inline]
@@ -22,7 +22,7 @@ fn hamming(a: &[f32], b: &[f32]) -> u32 {
     distance
 }
 
-impl DistanceKernels for BinaryBackend {
+impl DistanceKernels for BinaryStrategy {
     fn mode(&self) -> ExecutionMode {
         ExecutionMode::Binary
     }

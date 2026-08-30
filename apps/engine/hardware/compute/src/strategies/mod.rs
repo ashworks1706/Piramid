@@ -8,25 +8,25 @@ mod simd;
 #[cfg(feature = "gpu-cuda")]
 mod cuda;
 
-pub use binary::BinaryBackend;
-pub use parallel::ParallelBackend;
-pub use scalar::ScalarBackend;
-pub use simd::SimdBackend;
+pub use binary::BinaryStrategy;
+pub use parallel::ParallelStrategy;
+pub use scalar::ScalarStrategy;
+pub use simd::SimdStrategy;
 
 #[cfg(feature = "gpu-cuda")]
-pub use cuda::CudaBackend;
+pub use cuda::CudaStrategy;
 
 use crate::error::ComputeResult;
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;
 
-static SCALAR: ScalarBackend = ScalarBackend;
-static SIMD: SimdBackend = SimdBackend;
-static PARALLEL: ParallelBackend = ParallelBackend;
-static BINARY: BinaryBackend = BinaryBackend;
+static SCALAR: ScalarStrategy = ScalarStrategy;
+static SIMD: SimdStrategy = SimdStrategy;
+static PARALLEL: ParallelStrategy = ParallelStrategy;
+static BINARY: BinaryStrategy = BinaryStrategy;
 
 #[cfg(feature = "gpu-cuda")]
-static CUDA: CudaBackend = CudaBackend;
+static CUDA: CudaStrategy = CudaStrategy;
 
 /// Every strategy compiled into this build, available or not, for admin/introspection surfaces.
 pub fn all() -> Vec<&'static dyn DistanceKernels> {

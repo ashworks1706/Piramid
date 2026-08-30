@@ -2,17 +2,17 @@
 
 use piramid_gpu::error::{GpuError, GpuResult};
 
-/// Candle model-execution backend.
+/// Candle model-execution runtime; the shape `gpu::DeviceRuntime` has, for models.
 #[derive(Debug, Default)]
-pub struct CandleBackend;
+pub struct CandleRuntime;
 
-impl CandleBackend {
-    /// Create the backend.
+impl CandleRuntime {
+    /// Create the runtime.
     pub fn new() -> Self {
         Self
     }
 
-    /// Backend name, for logs and configuration.
+    /// Runtime name, for logs and configuration.
     pub fn name(&self) -> &'static str {
         "candle"
     }
@@ -22,10 +22,10 @@ impl CandleBackend {
         false
     }
 
-    /// Initialize the backend against a device.
+    /// Initialize the runtime against a device.
     pub fn initialize(&self) -> GpuResult<()> {
         Err(GpuError::Unavailable(
-            "candle backend is scaffolded but no model runtime is wired yet".to_string(),
+            "candle runtime is scaffolded but no model runtime is wired yet".to_string(),
         ))
     }
 }

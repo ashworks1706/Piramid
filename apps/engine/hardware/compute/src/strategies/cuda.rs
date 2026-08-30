@@ -2,18 +2,18 @@
 
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;
-use crate::strategies::scalar::ScalarBackend;
+use crate::strategies::scalar::ScalarStrategy;
 
 /// GPU kernels dispatched through `piramid-gpu`.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct CudaBackend;
+pub struct CudaStrategy;
 
-impl CudaBackend {
+impl CudaStrategy {
     /// Single-pair work always runs on the CPU; a launch never pays off for one vector.
-    const PAIRWISE: ScalarBackend = ScalarBackend;
+    const PAIRWISE: ScalarStrategy = ScalarStrategy;
 }
 
-impl DistanceKernels for CudaBackend {
+impl DistanceKernels for CudaStrategy {
     fn mode(&self) -> ExecutionMode {
         ExecutionMode::Gpu
     }

@@ -19,16 +19,24 @@ not have caught it — when it ran, `compute` owned the only `backends/` in the 
 
 Two further problems surfaced from the same reading. `binary` is not an execution strategy at all:
 it computes Hamming agreement over sign bits and never multiplies two floats, so it returns a
-*different, approximate* answer rather than the same one faster. And `ParallelBackend` runs a
+*different, approximate* answer rather than the same one faster. And the parallel strategy runs a
 scalar inner loop inside its rayon chunks, so vectorization and threading — genuinely orthogonal —
 are collapsed into one enum where "SIMD across all cores", the fastest CPU configuration, cannot
 be expressed.
 
 **Decision.** `compute/backends/` becomes `compute/strategies/`. `ExecutionMode` already means
 "execution strategy", so the crate now reads consistently: `kernels.rs` is the contract,
-`metric.rs` is what to measure, `strategies/` is how it runs. `ComputeError::BackendUnavailable`
-follows as `StrategyUnavailable`; `ComputeError::Backend` keeps its name because it is exactly the
-vendor-failure case.
+`metric.rs` is what to measure, `strategies/` is how it runs.
+
+The type names follow the folder, because a directory rename that leaves `ScalarBackend` inside
+`strategies/` has moved the problem rather than fixed it: the five are `ScalarStrategy`,
+`SimdStrategy`, `ParallelStrategy`, `BinaryStrategy`, `CudaStrategy`.
+`ComputeError::BackendUnavailable` follows as `StrategyUnavailable`; `ComputeError::Backend` keeps
+its name because it is exactly the vendor-failure case.
+
+In `gpu` and `inference`, `backends/` keeps its name and its types are named for the trait they
+implement — `CudaRuntime` for `DeviceRuntime`, and `CandleBackend` renamed to `CandleRuntime` to
+match, since it is the model-execution counterpart.
 
 "Backends" now means one thing repo-wide — the swappable vendor layer — and lives only in `gpu`
 and `inference`. `strategies/cuda.rs` and `gpu/backends/cudarc.rs` stop sharing a name, which is

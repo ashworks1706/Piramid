@@ -7,14 +7,14 @@ use crate::mode::ExecutionMode;
 
 /// Multi-threaded CPU kernels.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct ParallelBackend;
+pub struct ParallelStrategy;
 
 /// Chunk width that balances thread fan-out against per-chunk overhead.
 fn chunk_size(len: usize) -> usize {
     (len / num_cpus::get()).max(1024)
 }
 
-impl DistanceKernels for ParallelBackend {
+impl DistanceKernels for ParallelStrategy {
     fn mode(&self) -> ExecutionMode {
         ExecutionMode::Parallel
     }

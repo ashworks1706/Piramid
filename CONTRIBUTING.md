@@ -57,7 +57,7 @@ The batch methods take a contiguous row-major slab and a caller-owned `out`. Don
 `&[Vec<f32>]` — scattered rows can't be uploaded to a device without a per-call gather that costs
 more than the kernel saves.
 
-New backends need a parity test against `ScalarBackend` and a bench against it.
+New strategies need a parity test against `ScalarStrategy` and a bench against it.
 
 ## Good first issues
 

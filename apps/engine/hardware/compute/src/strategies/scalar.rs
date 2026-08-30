@@ -5,9 +5,9 @@ use crate::mode::ExecutionMode;
 
 /// Scalar CPU kernels.
 #[derive(Debug, Default, Clone, Copy)]
-pub struct ScalarBackend;
+pub struct ScalarStrategy;
 
-impl DistanceKernels for ScalarBackend {
+impl DistanceKernels for ScalarStrategy {
     fn mode(&self) -> ExecutionMode {
         ExecutionMode::Scalar
     }

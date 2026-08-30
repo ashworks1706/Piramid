@@ -11,7 +11,7 @@ use piramid_compute::{
 };
 
 fn auto() -> &'static dyn DistanceKernels {
-    for_mode(ExecutionMode::Auto).expect("Auto always resolves to an available CPU backend")
+    for_mode(ExecutionMode::Auto).expect("Auto always resolves to an available CPU strategy")
 }
 
 #[test]
