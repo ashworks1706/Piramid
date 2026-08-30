@@ -19,6 +19,10 @@ allow = [
   "MPL-2.0",
   "Unicode-3.0",
   "Unicode-DFS-2016",
+  # webpki-roots ships Mozilla's CA certificate bundle. CDLA-Permissive-2.0 is a data licence,
+  # which is the right kind for a dataset of root certificates rather than for code. It reached
+  # us through opentelemetry-otlp -> tonic -> rustls once the otel feature existed.
+  "CDLA-Permissive-2.0",
   "CC0-1.0",
   "Zlib",
 ]

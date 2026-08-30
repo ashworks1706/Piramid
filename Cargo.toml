@@ -60,10 +60,12 @@ async-trait = "0.1"
 # observability
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["fmt", "env-filter", "json"] }
-tracing-opentelemetry = "0.31"
-opentelemetry = "0.30"
-opentelemetry_sdk = { version = "0.30", features = ["rt-tokio"] }
-opentelemetry-otlp = { version = "0.30", features = ["grpc-tonic", "trace"] }
+tracing-opentelemetry = "0.33"
+opentelemetry = "0.32"
+# 0.32.1 is the first release without GHSA-w9wp-h8wv-79jx, unbounded allocation in
+# W3C Baggage propagation.
+opentelemetry_sdk = { version = "0.32.1", features = ["rt-tokio"] }
+opentelemetry-otlp = { version = "0.32", features = ["grpc-tonic", "trace"] }
 
 # cli
 clap = { version = "4.5", features = ["derive"] }
