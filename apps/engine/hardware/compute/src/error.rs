@@ -19,6 +19,9 @@ pub enum ComputeError {
         /// What it received.
         got: usize,
     },
+    /// A quantized vector's encoding is internally inconsistent and cannot be decoded, or a
+    /// quantization level has no encoder.
+    InvalidEncoding(String),
     /// The backend ran but failed.
     Backend {
         /// Backend that failed.
@@ -36,6 +39,9 @@ impl Display for ComputeError {
             }
             Self::ShapeMismatch { expected, got } => {
                 write!(f, "compute shape mismatch: expected {expected}, got {got}")
+            }
+            Self::InvalidEncoding(message) => {
+                write!(f, "invalid quantized encoding: {message}")
             }
             Self::Backend { backend, message } => {
                 write!(f, "compute backend '{backend}' failed: {message}")

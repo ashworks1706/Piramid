@@ -3,10 +3,8 @@
 use super::collection::Collection;
 use piramid_core::error::Result;
 use piramid_index::save_vector_index as save_vec_idx;
-use piramid_storage::persistence::{save_index as save_idx, save_metadata as save_meta};
+use piramid_storage::persistence::SidecarManager;
 use piramid_storage::wal::Wal;
-use serde::{Deserialize, Serialize};
-use std::{fs, path::PathBuf};
 
 pub struct CheckpointManager {
     pub wal: Wal,
@@ -45,7 +43,7 @@ impl CheckpointManager {
 }
 
 pub fn save_index(storage: &Collection) -> Result<()> {
-    save_idx(&storage.path, &storage.index)
+    SidecarManager::at(&storage.path).save_offsets(&storage.index)
 }
 
 pub fn save_vector_index(storage: &Collection) -> Result<()> {
@@ -53,40 +51,7 @@ pub fn save_vector_index(storage: &Collection) -> Result<()> {
 }
 
 pub fn save_metadata(storage: &Collection) -> Result<()> {
-    save_meta(&storage.path, &storage.metadata)
-}
-
-fn wal_meta_path(path: &str) -> PathBuf {
-    PathBuf::from(format!("{}.wal.meta", path))
-}
-
-#[derive(Serialize, Deserialize, Default)]
-struct WalMeta {
-    last_checkpoint_seq: u64,
-}
-
-pub fn load_wal_meta(path: &str) -> Result<u64> {
-    let meta_path = wal_meta_path(path);
-    let data = match fs::read(&meta_path) {
-        Ok(data) => data,
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(0),
-        Err(error) => return Err(error.into()),
-    };
-    let meta: WalMeta = serde_json::from_slice(&data)?;
-    Ok(meta.last_checkpoint_seq)
-}
-
-fn save_wal_meta(path: &str, last_checkpoint_seq: u64) -> Result<()> {
-    let meta_path = wal_meta_path(path);
-    let tmp_path = meta_path.with_extension("tmp");
-    let meta = WalMeta {
-        last_checkpoint_seq,
-    };
-    fs::write(&tmp_path, serde_json::to_vec(&meta)?)?;
-    fs::rename(&tmp_path, &meta_path)?;
-    let file = fs::File::open(&meta_path)?;
-    file.sync_all()?;
-    Ok(())
+    SidecarManager::at(&storage.path).save_manifest(&storage.metadata)
 }
 
 pub fn checkpoint(storage: &mut Collection) -> Result<()> {
@@ -102,7 +67,7 @@ pub fn checkpoint(storage: &mut Collection) -> Result<()> {
         storage.checkpoint.wal.checkpoint(timestamp)?;
         storage.checkpoint.record_checkpoint(timestamp);
         let last_seq = storage.checkpoint.wal.next_seq.saturating_sub(1);
-        save_wal_meta(&storage.path, last_seq)?;
+        SidecarManager::at(&storage.path).save_wal_meta(last_seq)?;
         storage.checkpoint.wal.rotate()?;
     }
 

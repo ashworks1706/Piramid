@@ -1,14 +1,13 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use super::cache_maintenance;
 use super::checkpoint::CheckpointManager;
-use crate::cache::CacheManager;
+use piramid_cache::CacheManager;
 use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::{HashMapVectorReader, VectorIndex, VectorReader};
 use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::persistence::{get_wal_path, warm_file, EntryPointer};
+use piramid_storage::persistence::{warm_file, EntryPointer, SidecarManager};
 use piramid_storage::record_store::RecordStore;
 
 pub struct Collection {
@@ -93,11 +92,11 @@ impl Collection {
     /// Faults frequently used files into the page cache to reduce cold-start latency.
     pub fn warm_page_cache(&self) {
         self.record_store.warm_page_cache();
-        let base = self.path.clone();
+        let sidecars = SidecarManager::at(&self.path);
         for path in [
-            format!("{}.vecindex.db", base),
-            format!("{}.index.db", base),
-            get_wal_path(&base),
+            sidecars.vector_index_path(),
+            sidecars.offsets_path(),
+            sidecars.wal_path(),
         ] {
             if let Err(error) = warm_file(&path) {
                 tracing::warn!(
@@ -137,7 +136,15 @@ impl Collection {
     }
 
     pub(super) fn rebuild_vector_cache(&mut self) -> Result<()> {
-        cache_maintenance::rebuild(self)
+        let mut cache = CacheManager::new(self.config.cache);
+        for id in self.index.keys() {
+            if let Some(entry) = super::operations::get(self, id)? {
+                cache.put_vector(*id, entry.vector().to_vec());
+                cache.put_metadata(*id, entry.metadata.clone());
+            }
+        }
+        self.cache = cache;
+        Ok(())
     }
 
     /// Rebuild the vector index from on-disk data and persist it.

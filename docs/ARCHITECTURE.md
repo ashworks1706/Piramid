@@ -77,13 +77,14 @@ flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
     Server[server<br/>http · services · runtime · cluster]
     Inference[inference<br/>forward pass · kv_cache · augment seam]
-    Collections[collections<br/>Collection · cache · checkpoint]
+    Collections[collections<br/>Collection · checkpoint · compact]
+    Cache[cache<br/>VectorStore · MetadataCache]
     Embeddings[embeddings<br/>openai · ollama]
     Search[search<br/>planning · filtering · ranking]
     Index[index<br/>flat · hnsw · ivf]
-    Storage[storage<br/>records · WAL · mmap · slab · quantization]
+    Storage[storage<br/>records · WAL · sidecars · mmap · slab]
     Core[core<br/>error · config · metadata · validation · stats]
-    Compute[compute<br/>distance kernels + dispatch]
+    Compute[compute<br/>distance kernels · dispatch · quantization]
     Gpu[gpu<br/>device · buffer · stream · module]
 
     CLI --> Server
@@ -98,8 +99,11 @@ flowchart TD
     Inference --> Core
     Collections --> Search
     Collections --> Index
+    Collections --> Cache
     Collections --> Storage
     Collections --> Core
+    Cache --> Storage
+    Cache --> Core
     Embeddings --> Core
     Search --> Index
     Search --> Storage
@@ -115,12 +119,13 @@ flowchart TD
 |---|---|---|
 | `core` | Errors, configuration, metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
 | `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product |
-| `compute` | Distance math, backend selection | Depend on anything in the workspace |
+| `compute` | Distance math, backend selection, quantization encodings | Depend on anything in the workspace |
 | `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics or leak vendor types |
-| `storage` | Records, WAL, sidecars, mmap, vector layout, quantization | Decide API behaviour or collection lifecycle |
+| `storage` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
 | `index` | ANN traversal, index settings, sidecar format | Own collection storage or the vectors themselves |
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
-| `collections` | The `Collection` object, cache, checkpoint, compaction | Serve HTTP |
+| `cache` | `VectorStore` (resident, indexes read it), `MetadataCache` (bounded) | Evict a vector |
+| `collections` | The `Collection` object, checkpoint, compaction | Serve HTTP |
 | `embeddings` | Provider adapters, caching, retries | Know about collections |
 | `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
 | `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
@@ -169,7 +174,8 @@ A crate may depend on one listed below it. The reverse is a violation.
 compute ─┐                    gpu ─┐
          │                         ├─→ inference ─┐
 core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         └─→ embeddings ──────────────────────────────────┘
+         │        └────────→ cache ───────────┘   │
+         └─→ embeddings ──────────────────────────┘
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
@@ -232,7 +238,7 @@ returns `None` rather than silently copying, because hiding that cost would make
 choice unmeasurable. `gather_into()` is the portable fallback. Both have defaults.
 
 `VectorSlab` is a contiguous `Vec<f32>` with a stride and a `Uuid → u32` ordinal map. It exists and
-isn't the default yet; migrating `CacheManager` onto it is on the roadmap and can happen one call
+isn't the default yet; migrating `cache::VectorStore` onto it is on the roadmap and can happen one call
 site at a time because `as_slab` is optional.
 
 ### inference::augment::RetrievalHook

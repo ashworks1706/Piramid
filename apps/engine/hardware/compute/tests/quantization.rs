@@ -4,8 +4,9 @@
     reason = "assertions in tests"
 )]
 
-use piramid_core::config::QuantizationConfig;
-use piramid_storage::quantization::{ProductQuantizedVector, QuantizationKind, QuantizedVector};
+use piramid_compute::quantization::{
+    ProductQuantizedVector, QuantizationConfig, QuantizationKind, QuantizedVector,
+};
 
 fn int8(vector: &[f32]) -> QuantizedVector {
     QuantizedVector::from_f32(vector, &QuantizationConfig::int8()).unwrap()
@@ -52,7 +53,7 @@ fn quantization_pq_roundtrip() {
 #[test]
 fn unimplemented_level_is_an_error_not_a_downgrade() {
     let mut cfg = QuantizationConfig::int8();
-    cfg.level = piramid_core::config::QuantizationLevel::Int4;
+    cfg.level = piramid_compute::quantization::QuantizationLevel::Int4;
     assert!(QuantizedVector::from_f32(&[1.0, 2.0], &cfg).is_err());
 }
 

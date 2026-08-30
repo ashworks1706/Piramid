@@ -9,7 +9,7 @@
 
 ## Now (v0.3.0) — contiguous layout
 
-- [ ] migrate `CacheManager` onto `VectorSlab`, make `SlabVectorReader` the default reader
+- [ ] migrate `cache::VectorStore` onto `VectorSlab`, make `SlabVectorReader` the default reader
 - [ ] re-run the compute bench: scattered vs contiguous candidates, same kernel
 - [ ] use `u32` ordinals instead of `Uuid` in HNSW adjacency lists (sidecar format bump + load path)
 
@@ -22,7 +22,8 @@
 
 ## Now (v0.3.0) — independent
 
-- [ ] wire `piramid-storage::quantization` into the search path
+- [ ] wire `piramid-compute::quantization` into the search path, starting with a PQ distance
+      kernel in `compute/backends/` beside `binary`
 - [ ] binary pre-filter into full-precision rerank, with a recall measurement
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
 - [ ] decide what happens to `cluster`

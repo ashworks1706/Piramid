@@ -14,6 +14,7 @@ tracing.workspace = true
 piramid-core.workspace = true
 piramid-compute.workspace = true
 piramid-storage.workspace = true
+piramid-cache.workspace = true
 piramid-index.workspace = true
 piramid-search.workspace = true
 serde.workspace = true

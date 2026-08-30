@@ -49,10 +49,12 @@ apps/engine/core                  errors, config, metadata and filters, validati
                                   stats (what the engine measures about itself)
 apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
-apps/engine/hardware/compute      distance kernels and backend registry
+apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels
-apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quantization
-apps/engine/data/collections      the Collection object, cache, checkpoint, compact
+apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorSlab
+apps/engine/data/cache            VectorStore (resident), MetadataCache (bounded),
+                                  CacheManager owning both
+apps/engine/data/collections      the Collection object, checkpoint, compact
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
@@ -80,7 +82,8 @@ A crate may depend on one listed below it. The reverse is a layering violation.
 compute ─┐                    gpu ─┐
          │                         ├─→ inference ─┐
 core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         └─→ embeddings ──────────────────────────────────┘
+         │        └────────→ cache ───────────┘   │
+         └─→ embeddings ──────────────────────────┘
 ```
 
 `scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.

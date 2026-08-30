@@ -7,7 +7,7 @@ use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
-use piramid_storage::persistence::{save_index, save_metadata};
+use piramid_storage::persistence::SidecarManager;
 use piramid_storage::record_store::RecordStore;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
@@ -52,9 +52,10 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
     collection.clear_caches_for_rebuild();
     collection.rebuild_vector_cache()?;
 
-    save_index(&collection.path, &collection.index)?;
+    let sidecars = SidecarManager::at(&collection.path);
+    sidecars.save_offsets(&collection.index)?;
     save_vector_index(&collection.path, collection.vector_index())?;
-    save_metadata(&collection.path, &collection.metadata)?;
+    sidecars.save_manifest(&collection.metadata)?;
     // Sidecars are durable before we drop the WAL entries they made redundant.
     collection.checkpoint.wal.rotate()?;
 

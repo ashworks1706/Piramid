@@ -1,6 +1,7 @@
 # piramid-compute
 
-Distance and similarity kernels with CPU and GPU backend dispatch.
+Distance and similarity kernels with CPU and GPU backend dispatch, plus the quantization
+encodings the kernels will score (`quantization::QuantizedVector` and its config).
 
 A leaf crate: it depends on nothing else in the workspace, so kernels can be benchmarked on
 their own.

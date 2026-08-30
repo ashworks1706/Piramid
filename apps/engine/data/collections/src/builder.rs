@@ -2,16 +2,16 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use super::checkpoint::{load_wal_meta, CheckpointManager};
+use super::checkpoint::CheckpointManager;
 use super::collection::Collection;
 use super::CollectionOpenOptions;
-use crate::cache::CacheManager;
+use piramid_cache::CacheManager;
 use piramid_core::error::{Result, StorageError};
 use piramid_index::load_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
 use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::persistence::{get_wal_path, load_index, load_metadata};
+use piramid_storage::persistence::SidecarManager;
 use piramid_storage::record_store::RecordStore;
 use piramid_storage::wal::{Wal, WalEntry};
 
@@ -35,10 +35,11 @@ impl CollectionBuilder {
             })?
             .to_string();
 
-        let index = load_index(path)?;
+        let sidecars = SidecarManager::at(path);
+        let index = sidecars.load_offsets()?;
         let record_store = RecordStore::open(path, &config, &index)?;
 
-        let metadata = match load_metadata(path)? {
+        let metadata = match sidecars.load_manifest()? {
             Some(meta) => {
                 let mut meta = meta;
                 meta.update_vector_count(index.len());
@@ -55,13 +56,13 @@ impl CollectionBuilder {
         };
 
         let min_seq = if config.wal.enabled {
-            load_wal_meta(path)?
+            sidecars.load_wal_meta()?
         } else {
             0
         };
         let next_seq = min_seq + 1;
 
-        let wal_path = get_wal_path(path);
+        let wal_path = sidecars.wal_path();
 
         let wal = if config.wal.enabled {
             Wal::new(wal_path.into(), next_seq)?

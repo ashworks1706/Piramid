@@ -1,7 +1,4 @@
-pub mod cache;
-
 mod builder;
-mod cache_maintenance;
 mod checkpoint;
 mod collection;
 mod compact;
@@ -16,6 +13,7 @@ pub use collection::Collection;
 pub use compact::{compact, CompactStats};
 pub use dup::{find_duplicates, DuplicateHit};
 pub use manager::{CollectionHandle, CollectionManager};
+pub use piramid_cache::CacheManager;
 
 #[derive(Clone, Default)]
 pub struct CollectionOpenOptions {

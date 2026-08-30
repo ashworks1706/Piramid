@@ -1,26 +1,35 @@
-//! Compressed vector representations.
+//! Compressed vector representations, beside the kernels that will score them.
+
+mod config;
+
+pub use config::{QuantizationConfig, QuantizationLevel, QuantizationStage};
 
 use serde::{Deserialize, Serialize};
 
-use piramid_core::config::QuantizationConfig;
-use piramid_core::error::{Result, StorageError};
+use crate::error::{ComputeError, ComputeResult};
 
 /// Which encoding a stored vector uses.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QuantizationKind {
+    /// One min/max pair for the whole vector.
     Scalar,
+    /// A code per block; see [`ProductQuantizedVector`].
     Pq,
 }
 
 /// One min/max pair for the whole vector.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ScalarQuantizedVector {
+    /// One quantized code per dimension.
     pub values: Vec<i8>,
+    /// Smallest value in the original vector.
     pub min: f32,
+    /// Largest value in the original vector.
     pub max: f32,
 }
 
 impl ScalarQuantizedVector {
+    /// Quantize to one code per dimension over a single min/max range.
     pub fn from_f32(vector: &[f32]) -> Self {
         if vector.is_empty() {
             return ScalarQuantizedVector {
@@ -55,6 +64,7 @@ impl ScalarQuantizedVector {
         }
     }
 
+    /// Reconstruct the approximate original values.
     pub fn to_f32(&self) -> Vec<f32> {
         if self.values.is_empty() {
             return Vec::new();
@@ -78,14 +88,20 @@ impl ScalarQuantizedVector {
 /// Per-block codes with their own min/max pairs.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ProductQuantizedVector {
+    /// One code per dimension, block by block.
     pub codes: Vec<u8>,
+    /// Smallest value per block.
     pub block_mins: Vec<f32>,
+    /// Largest value per block.
     pub block_maxs: Vec<f32>,
+    /// Original vector width.
     pub dim: usize,
+    /// Number of blocks the vector was split into.
     pub subquantizers: usize,
 }
 
 impl ProductQuantizedVector {
+    /// Quantize block-by-block into `subquantizers` blocks with per-block ranges.
     pub fn from_f32(vector: &[f32], subquantizers: usize) -> Self {
         if vector.is_empty() {
             return ProductQuantizedVector {
@@ -137,22 +153,21 @@ impl ProductQuantizedVector {
         }
     }
 
-    pub fn to_f32(&self) -> Result<Vec<f32>> {
+    /// Decode, erroring when the encoding is internally inconsistent.
+    pub fn to_f32(&self) -> ComputeResult<Vec<f32>> {
         if self.codes.is_empty() || self.subquantizers == 0 {
             if self.dim == 0 {
                 return Ok(Vec::new());
             }
-            return Err(StorageError::CorruptedData(
+            return Err(ComputeError::InvalidEncoding(
                 "PQ vector has no codes or subquantizers for non-empty dimension".into(),
-            )
-            .into());
+            ));
         }
         if self.block_mins.len() < self.subquantizers || self.block_maxs.len() < self.subquantizers
         {
-            return Err(StorageError::CorruptedData(
+            return Err(ComputeError::InvalidEncoding(
                 "PQ vector block metadata is shorter than subquantizer count".into(),
-            )
-            .into());
+            ));
         }
 
         let mut values = Vec::with_capacity(self.dim);
@@ -169,7 +184,9 @@ impl ProductQuantizedVector {
 
             for _ in start..end {
                 let code = self.codes.get(idx).copied().ok_or_else(|| {
-                    StorageError::CorruptedData(format!("PQ vector missing code at position {idx}"))
+                    ComputeError::InvalidEncoding(format!(
+                        "PQ vector missing code at position {idx}"
+                    ))
                 })?;
                 let normalized = code as f32 / 255.0;
                 values.push(normalized * range + self.block_mins[block_idx]);
@@ -178,17 +195,17 @@ impl ProductQuantizedVector {
         }
 
         if values.len() != self.dim {
-            return Err(StorageError::CorruptedData(format!(
+            return Err(ComputeError::InvalidEncoding(format!(
                 "PQ vector decoded dimension mismatch: expected {}, got {}",
                 self.dim,
                 values.len()
-            ))
-            .into());
+            )));
         }
 
         Ok(values)
     }
 
+    /// Original vector width.
     pub fn dim(&self) -> usize {
         self.dim
     }
@@ -197,25 +214,28 @@ impl ProductQuantizedVector {
 /// A stored vector in whichever encoding was configured when it was written.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuantizedVector {
+    /// Scalar codes; empty for a PQ vector.
     pub values: Vec<i8>,
+    /// Scalar range minimum.
     pub min: f32,
+    /// Scalar range maximum.
     pub max: f32,
+    /// The PQ payload, when `kind` is [`QuantizationKind::Pq`].
     pub pq: Option<ProductQuantizedVector>,
+    /// Which encoding `values`/`pq` actually holds.
     pub kind: QuantizationKind,
 }
 
 impl QuantizedVector {
     /// Quantizes `vector` according to `cfg`; errors on `Int4`/`Float16`, which have no encoder.
-    pub fn from_f32(vector: &[f32], cfg: &QuantizationConfig) -> Result<Self> {
-        use piramid_core::config::QuantizationLevel;
+    pub fn from_f32(vector: &[f32], cfg: &QuantizationConfig) -> ComputeResult<Self> {
         match cfg.level {
             QuantizationLevel::None | QuantizationLevel::Int8 => Ok(Self::from_scalar(vector)),
             QuantizationLevel::Pq { subquantizers } => Ok(Self::from_pq(vector, subquantizers)),
             unsupported @ (QuantizationLevel::Int4 | QuantizationLevel::Float16) => {
-                Err(StorageError::InvalidVectorData(format!(
+                Err(ComputeError::InvalidEncoding(format!(
                     "quantization level {unsupported:?} has no encoder"
-                ))
-                .into())
+                )))
             }
         }
     }
@@ -242,7 +262,8 @@ impl QuantizedVector {
         }
     }
 
-    pub fn to_f32(&self) -> Result<Vec<f32>> {
+    /// Decode, erroring when the encoding is internally inconsistent.
+    pub fn to_f32(&self) -> ComputeResult<Vec<f32>> {
         match self.kind {
             QuantizationKind::Scalar => Ok(ScalarQuantizedVector {
                 values: self.values.clone(),
@@ -252,7 +273,7 @@ impl QuantizedVector {
             .to_f32()),
             QuantizationKind::Pq => {
                 let pq = self.pq.as_ref().ok_or_else(|| {
-                    StorageError::CorruptedData(
+                    ComputeError::InvalidEncoding(
                         "vector is marked as PQ but has no PQ payload".into(),
                     )
                 })?;

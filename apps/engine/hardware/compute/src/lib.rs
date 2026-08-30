@@ -8,6 +8,7 @@ pub mod kernels;
 pub mod metric;
 pub mod mode;
 pub mod pairwise;
+pub mod quantization;
 
 pub use error::{ComputeError, ComputeResult};
 pub use kernels::{check_batch_shape, DistanceKernels};

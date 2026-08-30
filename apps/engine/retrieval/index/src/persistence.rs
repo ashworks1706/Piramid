@@ -5,9 +5,11 @@ use piramid_core::error::Result;
 use std::fs;
 use std::path::Path;
 
-/// Sidecar path for a collection's index.
+use piramid_storage::persistence::SidecarManager;
+
+/// Sidecar path for a collection's index, owned by [`SidecarManager`].
 fn get_index_file_path(collection_path: &str) -> String {
-    format!("{}.vecindex.db", collection_path)
+    SidecarManager::at(collection_path).vector_index_path()
 }
 
 /// Serialize `index` to its sidecar.

@@ -3,9 +3,10 @@
 
 pub use piramid_core::{config, error, metadata, stats, validation};
 
+pub use piramid_cache as cache;
 pub use piramid_collections as collections;
-pub use piramid_collections::cache;
 pub use piramid_compute as compute;
+pub use piramid_compute::quantization;
 pub use piramid_embeddings as embeddings;
 pub use piramid_gpu as gpu;
 pub use piramid_index as index;
@@ -14,7 +15,6 @@ pub use piramid_observability as observability;
 pub use piramid_search as search;
 pub use piramid_server::{cluster, http as server, runtime, services};
 pub use piramid_storage as storage;
-pub use piramid_storage::quantization;
 
 pub use collections::Collection;
 pub use compute::{

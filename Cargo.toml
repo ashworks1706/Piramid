@@ -6,6 +6,7 @@ members = [
     "apps/engine/hardware/compute",
     "apps/engine/hardware/gpu",
     "apps/engine/data/storage",
+    "apps/engine/data/cache",
     "apps/engine/data/collections",
     "apps/engine/retrieval/index",
     "apps/engine/retrieval/search",
@@ -30,6 +31,7 @@ piramid-core = { path = "apps/engine/core", version = "0.2.0" }
 piramid-compute = { path = "apps/engine/hardware/compute", version = "0.2.0" }
 piramid-gpu = { path = "apps/engine/hardware/gpu", version = "0.2.0" }
 piramid-storage = { path = "apps/engine/data/storage", version = "0.2.0" }
+piramid-cache = { path = "apps/engine/data/cache", version = "0.2.0" }
 piramid-index = { path = "apps/engine/retrieval/index", version = "0.2.0" }
 piramid-search = { path = "apps/engine/retrieval/search", version = "0.2.0" }
 piramid-collections = { path = "apps/engine/data/collections", version = "0.2.0" }

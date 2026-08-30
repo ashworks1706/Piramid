@@ -11,5 +11,8 @@ pub mod backends;
 pub mod batching;
 pub mod forward;
 pub mod kv_cache;
+pub mod manager;
 pub mod model;
 pub mod sampling;
+
+pub use manager::InferenceManager;

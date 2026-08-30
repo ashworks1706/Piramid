@@ -1,6 +1,7 @@
 # piramid-storage
 
-Records, WAL, sidecars, mmap, vector layout, and quantization.
+Records, WAL, sidecars, mmap, and vector layout. `SidecarManager` owns every sidecar
+path and format beside a record file.
 
 Byte-level primitives for the domain layer above. Storage decides nothing about API behaviour,
 search semantics, or collection lifecycle.

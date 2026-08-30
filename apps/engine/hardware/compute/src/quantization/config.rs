@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+/// Which compression a collection asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum QuantizationLevel {
     /// Full-precision f32.
@@ -10,7 +11,10 @@ pub enum QuantizationLevel {
     /// 8-bit integer, scaled per vector.
     Int8,
     /// Product quantization with `subquantizers` blocks.
-    Pq { subquantizers: usize },
+    Pq {
+        /// Number of blocks the vector is split into.
+        subquantizers: usize,
+    },
     /// 4-bit integer. Not implemented; rejected by `AppConfig::validate`.
     Int4,
     /// Half precision. Not implemented; rejected by `AppConfig::validate`.
@@ -19,37 +23,51 @@ pub enum QuantizationLevel {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "snake_case")]
+/// Which point in the pipeline quantization applies at.
 pub enum QuantizationStage {
+    /// No quantization anywhere.
     #[default]
     Disabled,
+    /// Quantize what is written to disk.
     Storage,
+    /// Quantize what the index scores against.
     Index,
+    /// Quantize the query before searching.
     QueryPreSearch,
+    /// Quantize results after searching.
     ResultPostSearch,
 }
 
+/// Where and how aggressively vectors are compressed.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct QuantizationConfig {
+    /// The encoding to use.
     pub level: QuantizationLevel,
 
     /// Compress on disk only. `false` also quantizes the in-memory copy.
     pub disk_only: bool,
 
+    /// Where in the pipeline the encoding applies.
     #[serde(default)]
     pub stage: QuantizationStage,
 
+    /// Keep full-precision vectors alongside the quantized copies.
     #[serde(default = "default_preserve_raw_vectors")]
     pub preserve_raw_vectors: bool,
 
+    /// Quantize what is written to disk.
     #[serde(default)]
     pub storage_enabled: bool,
 
+    /// Quantize what the index scores against.
     #[serde(default)]
     pub index_enabled: bool,
 
+    /// Quantize the query before searching.
     #[serde(default)]
     pub query_enabled: bool,
 
+    /// Quantize results after searching.
     #[serde(default)]
     pub result_enabled: bool,
 }
@@ -84,6 +102,7 @@ impl QuantizationConfig {
         }
     }
 
+    /// Product quantization for the index, raw vectors kept on disk.
     pub fn pq(subquantizers: usize) -> Self {
         QuantizationConfig {
             level: QuantizationLevel::Pq { subquantizers },
@@ -97,6 +116,7 @@ impl QuantizationConfig {
         }
     }
 
+    /// Switch the stage to quantizing results after search.
     pub fn post_search(mut self) -> Self {
         self.stage = QuantizationStage::ResultPostSearch;
         self.result_enabled = true;
