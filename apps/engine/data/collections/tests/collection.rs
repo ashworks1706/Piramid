@@ -211,7 +211,9 @@ fn batch_search_multi_queries() {
         vec![5.0, 0.0, 0.0],
         vec![9.0, 0.0, 0.0],
     ];
-    let results = storage.search_batch(&queries, 2, Metric::Cosine).unwrap();
+    let results = storage
+        .search_batch_with(&queries, 2, Metric::Cosine, SearchParams::default())
+        .unwrap();
     assert_eq!(results.len(), 3);
     assert!(results.iter().all(|hits| !hits.is_empty()));
 

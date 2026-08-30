@@ -34,6 +34,11 @@
       answer rather than the same one faster, so it is a recall trade, not an execution strategy
       (ADR 0013)
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
+- [ ] wire graceful shutdown. `AppState::initiate_shutdown` and `checkpoint_all` exist and are
+      complete; six call sites already reject requests once the flag is set. Nothing calls either
+      — `axum::serve` runs without `with_graceful_shutdown` and there is no signal handler, so
+      every SIGTERM is a hard kill. The WAL means no data loss, but every restart replays a log a
+      clean checkpoint would have truncated, and in-flight writes die mid-request
 - [ ] decide what happens to `cluster`
 - [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects
       both today

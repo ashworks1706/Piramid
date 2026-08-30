@@ -87,21 +87,6 @@ impl Collection {
         search::search(self, query, k, metric, params)
     }
 
-    pub fn search_batch(
-        &self,
-        queries: &[Vec<f32>],
-        k: usize,
-        metric: Metric,
-    ) -> Result<Vec<Vec<Hit>>> {
-        search::search_batch(
-            self,
-            queries,
-            k,
-            metric,
-            piramid_search::SearchParams::default(),
-        )
-    }
-
     pub fn search_batch_with(
         &self,
         queries: &[Vec<f32>],

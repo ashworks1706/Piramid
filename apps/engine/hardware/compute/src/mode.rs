@@ -86,17 +86,4 @@ impl ExecutionMode {
             _ => None,
         }
     }
-
-    /// Whether the resolved strategy uses explicit vectorization.
-    pub fn use_simd(&self) -> bool {
-        matches!(
-            self.resolve(),
-            ExecutionMode::Simd | ExecutionMode::Parallel
-        )
-    }
-
-    /// Whether the resolved strategy fans out across threads.
-    pub fn use_parallel(&self) -> bool {
-        matches!(self.resolve(), ExecutionMode::Parallel)
-    }
 }

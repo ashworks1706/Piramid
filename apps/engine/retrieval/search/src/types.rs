@@ -10,14 +10,3 @@ pub struct Hit {
     pub vector: Vec<f32>,
     pub metadata: Metadata,
 }
-impl Hit {
-    pub fn new(id: Uuid, score: f32, text: String, vector: Vec<f32>, metadata: Metadata) -> Self {
-        Self {
-            id,
-            score,
-            text,
-            vector,
-            metadata,
-        }
-    }
-}
