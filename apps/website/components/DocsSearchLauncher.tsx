@@ -33,7 +33,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="bg-red-400/25 text-red-300 rounded px-0.5">
+      <mark className="bg-cyan-400/25 text-cyan-300 rounded px-0.5">
         {text.slice(idx, idx + query.length)}
       </mark>
       {text.slice(idx + query.length)}
@@ -133,7 +133,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
           setOpen(true);
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
-        className={`rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 hover:border-red-300/40 hover:text-white transition-colors ${className ?? ""}`}
+        className={`rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 hover:border-cyan-300/40 hover:text-white transition-colors ${className ?? ""}`}
       >
         Search
         <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-zinc-400">
@@ -214,7 +214,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                       onClick={close}
                       onMouseEnter={() => setCursor(i)}
                       className={`block px-4 py-3 border-b border-white/5 transition-colors ${
-                        isActive ? "bg-red-500/15" : "hover:bg-white/[0.04]"
+                        isActive ? "bg-cyan-500/15" : "hover:bg-white/[0.04]"
                       }`}
                     >
                       {/* Breadcrumb */}
@@ -242,7 +242,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                           )}
                         </div>
                       ) : (
-                        <div className="text-sm font-semibold text-red-300">
+                        <div className="text-sm font-semibold text-cyan-300">
                           {res.pageTitle}
                         </div>
                       )}
@@ -251,7 +251,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                       {snippet && (
                         <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
                           {snippet.before}
-                          <mark className="bg-red-400/25 text-red-300 rounded px-0.5 not-italic">
+                          <mark className="bg-cyan-400/25 text-cyan-300 rounded px-0.5 not-italic">
                             {snippet.match}
                           </mark>
                           {snippet.after}

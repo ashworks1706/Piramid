@@ -8,7 +8,7 @@ export default function NotFound() {
         <p className="mt-3 text-sm text-zinc-300">That page does not exist.</p>
         <Link
           href="/"
-          className="mt-6 inline-flex items-center rounded-full bg-red-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-red-500/30 hover:bg-red-300 transition"
+          className="mt-6 inline-flex items-center rounded-full bg-cyan-400 px-4 py-2 text-sm font-semibold text-black shadow-lg shadow-cyan-500/30 hover:bg-cyan-300 transition"
         >
           Back home
         </Link>

@@ -52,8 +52,8 @@ export function DocsSidebar({
                     href={href}
                     className={`block rounded-lg px-3 py-2 text-sm transition ${
                       isActive
-                        ? "bg-red-500/20 text-white font-semibold ring-1 ring-inset ring-red-400/30"
-                        : "text-zinc-200 hover:bg-red-500/10 hover:text-white"
+                        ? "bg-cyan-500/20 text-white font-semibold ring-1 ring-inset ring-cyan-400/30"
+                        : "text-zinc-200 hover:bg-cyan-500/10 hover:text-white"
                     }`}
                   >
                     {label}

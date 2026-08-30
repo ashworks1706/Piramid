@@ -4,16 +4,16 @@
 @source "./mdx-components.tsx";
 @source "./content/blogs/**/*.{md,mdx}";
 
-/* Palette: black ground, navy for structure, red for anything interactive. */
+/* Palette: black ground, navy for structure, cyan for anything interactive. */
 :root {
   --bg: #05070c;
-  --bg-raised: #0a0f1a;
-  --navy: #0f1e3d;
-  --navy-line: #1b2f57;
-  --red: #e5484d;
-  --red-dim: #a72a2e;
-  --fg: #e8eaee;
-  --fg-dim: #8a94a6;
+  --bg-raised: #0a1220;
+  --navy: #0d1c38;
+  --navy-line: #1b3a63;
+  --accent: #22d3ee;
+  --accent-dim: #0e7490;
+  --fg: #e6ebf2;
+  --fg-dim: #7d8da3;
   --mono: var(--font-mono), ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas,
     "Liberation Mono", "Courier New", monospace;
 }
@@ -36,7 +36,7 @@ body {
 }
 
 ::selection {
-  background: var(--red);
+  background: var(--accent);
   color: #fff;
 }
 
@@ -65,11 +65,18 @@ body {
   font-size: clamp(4.2px, 1.75vw, 16px);
   line-height: 1.2;
   white-space: pre;
-  color: var(--red);
+  color: var(--accent);
   margin: 0;
-  text-shadow: 0 0 24px rgba(229, 72, 77, 0.25);
+  
   /* Reserve the full height up front so the shorter early frames don't shift the page. */
   min-height: calc(14 * 1.2em);
+}
+
+/* The glow is a large blur over a lot of glyphs, so repainting it on every frame is what made the
+   build-up stutter. It arrives once the animation settles. */
+.cli-animation.is-settled {
+  text-shadow: 0 0 26px rgba(34, 211, 238, 0.28);
+  transition: text-shadow 0.5s ease;
 }
 
 .landing-tagline {
@@ -98,7 +105,7 @@ body {
 
 .landing-install::before {
   content: "$ ";
-  color: var(--red);
+  color: var(--accent);
 }
 
 .landing-link {
@@ -109,8 +116,8 @@ body {
 }
 
 .landing-link:hover {
-  color: var(--red);
-  border-color: var(--red-dim);
+  color: var(--accent);
+  border-color: var(--accent-dim);
 }
 
 .code-block {
@@ -193,19 +200,19 @@ article table {
 }
 
 .blog-btn:hover {
-  border-color: var(--red-dim);
-  color: var(--red);
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .blog-btn-primary {
-  background: var(--red);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--red);
+  border-color: var(--accent);
 }
 
 .blog-btn-primary:hover {
-  background: var(--red-dim);
-  border-color: var(--red-dim);
+  background: var(--accent-dim);
+  border-color: var(--accent-dim);
   color: #fff;
 }
 
@@ -215,8 +222,8 @@ article table {
 }
 
 .blog-btn-secondary:hover {
-  border-color: var(--red-dim);
-  color: var(--red);
+  border-color: var(--accent-dim);
+  color: var(--accent);
 }
 
 .blog-btn-outline {
@@ -225,8 +232,8 @@ article table {
 }
 
 .blog-btn-outline:hover {
-  border-color: var(--red);
-  color: var(--red);
+  border-color: var(--accent);
+  color: var(--accent);
 }
 
 .blog-btn-ghost {
@@ -236,7 +243,7 @@ article table {
 }
 
 .blog-btn-ghost:hover {
-  color: var(--red);
+  color: var(--accent);
 }
 
 .blog-btn-danger {
@@ -258,14 +265,14 @@ article table {
 }
 
 .blog-btn-link:hover {
-  color: var(--red);
+  color: var(--accent);
   text-decoration: underline;
 }
 
 .blog-button {
-  background: var(--red);
+  background: var(--accent);
   color: #fff;
-  border-color: var(--red);
+  border-color: var(--accent);
 }
 
 /* Common blog utilities */
@@ -282,7 +289,7 @@ article table {
 }
 
 .blog-card:hover {
-  border-color: var(--red-dim);
+  border-color: var(--accent-dim);
   background: var(--bg-raised);
   transform: translateY(-2px);
 }
@@ -490,12 +497,12 @@ article table {
 
 /* Links inside prose pick up the accent rather than staying neutral. */
 article a:not(.blog-btn):not(.blog-button) {
-  color: var(--red);
-  text-decoration-color: var(--red-dim);
+  color: var(--accent);
+  text-decoration-color: var(--accent-dim);
 }
 
 article a:not(.blog-btn):not(.blog-button):hover {
-  text-decoration-color: var(--red);
+  text-decoration-color: var(--accent);
 }
 
 /* ---------- blog index ---------- */
@@ -554,11 +561,11 @@ article a:not(.blog-btn):not(.blog-button):hover {
 
 .blog-index-item:hover {
   background: color-mix(in srgb, var(--navy) 45%, transparent);
-  color: var(--red);
+  color: var(--accent);
 }
 
 .blog-index-arrow {
-  color: var(--red);
+  color: var(--accent);
   opacity: 0.55;
 }
 

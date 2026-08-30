@@ -146,7 +146,7 @@ export function BlogImage({ src, alt }: Props) {
           <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 backdrop-blur select-none pointer-events-none">
             <span>scroll or click to zoom</span>
             {isZoomed && (
-              <span className="text-red-300">{Math.round(zoom * 100)}%</span>
+              <span className="text-cyan-300">{Math.round(zoom * 100)}%</span>
             )}
           </div>
 
@@ -218,7 +218,7 @@ export function BlogImage({ src, alt }: Props) {
             setZoomIdx(0);
             setOffset({ x: 0, y: 0 });
           }}
-          className="inline-block max-w-full h-auto rounded-xl border border-white/10 shadow-lg shadow-zinc-900/40 cursor-zoom-in transition-all duration-200 group-hover:brightness-110 group-hover:border-red-400/40 group-hover:shadow-red-950/30"
+          className="inline-block max-w-full h-auto rounded-xl border border-white/10 shadow-lg shadow-zinc-900/40 cursor-zoom-in transition-all duration-200 group-hover:brightness-110 group-hover:border-cyan-400/40 group-hover:shadow-cyan-950/30"
         />
         {alt && (
           <span className="mt-2 block text-xs text-zinc-500 italic">

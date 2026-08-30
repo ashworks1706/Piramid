@@ -18,13 +18,13 @@ export function PostCard({
   return (
     <Link
       href={href}
-      className="group block rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3.5 hover:border-red-400/40 hover:bg-red-500/[0.07] transition-colors no-underline"
+      className="group block rounded-xl border border-white/8 bg-white/[0.03] px-4 py-3.5 hover:border-cyan-400/40 hover:bg-cyan-500/[0.07] transition-colors no-underline"
     >
       <div className="flex items-center justify-between gap-2">
         <span className="text-sm font-semibold text-zinc-100 group-hover:text-white transition-colors">
           {title}
         </span>
-        <span className="text-zinc-600 group-hover:text-red-400 transition-colors text-sm leading-none">
+        <span className="text-zinc-600 group-hover:text-cyan-400 transition-colors text-sm leading-none">
           →
         </span>
       </div>

@@ -28,7 +28,7 @@ export function DocsPager({ prev, next, wide = false }: Props) {
               ? "/blogs"
               : `/blogs/${prev.slug.join("/")}`
           }
-          className={`${linkBase} border-white/10 bg-white/5 hover:border-red-400/60 hover:text-white`}
+          className={`${linkBase} border-white/10 bg-white/5 hover:border-cyan-400/60 hover:text-white`}
         >
           <span aria-hidden="true">←</span>
           <span className="truncate max-w-[180px] sm:max-w-[260px]">
@@ -43,7 +43,7 @@ export function DocsPager({ prev, next, wide = false }: Props) {
               ? "/blogs"
               : `/blogs/${next.slug.join("/")}`
           }
-          className={`${linkBase} border-red-400/50 bg-red-500/10 text-zinc-100 shadow-red-950/30 hover:border-red-300/70`}
+          className={`${linkBase} border-cyan-400/50 bg-cyan-500/10 text-zinc-100 shadow-cyan-950/30 hover:border-cyan-300/70`}
         >
           <span className="truncate max-w-[180px] sm:max-w-[260px]">
             {next.title}

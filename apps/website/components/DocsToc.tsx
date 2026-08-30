@@ -59,13 +59,13 @@ export function DocsToc({ headings }: { headings: Heading[] }) {
                     : "pl-2"
               } ${
                 activeId === h.id
-                  ? "text-red-300 font-medium"
+                  ? "text-cyan-300 font-medium"
                   : "text-zinc-400 hover:text-zinc-100"
               }`}
             >
               {activeId === h.id && (
                 <span
-                  className="absolute -left-px top-auto w-0.5 rounded-full bg-red-400"
+                  className="absolute -left-px top-auto w-0.5 rounded-full bg-cyan-400"
                   style={{ height: "1.25rem" }}
                 />
               )}
