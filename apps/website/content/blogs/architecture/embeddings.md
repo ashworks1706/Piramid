@@ -162,6 +162,8 @@ One thing worth knowing about `text-embedding-3-small` vs `text-embedding-3-larg
 
 There is no separate "local" provider. The `openai` provider is named for the wire format, not the vendor: point `base_url` at any server speaking it and leave `api_key` unset. A dedicated local provider would have been the same request with the `Authorization` header removed -- two code paths for one protocol.[TEI (Hugging Face text embeddings server)](https://github.com/huggingface/text-embeddings-inference) is Hugging Face's high-throughput embedding server; it exposes the same `/embeddings` JSON contract as the OpenAI API, making it a drop-in replacement. TEI, vLLM, llama.cpp and other locally-hosted embedding runtimes all work as long as they implement that protocol. [Ollama](https://ollama.com/) has its own format and is its own provider.
 
+Both are HTTP clients: Piramid sends text and receives a vector, and whatever GPU does that work belongs to another process. That is a deliberate scope call, not an oversight -- Ollama already does model loading, tokenization, batching and device memory well, and shipping a worse version of it before the retrieval work lands would be the wrong order. A fourth `piramid` provider that runs the model in-process is on the roadmap for v0.4.0, once `candle` and a device runtime exist. The argument for it is not throughput but locality: on a GPU search path, a query vector currently gets born on the GPU, copied to host, serialized to JSON, parsed, and copied back to the GPU to search with. Two device transfers for a vector that never needed to leave the card.
+
 A typical local setup for TEI running a 768-dimensional model:
 
 ```yaml
@@ -181,7 +183,7 @@ If you're already running a local model for generation, you almost certainly wan
 
 ```yaml
 embeddings:
-  provider: openai          # openai | ollama
+  provider: openai          # openai | ollama (piramid, in-process, is planned)
   model: text-embedding-3-small
   base_url: ~               # point at any server speaking the OpenAI format
   api_key: ~                # from OPENAI_API_KEY; omit for a local server

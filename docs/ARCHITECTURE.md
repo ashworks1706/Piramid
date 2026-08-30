@@ -126,7 +126,7 @@ flowchart TD
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
 | `cache` | `VectorStore` (resident, indexes read it), `MetadataCache` (bounded) | Evict a vector |
 | `collections` | The `Collection` object, checkpoint, compaction | Serve HTTP |
-| `embeddings` | Provider adapters, caching, retries | Know about collections |
+| `embeddings` | Provider adapters, caching, retries, `EmbeddingsManager` | Know about collections, or depend on `inference` |
 | `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
 | `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |

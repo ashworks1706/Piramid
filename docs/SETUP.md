@@ -95,6 +95,14 @@ just bench        # criterion, results in target/criterion
 just audit        # cargo-deny: advisories, bans, licences, sources
 ```
 
+## Embeddings
+
+Every provider is an HTTP client; Piramid does not load a model. `EMBEDDING_PROVIDER=openai`
+speaks the OpenAI wire format, so it covers OpenAI itself and any server implementing it — TEI,
+vLLM, llama.cpp — by pointing `EMBEDDING_BASE_URL` at it and leaving `OPENAI_API_KEY` unset.
+`ollama` speaks Ollama's own format. "Local" therefore means the model runs on your machine in
+another process, not inside Piramid; an in-process provider is on the roadmap for v0.4.0.
+
 ## Website
 
 Next.js 16 on React 19, TypeScript, Tailwind 4, and MDX for the blog. It is not part of the
