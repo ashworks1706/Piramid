@@ -1218,7 +1218,6 @@ version = "0.2.0"
 dependencies = [
  "axum",
  "clap",
- "piramid-cache",
  "piramid-collections",
  "piramid-compute",
  "piramid-core",
@@ -1239,21 +1238,11 @@ dependencies = [
 ]
 
 [[package]]
-name = "piramid-cache"
-version = "0.2.0"
-dependencies = [
- "piramid-core",
- "piramid-storage",
- "uuid",
-]
-
-[[package]]
 name = "piramid-collections"
 version = "0.2.0"
 dependencies = [
  "dashmap",
  "parking_lot",
- "piramid-cache",
  "piramid-compute",
  "piramid-core",
  "piramid-index",

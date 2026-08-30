@@ -11,7 +11,7 @@
 
 ## Now (v0.3.0) — contiguous layout
 
-- [ ] make `cache::VectorStore` contiguous: one `Vec<f32>` at a fixed stride plus a
+- [ ] make `collections::cache::VectorStore` contiguous: one `Vec<f32>` at a fixed stride plus a
       `Uuid → u32` ordinal map, implementing `VectorReader::as_slab`. Removal is the open design
       question — a slab cannot cheaply delete a row, so it needs a tombstone or swap-remove story
       settled alongside HNSW's. Write it with tests this time

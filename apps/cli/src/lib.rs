@@ -3,8 +3,8 @@
 
 pub use piramid_core::{config, error, metadata, stats, validation};
 
-pub use piramid_cache as cache;
 pub use piramid_collections as collections;
+pub use piramid_collections::cache;
 pub use piramid_compute as compute;
 pub use piramid_compute::quantization;
 pub use piramid_embeddings as embeddings;
@@ -15,6 +15,15 @@ pub use piramid_observability as observability;
 pub use piramid_search as search;
 pub use piramid_server::{cluster, disk, http as server, services, state};
 pub use piramid_storage as storage;
+
+/// Domain managers: one per crate with state to own, each in its crate's `manager.rs`
+/// (ADR 0012). `AppState` is the composition root that holds them, not one of them.
+pub use collections::{CacheManager, CheckpointManager, CollectionManager};
+pub use embeddings::EmbeddingsManager;
+pub use gpu::GpuManager;
+pub use inference::InferenceManager;
+pub use state::AppState;
+pub use storage::SidecarManager;
 
 pub use collections::Collection;
 pub use compute::{

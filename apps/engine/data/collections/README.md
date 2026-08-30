@@ -1,6 +1,9 @@
 # piramid-collections
 
-The Collection object: lifecycle, checkpointing, compaction.
+The Collection object: lifecycle, caching, checkpointing, compaction.
+
+`cache::VectorStore` is resident — the ANN indexes resolve candidate ids through it, so evicting an
+entry breaks search. `cache::MetadataCache` is a real cache, bounded and safe to drop.
 
 Where storage, cache, index, and search meet. A collection is the unit that owns all four.
 

@@ -5,7 +5,7 @@ use uuid::Uuid;
 use super::checkpoint::CheckpointManager;
 use super::collection::Collection;
 use super::CollectionOpenOptions;
-use piramid_cache::CacheManager;
+use crate::cache::CacheManager;
 use piramid_core::error::{Result, StorageError};
 use piramid_index::load_vector_index;
 use piramid_index::HashMapVectorReader;

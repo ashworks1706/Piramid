@@ -13,8 +13,6 @@ command -v jq >/dev/null || { echo "check-deps: jq is required"; exit 1; }
 ALLOWED=$(cat <<'EOF'
 piramid-core -> piramid-compute
 piramid-storage -> piramid-core
-piramid-cache -> piramid-core
-piramid-cache -> piramid-storage
 piramid-index -> piramid-core
 piramid-index -> piramid-compute
 piramid-index -> piramid-storage
@@ -23,7 +21,6 @@ piramid-search -> piramid-compute
 piramid-search -> piramid-storage
 piramid-search -> piramid-index
 piramid-collections -> piramid-core
-piramid-collections -> piramid-cache
 piramid-collections -> piramid-compute
 piramid-collections -> piramid-storage
 piramid-collections -> piramid-index
@@ -45,7 +42,6 @@ piramid -> piramid-core
 piramid -> piramid-compute
 piramid -> piramid-gpu
 piramid -> piramid-storage
-piramid -> piramid-cache
 piramid -> piramid-index
 piramid -> piramid-search
 piramid -> piramid-collections

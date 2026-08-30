@@ -77,8 +77,7 @@ flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
     Server[server<br/>http · services · state · cluster]
     Inference[inference<br/>forward pass · kv_cache · augment seam]
-    Collections[collections<br/>Collection · checkpoint · compact]
-    Cache[cache<br/>VectorStore · MetadataCache]
+    Collections[collections<br/>Collection · cache · checkpoint · compact]
     Embeddings[embeddings<br/>openai · ollama]
     Search[search<br/>planning · filtering · ranking]
     Index[index<br/>flat · hnsw · ivf]
@@ -99,11 +98,8 @@ flowchart TD
     Inference --> Core
     Collections --> Search
     Collections --> Index
-    Collections --> Cache
     Collections --> Storage
     Collections --> Core
-    Cache --> Storage
-    Cache --> Core
     Embeddings --> Core
     Search --> Index
     Search --> Storage
@@ -124,8 +120,7 @@ flowchart TD
 | `storage` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
 | `index` | ANN traversal, index settings, sidecar format | Own collection storage or the vectors themselves |
 | `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
-| `cache` | `VectorStore` (resident, indexes read it), `MetadataCache` (bounded) | Evict a vector |
-| `collections` | The `Collection` object, checkpoint, compaction | Serve HTTP |
+| `collections` | The `Collection` object, its `cache` (resident `VectorStore` + bounded `MetadataCache`), checkpoint, compaction | Serve HTTP, or evict a vector |
 | `embeddings` | Provider adapters, caching, retries, `EmbeddingsManager` | Know about collections, or depend on `inference` |
 | `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
 | `server` | Routes, handlers, services (admission, locks, metrics, DTOs), `AppState`, routing | Touch file formats or index internals |

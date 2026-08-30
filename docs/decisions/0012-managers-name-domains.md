@@ -14,9 +14,12 @@ didn't.
 names — `Device`, `Wal`, `RecordStore`, `Collection` — because "manager" says less than the noun
 it would replace, and `AppState` stays `AppState` because it genuinely is shared state.
 
-- `piramid-cache` is a crate under `data/`, the caching domain. `VectorStore` is the resident
-  map (a store, stated as one); `MetadataCache` is the bounded cache; `CacheManager` owns both.
-  Anything new that caches per-collection state becomes a field there, not a static elsewhere.
+- `collections::cache` is the caching domain. `VectorStore` is the resident map (a store, stated
+  as one); `MetadataCache` is the bounded cache; `CacheManager` owns both. Anything new that
+  caches per-collection state becomes a field there, not a static elsewhere. It lives inside
+  `collections` rather than as its own crate because a collection is its only consumer — and a
+  cache belongs to the domain whose data it caches, which is also why `CachedEmbedder` stays in
+  `embeddings` and the KV cache will stay in `inference`.
 - `SidecarManager` in `storage::persistence` owns every sidecar path and format beside a record
   file — offsets, manifest, WAL, WAL meta, and the ANN index's *location* (`piramid-index` still
   owns that file's format). A new sidecar is a new method, never a `format!` at a call site.
@@ -49,7 +52,8 @@ is the composition root that holds the managers, which is a different job from b
 `piramid-cache`, `embeddings::CachedEmbedder`, and the future KV cache: they share a word, not a
 shape (different keys, values, bounds, and eviction rules).
 
-**Consequences.** New crate `piramid-cache`; edges `cache → core`, `cache → storage`,
-`collections → cache` (and the CLI facade re-export). `storage` no longer mentions quantization.
+**Consequences.** No new crates; `collections` gains a `cache/` module. `storage` no longer
+mentions quantization. The umbrella crate re-exports every manager in one block, so
+`use piramid::CacheManager` works and the moving parts have one address.
 Sidecar path knowledge has one home. The roadmap's slab migration now names its real target:
 `cache::VectorStore`, the half of the old `CacheManager` that was never a cache.

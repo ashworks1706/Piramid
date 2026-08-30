@@ -2,7 +2,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::checkpoint::CheckpointManager;
-use piramid_cache::CacheManager;
+use crate::cache::CacheManager;
 use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::{HashMapVectorReader, VectorIndex, VectorReader};

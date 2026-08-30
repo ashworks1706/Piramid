@@ -35,7 +35,6 @@ piramid-storage.workspace = true
 piramid-index.workspace = true
 piramid-search.workspace = true
 piramid-collections.workspace = true
-piramid-cache.workspace = true
 piramid-embeddings.workspace = true
 piramid-inference.workspace = true
 piramid-observability.workspace = true

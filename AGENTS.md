@@ -52,9 +52,8 @@ apps/engine/observability         where those measurements go: subscriber, OTLP,
 apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels
 apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorReader
-apps/engine/data/cache            VectorStore (resident), MetadataCache (bounded),
-                                  CacheManager owning both
-apps/engine/data/collections      the Collection object, checkpoint, compact
+apps/engine/data/collections      the Collection object, checkpoint, compact,
+                                  cache/ (VectorStore resident + MetadataCache bounded)
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama

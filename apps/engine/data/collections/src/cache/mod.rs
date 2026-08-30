@@ -1,4 +1,4 @@
-//! Per-collection in-memory state, behind one entry point: [`CacheManager`].
+//! This collection's in-memory state, behind one entry point: [`CacheManager`].
 //!
 //! Two different things live here, and the split is the point. [`VectorStore`] is *resident*
 //! working state — the ANN indexes resolve candidate ids through it, so evicting an entry breaks
