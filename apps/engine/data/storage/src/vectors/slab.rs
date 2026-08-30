@@ -24,7 +24,6 @@ pub struct VectorSlab {
     data: Vec<f32>,
     /// Row width. Zero only while the slab is empty.
     dim: usize,
-    /// Ordinal for each id.
     ordinals: HashMap<Uuid, u32>,
     /// Id for each ordinal, parallel to the rows in `data`.
     ids: Vec<Uuid>,

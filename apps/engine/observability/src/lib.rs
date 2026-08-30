@@ -2,8 +2,8 @@
 //!
 //! `piramid_core::stats` holds what the engine measures about itself as plain atomics with no
 //! exporter dependency. This crate is where those measurements go: it builds the tracing
-//! subscriber and, when configured, ships spans over OTLP. The split is load-bearing — merging
-//! them would link `tracing-subscriber` and OpenTelemetry into every crate that times a lock.
+//! subscriber and, when configured, ships spans over OTLP — kept separate so `tracing-subscriber`
+//! and OpenTelemetry aren't linked into every crate that times a lock.
 //!
 //! Exporters are optional at compile time and off at runtime unless their variable is set. The
 //! `otel` feature plus `PIRAMID_OTLP_ENDPOINT` sends spans over OTLP. `PIRAMID_LOG_SPANS=true`
@@ -34,9 +34,8 @@ pub use config::{ObservabilityConfig, OtlpConfig};
 /// `main` until shutdown — dropping it early silently stops export.
 #[must_use = "dropping the guard shuts down telemetry export"]
 pub struct ObservabilityGuard {
-    // Held rather than dropped immediately: shutting the provider down is what flushes the last
-    // batch of spans. `opentelemetry::global::shutdown_tracer_provider` was removed in 0.30, so
-    // the provider itself is the handle.
+    // Shutting the provider down is what flushes the last batch of spans, so it's held here
+    // rather than dropped immediately.
     #[cfg(feature = "otel")]
     otel: Option<opentelemetry_sdk::trace::SdkTracerProvider>,
 }

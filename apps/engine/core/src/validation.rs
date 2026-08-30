@@ -72,7 +72,6 @@ pub fn validate_text(text: &str) -> Result<()> {
     }
 
     if text.len() > 1_000_000 {
-        // 1MB text limit
         return Err(ServerError::InvalidRequest(format!(
             "Text too large: {} bytes (max 1MB)",
             text.len()

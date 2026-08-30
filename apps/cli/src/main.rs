@@ -92,7 +92,6 @@ struct ShowConfigArgs {
     /// Optional config file to load (overrides CONFIG_FILE)
     #[arg(long)]
     config: Option<PathBuf>,
-    /// Output format
     #[arg(long, value_enum, default_value_t = OutputFormat::Yaml)]
     format: OutputFormat,
 }
@@ -105,7 +104,6 @@ struct ShowMetricsArgs {
     /// Optional data directory (overrides DATA_DIR)
     #[arg(long)]
     data_dir: Option<PathBuf>,
-    /// Output format
     #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
     format: OutputFormat,
 }

@@ -15,7 +15,6 @@ use piramid_storage::record_store::RecordStore;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
 pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
-    // Get all live documents and their count before compaction
     let original_entries = collection.index.len();
     let docs: Vec<Document> = collection.get_all()?;
 
@@ -56,11 +55,10 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
     collection.clear_caches_for_rebuild();
     collection.rebuild_vector_cache()?;
 
-    // Save the new index, vector index, and metadata to disk after compaction
     save_index(&collection.path, &collection.index)?;
     save_vector_index(&collection.path, collection.vector_index())?;
     save_metadata(&collection.path, &collection.metadata)?;
-    // Rotate WAL to drop old entries after compaction
+    // Sidecars are durable before we drop the WAL entries they made redundant.
     collection.checkpoint.wal.rotate()?;
 
     Ok(CompactStats {

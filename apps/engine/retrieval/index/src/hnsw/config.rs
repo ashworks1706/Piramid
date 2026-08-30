@@ -9,12 +9,11 @@ pub struct HnswConfig {
     pub ef_construction: usize, // size of the dynamic list for the construction phase
     pub ef_search: usize, // size of the dynamic list for the search phase (quality vs speed tradeoff)
     pub ml: f32,          // layer multiplier: 1/ln(M)
-    pub metric: Metric,   // similarity metric
+    pub metric: Metric,
     #[serde(default)]
-    pub mode: ExecutionMode, // SIMD execution mode
+    pub mode: ExecutionMode,
 }
 
-// Implement default values for HnswConfig.
 impl Default for HnswConfig {
     fn default() -> Self {
         let m = 16;

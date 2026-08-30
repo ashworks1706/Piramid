@@ -29,10 +29,8 @@ pub struct LoggingConfig {
     pub inference: bool,
     #[serde(default = "default_true")]
     pub http: bool,
-    /// Emit structured JSON lines instead of human-readable console output.
-    ///
-    /// Set this in any deployment whose logs are shipped to a collector; the default is the
-    /// readable format because the common case is someone running the binary locally.
+    /// Emit structured JSON lines instead of human-readable console output; set for deployments
+    /// shipping logs to a collector.
     #[serde(default)]
     pub json: bool,
     #[serde(default)]

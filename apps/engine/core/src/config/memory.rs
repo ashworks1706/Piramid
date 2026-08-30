@@ -17,8 +17,8 @@ pub struct MemoryConfig {
 impl Default for MemoryConfig {
     fn default() -> Self {
         MemoryConfig {
-            max_memory_per_collection: None, // Unlimited
-            initial_mmap_size: 1024 * 1024,  // 1MB
+            max_memory_per_collection: None,
+            initial_mmap_size: 1024 * 1024,
             use_mmap: true,
         }
     }

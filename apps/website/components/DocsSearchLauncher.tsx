@@ -150,7 +150,6 @@ export function DocsSearchLauncher({ entries, className }: Props) {
             className="mx-auto mt-20 w-full max-w-2xl rounded-2xl border border-white/10 bg-[#0b1020] shadow-2xl shadow-black/60 overflow-hidden"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Input */}
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
               <svg
                 className="w-4 h-4 text-zinc-500 flex-shrink-0"
@@ -187,7 +186,6 @@ export function DocsSearchLauncher({ entries, className }: Props) {
               </button>
             </div>
 
-            {/* Results */}
             <div ref={listRef} className="max-h-[60vh] overflow-y-auto">
               {!q ? (
                 <div className="px-4 py-10 text-center text-sm text-zinc-500">
@@ -217,7 +215,6 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                         isActive ? "bg-cyan-500/15" : "hover:bg-white/[0.04]"
                       }`}
                     >
-                      {/* Breadcrumb */}
                       <div className="flex items-center gap-1 text-[11px] text-zinc-500 mb-1">
                         <span>{res.pageTitle}</span>
                         {res.section && (
@@ -230,7 +227,6 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                         )}
                       </div>
 
-                      {/* Section heading or page title */}
                       {res.section ? (
                         <div className="text-sm font-medium text-zinc-100 leading-snug">
                           {res.section
@@ -247,7 +243,6 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                         </div>
                       )}
 
-                      {/* Text snippet with highlight */}
                       {snippet && (
                         <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
                           {snippet.before}

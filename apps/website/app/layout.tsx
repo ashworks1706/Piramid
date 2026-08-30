@@ -80,8 +80,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    // Extensions add attributes to <html> before hydration. This covers only this element's
-    // own attributes, so a real mismatch below still reports.
+    // Browser extensions add attributes to <html> before hydration; this only covers this
+    // element, so a real mismatch further down still reports.
     <html lang="en" className={`dark ${mono.variable}`} suppressHydrationWarning>
       <body className="antialiased">{children}</body>
     </html>

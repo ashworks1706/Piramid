@@ -13,11 +13,8 @@ use std::sync::Arc;
 use piramid::config::loader::RuntimeConfig;
 use piramid::runtime::AppState;
 
-/// Environment variables whose values are never included.
-///
-/// Matched case-insensitively as substrings, so `OPENAI_API_KEY` and `PIRAMID_SENTRY_DSN` are both
-/// caught. Prefer over-redacting: a missing value costs a follow-up question, a leaked one costs a
-/// credential rotation.
+/// Substrings matched case-insensitively against env var names to redact their values. Prefer
+/// over-redacting: a missing value costs a follow-up question, a leaked one costs a rotation.
 const SECRET_MARKERS: &[&str] = &[
     "KEY",
     "TOKEN",
@@ -54,13 +51,11 @@ const REPORTED_PREFIXES: &[&str] = &[
     "PARALLEL_SEARCH",
 ];
 
-/// Whether a variable name looks like it holds a credential.
 fn is_secret(name: &str) -> bool {
     let upper = name.to_ascii_uppercase();
     SECRET_MARKERS.iter().any(|marker| upper.contains(marker))
 }
 
-/// Build the bundle text.
 pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     let mut out = String::new();
 
@@ -217,7 +212,7 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     out
 }
 
-/// Write the bundle to `path`, or to a timestamped file in the working directory.
+/// Write the bundle to `path`, defaulting to `piramid-support-bundle.md` in the working directory.
 pub fn write(
     config: &RuntimeConfig,
     state: &Arc<AppState>,

@@ -15,13 +15,11 @@ use crate::runtime::SharedState;
 
 fn api_router(state: SharedState) -> Router<SharedState> {
     Router::new()
-        // Health and metrics endpoints
         .route("/health", get(handlers::health))
         .route("/health/embeddings", get(handlers::health_embeddings))
         .route("/readyz", get(handlers::readyz))
         .route("/metrics", get(handlers::metrics))
         .route("/version", get(handlers::version))
-        // Collections CRUD
         .route("/collections", get(handlers::list_collections))
         .route("/collections", post(handlers::create_collection))
         .route("/collections/{collection}", get(handlers::get_collection))
@@ -55,7 +53,6 @@ fn api_router(state: SharedState) -> Router<SharedState> {
         )
         .route("/config", get(handlers::config_status))
         .route("/config/reload", post(handlers::reload_config))
-        // Vectors CRUD
         .route(
             "/collections/{collection}/vectors",
             get(handlers::list_vectors),
@@ -89,7 +86,6 @@ fn api_router(state: SharedState) -> Router<SharedState> {
             "/collections/{collection}/search/range",
             post(handlers::range_search_vectors),
         )
-        // Embedding endpoints
         .route(
             "/collections/{collection}/embed",
             post(handlers::embed_text),
@@ -105,9 +101,9 @@ fn api_router(state: SharedState) -> Router<SharedState> {
 /// static dashboard fallback.
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
-        .allow_origin(Any) // any domain can call us
-        .allow_methods(Any) // GET, POST, etc
-        .allow_headers(Any); // any headers
+        .allow_origin(Any)
+        .allow_methods(Any)
+        .allow_headers(Any);
 
     let api = api_router(state.clone());
 

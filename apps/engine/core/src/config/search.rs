@@ -4,9 +4,7 @@ use serde::{Deserialize, Serialize};
 
 use super::{AdaptiveTuningConfig, QueryBudgetConfig};
 
-/// - HNSW uses ef (candidates explored during search)
-/// - IVF uses nprobe (number of clusters to search)
-/// - Flat always exhaustive (ignores these settings)
+/// HNSW reads `ef`, IVF reads `nprobe`; flat search is always exhaustive and ignores both.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize)]
 pub struct SearchConfig {
     /// HNSW candidate list width. Falls back to the index's `ef_search`.

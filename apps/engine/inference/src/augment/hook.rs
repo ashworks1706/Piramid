@@ -25,9 +25,8 @@ pub enum RetrievalPoint {
 
 /// Mutable view of the forward pass handed to a [`RetrievalHook`].
 ///
-/// Deliberately minimal. It grows as the runtime grows; keeping it a named struct rather than a
-/// long parameter list means adding state later does not change the trait signature and break
-/// every implementation.
+/// Deliberately minimal; a named struct rather than a parameter list so adding fields later
+/// won't change the trait signature.
 #[derive(Debug)]
 pub struct ForwardContext<'a> {
     /// Where in the pass this invocation sits.

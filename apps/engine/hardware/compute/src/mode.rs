@@ -16,10 +16,8 @@ pub enum ExecutionMode {
     Auto,
     /// Portable scalar reference implementation.
     Scalar,
-    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`).
-    ///
-    /// The `Jit` alias maps here: `Jit` was a dimension-specialized unrolling of this same code
-    /// path and was removed. The alias keeps previously persisted index sidecars loadable.
+    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`). `Jit` is an accepted alias, kept
+    /// so index sidecars persisted before the rename still deserialize.
     #[serde(alias = "Jit")]
     Simd,
     /// Rayon-parallel CPU path, for vectors large enough to amortize the fan-out.

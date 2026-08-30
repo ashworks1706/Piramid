@@ -31,9 +31,7 @@ static BINARY: BinaryBackend = BinaryBackend;
 #[cfg(feature = "gpu-cuda")]
 static CUDA: CudaBackend = CudaBackend;
 
-/// Every backend compiled into this build, available or not.
-///
-/// Intended for admin/introspection surfaces that report what the binary can do.
+/// Every backend compiled into this build, available or not, for admin/introspection surfaces.
 pub fn all() -> Vec<&'static dyn DistanceKernels> {
     // `mut` is only used by the feature-gated push below.
     #[allow(unused_mut)]
@@ -43,10 +41,9 @@ pub fn all() -> Vec<&'static dyn DistanceKernels> {
     backends
 }
 
-/// Look up the backend serving `mode`, without checking availability.
-///
-/// `Auto` is resolved first. Returns [`ComputeError::BackendUnavailable`](crate::error::ComputeError::BackendUnavailable) when the mode names a
-/// backend that was not compiled into this build.
+/// Look up the backend serving `mode` (resolving `Auto` first), without checking availability.
+/// Errors with [`ComputeError::BackendUnavailable`](crate::error::ComputeError::BackendUnavailable)
+/// if the mode names a backend not compiled into this build.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
     match mode.resolve() {
         ExecutionMode::Scalar => Ok(&SCALAR),
@@ -71,11 +68,9 @@ pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKerne
     }
 }
 
-/// Look up a backend that is guaranteed to run on this machine.
-///
-/// Falls back to the best available CPU backend when the requested one is missing or unavailable,
-/// logging once per call at `warn`. Use this on paths that must produce a number; use
-/// [`for_mode`] where an unavailable backend should surface as an error instead.
+/// Look up a backend guaranteed to run on this machine, falling back to the best available CPU
+/// backend (logged at `warn`) when the requested one is missing or unavailable. Use this on paths
+/// that must produce a number; use [`for_mode`] where unavailability should surface as an error.
 pub fn resolve_available(mode: ExecutionMode) -> &'static dyn DistanceKernels {
     match for_mode(mode) {
         Ok(backend) if backend.is_available() => backend,

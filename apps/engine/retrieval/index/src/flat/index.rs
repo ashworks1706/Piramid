@@ -13,7 +13,7 @@ use piramid_core::error::{IndexError, Result};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FlatIndex {
     config: FlatConfig,
-    vector_ids: Vec<Uuid>, // Track which vectors we've seen
+    vector_ids: Vec<Uuid>,
 }
 
 impl FlatIndex {

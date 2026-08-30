@@ -10,7 +10,6 @@ pub struct Hit {
     pub vector: Vec<f32>,
     pub metadata: Metadata,
 }
-// Implement a constructor for Hit
 impl Hit {
     pub fn new(id: Uuid, score: f32, text: String, vector: Vec<f32>, metadata: Metadata) -> Self {
         Self {

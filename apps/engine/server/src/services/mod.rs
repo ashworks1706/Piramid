@@ -6,7 +6,7 @@ pub mod types;
 pub mod vector;
 
 // Error strings shared by several services, so the same condition reads the same in every
-// response. They lived in `services/metadata.rs`, which had nothing to do with metadata.
+// response.
 pub const COLLECTION_NOT_FOUND: &str = "Collection not found";
 pub const VECTOR_NOT_FOUND: &str = "Vector not found";
 pub const EMBEDDING_NOT_CONFIGURED: &str = "Embedding service not configured";

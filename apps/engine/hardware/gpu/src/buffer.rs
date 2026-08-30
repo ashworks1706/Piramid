@@ -12,12 +12,8 @@ use crate::stream::Stream;
 /// A typed allocation in device memory.
 ///
 /// Generic over the element type so the same abstraction serves `f32` vector slabs, `f16` model
-/// weights, and `u32` index structures.
-///
-/// # Implementing
-///
-/// The `handle` field is deliberately opaque. A backend stores its device pointer there; nothing
-/// above this module inspects it.
+/// weights, and `u32` index structures. `handle` is deliberately opaque: a backend stores its
+/// device pointer there and nothing above this module inspects it.
 #[derive(Debug)]
 pub struct DeviceBuffer<T> {
     device: Device,

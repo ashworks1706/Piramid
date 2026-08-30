@@ -1,5 +1,3 @@
-// Vector entry - represents a single vector with metadata
-
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 

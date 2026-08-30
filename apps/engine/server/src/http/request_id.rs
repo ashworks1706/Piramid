@@ -4,7 +4,7 @@ use uuid::Uuid;
 
 /// Request ID stored in request extensions.
 #[derive(Clone, Debug)]
-pub struct RequestId(pub String); // Simple wrapper around a string to represent a request ID
+pub struct RequestId(pub String);
 
 /// Middleware that assigns a request ID, adds it to extensions, and echoes it in the response header.
 pub async fn assign_request_id(mut req: Request<Body>, next: Next) -> Response {

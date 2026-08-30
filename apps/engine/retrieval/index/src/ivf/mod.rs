@@ -1,5 +1,3 @@
-// IVF index module
-
 mod config;
 mod index;
 

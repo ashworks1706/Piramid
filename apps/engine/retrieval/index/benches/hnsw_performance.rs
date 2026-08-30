@@ -12,7 +12,6 @@ fn hnsw_insert_search_bench(c: &mut Criterion) {
     let mut vectors = HashMap::new();
     let metadatas: HashMap<Uuid, Metadata> = HashMap::new();
 
-    // Seed a small set of vectors
     for i in 0..1_000 {
         let id = Uuid::new_v4();
         let vec = vec![i as f32, (i * 2) as f32, (i * 3) as f32];

@@ -1,8 +1,8 @@
 //! Candle-backed model execution. Compiled only under `inference-candle`.
 //!
-//! To fill in: add `candle-core` and `candle-nn` under that feature, construct candle's device
-//! from the same `piramid-gpu::Device` the retrieval path holds (a second context puts vectors
-//! and weights in separate allocations), and keep `candle` types inside this file.
+//! To fill in: add `candle-core`/`candle-nn` under that feature and share the same
+//! `piramid-gpu::Device` the retrieval path holds, not a second context. Keep `candle` types
+//! confined to this file.
 
 use piramid_gpu::error::{GpuError, GpuResult};
 

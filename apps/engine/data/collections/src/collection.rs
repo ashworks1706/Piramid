@@ -66,7 +66,7 @@ impl Collection {
     pub fn memory_usage_bytes(&self) -> usize {
         // Approximate: mmap + offset index + caches + ANN structure.
         let mmap_size = self.record_store.mapped_len();
-        let index_size = self.index.capacity() * std::mem::size_of::<(Uuid, EntryPointer)>(); // Approximate size of the index based on its capacity
+        let index_size = self.index.capacity() * std::mem::size_of::<(Uuid, EntryPointer)>();
 
         mmap_size
             + index_size

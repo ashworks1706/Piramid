@@ -1,5 +1,3 @@
-// Flat index module
-
 mod config;
 mod index;
 

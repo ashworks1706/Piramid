@@ -25,26 +25,26 @@ pub enum RebuildState {
 
 #[derive(Clone)]
 pub struct RebuildJobStatus {
-    pub status: RebuildState, // Current status of the rebuild job (Running, Completed, Failed)
-    pub started_at: u64, // Timestamp when the rebuild job started (in seconds since UNIX epoch)
-    pub finished_at: Option<u64>, // Optional timestamp when the rebuild job finished (in seconds since UNIX epoch)
-    pub error: Option<String>,    // Optional error message if the rebuild job failed
-    pub elapsed_ms: Option<u128>, // Optional elapsed time for the rebuild job in milliseconds
+    pub status: RebuildState,
+    pub started_at: u64,          // seconds since UNIX epoch
+    pub finished_at: Option<u64>, // seconds since UNIX epoch
+    pub error: Option<String>,
+    pub elapsed_ms: Option<u128>,
 }
 
 // One file per collection, so a DashMap keeps unrelated collections from contending.
 pub struct AppState {
     pub collection_manager: CollectionManager,
-    pub data_dir: String, // Base directory for collection files, e.g. "./data"
+    pub data_dir: String, // e.g. "./data"
     pub cluster_router: Arc<dyn ClusterRouter>,
-    pub embedder: Option<Arc<dyn Embedder>>, // Optional embedder, if configured. Wrapped in Arc for shared ownership.
-    pub shutting_down: Arc<AtomicBool>, // Flag to indicate server is shutting down, used to reject new requests gracefully
-    pub read_only: Arc<AtomicBool>,     // Flag for disk-pressure read-only mode
+    pub embedder: Option<Arc<dyn Embedder>>,
+    pub shutting_down: Arc<AtomicBool>, // set on shutdown to reject new requests
+    pub read_only: Arc<AtomicBool>,     // disk-pressure read-only mode
     pub embed_metrics: Arc<EmbedMetrics>,
-    pub app_config: Arc<RwLock<AppConfig>>, // Global config accessible to handlers, protected by RwLock for dynamic updates
-    pub slow_query_ms: u128,                // Threshold for logging slow queries in ms
-    pub rebuild_jobs: Arc<DashMap<String, RebuildJobStatus>>, // Track index rebuild jobs by collection name
-    pub config_last_reload: Arc<AtomicU64>, // Timestamp of last config reload for cache invalidation
+    pub app_config: Arc<RwLock<AppConfig>>,
+    pub slow_query_ms: u128,
+    pub rebuild_jobs: Arc<DashMap<String, RebuildJobStatus>>,
+    pub config_last_reload: Arc<AtomicU64>, // used to invalidate caches on reload
     pub disk_min_free_bytes: Option<u64>,
     pub disk_readonly_on_low_space: bool,
 }

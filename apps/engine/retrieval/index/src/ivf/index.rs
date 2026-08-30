@@ -15,11 +15,11 @@ use piramid_core::error::{IndexError, Result};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct IvfIndex {
     config: IvfConfig,
-    centroids: Vec<Vec<f32>>,                // Cluster centroids
-    inverted_lists: Vec<Vec<Uuid>>,          // vectors[cluster_id] = [vector_ids]
-    vector_to_cluster: HashMap<Uuid, usize>, // Track which cluster each vector belongs to
+    centroids: Vec<Vec<f32>>,
+    inverted_lists: Vec<Vec<Uuid>>, // vectors[cluster_id] = [vector_ids]
+    vector_to_cluster: HashMap<Uuid, usize>,
     #[serde(default)]
-    pending_vectors: HashSet<Uuid>, // Vectors waiting for initial clustering
+    pending_vectors: HashSet<Uuid>, // vectors not yet assigned, before the first clustering run
     dimensions: usize,
 }
 
