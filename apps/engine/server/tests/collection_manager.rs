@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use axum::{
     extract::{Path, State},
     Json,

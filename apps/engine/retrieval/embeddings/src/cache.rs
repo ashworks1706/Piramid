@@ -5,8 +5,8 @@
 
 use async_trait::async_trait;
 use lru::LruCache;
+use parking_lot::Mutex;
 use std::num::NonZeroUsize;
-use std::sync::Mutex;
 
 use super::types::{Embedder, EmbeddingResponse, EmbeddingResult};
 
@@ -28,7 +28,7 @@ impl<E: Embedder> CachedEmbedder<E> {
 impl<E: Embedder> Embedder for CachedEmbedder<E> {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
         {
-            let mut cache = self.cache.lock().expect("embedding cache mutex poisoned");
+            let mut cache = self.cache.lock();
             if let Some(embedding) = cache.get(text) {
                 return Ok(EmbeddingResponse {
                     embedding: embedding.clone(),
@@ -41,7 +41,7 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
         let response = self.inner.embed(text).await?;
 
         {
-            let mut cache = self.cache.lock().expect("embedding cache mutex poisoned");
+            let mut cache = self.cache.lock();
             cache.put(text.to_string(), response.embedding.clone());
         }
 

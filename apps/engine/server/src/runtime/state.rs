@@ -5,7 +5,6 @@ use std::sync::{
     atomic::{AtomicU64, Ordering as AtomicOrdering},
     Arc,
 };
-use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::cluster::{
     ClusterRouter, LocalClusterRouter, NodeCapabilities, NodeId, NodeRuntimeState, RouteDecision,
@@ -81,12 +80,7 @@ impl AppState {
             app_config,
             slow_query_ms,
             rebuild_jobs: Arc::new(DashMap::new()),
-            config_last_reload: Arc::new(AtomicU64::new(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-            )),
+            config_last_reload: Arc::new(AtomicU64::new(piramid_core::clock::unix_secs())),
             disk_min_free_bytes,
             disk_readonly_on_low_space,
         })
@@ -124,12 +118,7 @@ impl AppState {
             app_config,
             slow_query_ms,
             rebuild_jobs: Arc::new(DashMap::new()),
-            config_last_reload: Arc::new(AtomicU64::new(
-                SystemTime::now()
-                    .duration_since(UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs(),
-            )),
+            config_last_reload: Arc::new(AtomicU64::new(piramid_core::clock::unix_secs())),
             disk_min_free_bytes,
             disk_readonly_on_low_space,
         })
@@ -182,10 +171,7 @@ impl AppState {
             let mut guard = self.app_config.write();
             *guard = new_cfg.clone();
         }
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = piramid_core::clock::unix_secs();
         self.config_last_reload.store(now, AtomicOrdering::Relaxed);
         Ok(new_cfg)
     }

@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_core::stats::latency::{time_operation, time_operation_sync, LatencyTracker};
 use std::time::Duration;
 

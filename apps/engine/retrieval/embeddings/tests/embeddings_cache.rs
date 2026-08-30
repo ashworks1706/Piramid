@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_embeddings::{CachedEmbedder, Embedder, EmbeddingResponse, EmbeddingResult};
 use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;

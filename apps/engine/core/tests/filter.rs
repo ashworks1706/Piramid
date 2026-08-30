@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use {
     piramid_core::metadata::metadata, piramid_core::metadata::Filter,
     piramid_core::metadata::MetadataValue,

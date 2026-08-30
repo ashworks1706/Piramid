@@ -418,15 +418,20 @@ fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard
     }
 
     // Exporters are opt-in per environment variable and no-ops when unset.
-    let observability = ObservabilityConfig::from_env();
+    let observability = ObservabilityConfig::from_env().map_err(std::io::Error::other)?;
     let guard = piramid_observability::init(&observability, env_filter, cfg.json);
     TRACING_INIT.set(()).ok();
     Ok(Some(guard))
 }
 
+/// Add a filter directive built from a literal in this file.
+///
+/// A parse failure is a bug here, not bad input, so it is reported rather than dropped — a
+/// silently missing directive means logging a target the operator switched off.
 fn add_directive(mut filter: EnvFilter, directive: &str) -> EnvFilter {
-    if let Ok(parsed) = tracing_subscriber::filter::Directive::from_str(directive) {
-        filter = filter.add_directive(parsed);
+    match tracing_subscriber::filter::Directive::from_str(directive) {
+        Ok(parsed) => filter = filter.add_directive(parsed),
+        Err(error) => eprintln!("piramid: ignoring malformed log directive '{directive}': {error}"),
     }
     filter
 }

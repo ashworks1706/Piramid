@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_embeddings::retry::RetryConfig;
 use piramid_embeddings::{
     Embedder, EmbeddingError, EmbeddingProvider, EmbeddingResponse, EmbeddingResult, RetryEmbedder,

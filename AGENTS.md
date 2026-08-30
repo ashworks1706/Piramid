@@ -126,9 +126,14 @@ retrieval stack.
 - Telemetry speaks open standards only. Prometheus and OTLP are protocols; a vendor's product is
   not. See ADR 0011.
 - Dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
-- Errors are `thiserror` enums with a `Result` alias per layer. No `unwrap` outside tests.
+- Errors are `thiserror` enums with a `Result` alias per layer. `unwrap_used` and `expect_used`
+  are denied; test files opt back in with a module-level `#![allow]` and a reason.
 - Logging is `tracing` with structured fields and a `target:`, never `println!`.
 - Feature flags are additive and off by default. `cargo build` has to work with no CUDA toolkit.
+- One way to do a thing. No fallback that answers when the thing asked for is unavailable, no
+  second spelling of a name, no singular form of a plural request. If it cannot do what was asked,
+  it returns an error saying so. A backend that quietly serves different numbers, a config knob
+  nothing reads, and a `try_` wrapper around an infallible call are all the same bug.
 
 ## Conventions
 

@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_compute::Metric;
 use piramid_core::config::{
     AppConfig, AutoIndexConfig, HardwareProfile, IndexConfig, IndexKind, LogLevel,

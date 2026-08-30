@@ -11,7 +11,9 @@ use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResult};
 
 /// Entries kept per embedder. One number, applied here, rather than a constant per provider and
 /// a `with_cache_size` constructor nothing called.
-const CACHE_CAPACITY: usize = 10_000;
+// The unwrap is const-evaluated: a zero literal here fails the build, not a request.
+#[allow(clippy::unwrap_used, reason = "const context; checked at compile time")]
+const CACHE_CAPACITY: NonZeroUsize = NonZeroUsize::new(10_000).unwrap();
 
 /// Providers this build can construct.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -51,13 +53,14 @@ pub fn create_embedder(config: &EmbeddingConfig) -> EmbeddingResult<Arc<dyn Embe
         ))
     })?;
 
-    let capacity = NonZeroUsize::new(CACHE_CAPACITY).expect("CACHE_CAPACITY is a nonzero literal");
     Ok(match provider {
-        EmbeddingProvider::OpenAI => {
-            Arc::new(CachedEmbedder::new(OpenAIEmbedder::new(config)?, capacity))
-        }
-        EmbeddingProvider::Ollama => {
-            Arc::new(CachedEmbedder::new(OllamaEmbedder::new(config)?, capacity))
-        }
+        EmbeddingProvider::OpenAI => Arc::new(CachedEmbedder::new(
+            OpenAIEmbedder::new(config)?,
+            CACHE_CAPACITY,
+        )),
+        EmbeddingProvider::Ollama => Arc::new(CachedEmbedder::new(
+            OllamaEmbedder::new(config)?,
+            CACHE_CAPACITY,
+        )),
     })
 }

@@ -4,6 +4,7 @@
 //! `piramid-compute` for the [`ExecutionMode`](compute::ExecutionMode) and
 //! [`Metric`](compute::Metric) types configuration carries, and on nothing else in the workspace.
 
+pub mod clock;
 pub mod config;
 pub mod error;
 pub mod metadata;

@@ -90,10 +90,7 @@ fn save_wal_meta(path: &str, last_checkpoint_seq: u64) -> Result<()> {
 }
 
 pub fn checkpoint(storage: &mut Collection) -> Result<()> {
-    let timestamp = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
+    let timestamp = piramid_core::clock::unix_secs();
 
     // All three sidecars land before the WAL is cleared below, so a crash mid-checkpoint replays
     // rather than loses.

@@ -98,9 +98,9 @@ unimplemented = "deny"
 dbg_macro = "deny"
 print_stdout = "deny"
 print_stderr = "deny"
-# 21 call sites outside tests to fix before this can be "deny"
-unwrap_used = "allow"
-expect_used = "allow"
+# Tests opt back in with #[allow] at the module level.
+unwrap_used = "deny"
+expect_used = "deny"
 
 [profile.release]
 lto = "thin"

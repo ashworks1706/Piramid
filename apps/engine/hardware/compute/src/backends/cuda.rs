@@ -3,12 +3,14 @@
 //! The compute-layer adapter; it owns no CUDA types. Devices, buffers, streams and modules live
 //! in `piramid-gpu` so `piramid-inference` can share the runtime without depending on `compute/`.
 //!
-//! Built only under `gpu-cuda`. Until kernels land, [`CudaBackend::is_available`] is `false` and
-//! [`super::resolve_available`] falls back to CPU.
+//! Built only under `gpu-cuda`. Until kernels land, [`CudaBackend::is_available`] is `false`, so
+//! [`super::for_mode`] refuses `ExecutionMode::Gpu` rather than quietly serving something else.
 //!
-//! To fill in: give [`CudaBackend`] a `OnceLock<Device>` probed in `is_available`, override the
-//! `*_batch` methods with real launches, and leave the pairwise ones on CPU — a single-pair
-//! distance will never pay for a launch.
+//! To fill in: give [`CudaBackend`] a `OnceLock<Device>` probed in `is_available` and override the
+//! `*_batch` methods with real launches. The pairwise methods stay on the CPU by design — a
+//! single-pair distance will never pay for a kernel launch — which is a dispatch decision, not a
+//! fallback: this backend is the GPU one for batches and the CPU one for pairs, always, on every
+//! machine. There is no configuration under which it silently changes its mind.
 
 use crate::backends::scalar::ScalarBackend;
 use crate::kernels::DistanceKernels;
@@ -19,8 +21,8 @@ use crate::mode::ExecutionMode;
 pub struct CudaBackend;
 
 impl CudaBackend {
-    /// CPU backend used for single-pair work, which never justifies a launch.
-    const PAIRWISE_FALLBACK: ScalarBackend = ScalarBackend;
+    /// Single-pair work runs here unconditionally; see the module docs.
+    const PAIRWISE: ScalarBackend = ScalarBackend;
 }
 
 impl DistanceKernels for CudaBackend {
@@ -38,18 +40,18 @@ impl DistanceKernels for CudaBackend {
     }
 
     fn cosine(&self, a: &[f32], b: &[f32]) -> f32 {
-        Self::PAIRWISE_FALLBACK.cosine(a, b)
+        Self::PAIRWISE.cosine(a, b)
     }
 
     fn dot(&self, a: &[f32], b: &[f32]) -> f32 {
-        Self::PAIRWISE_FALLBACK.dot(a, b)
+        Self::PAIRWISE.dot(a, b)
     }
 
     fn euclidean(&self, a: &[f32], b: &[f32]) -> f32 {
-        Self::PAIRWISE_FALLBACK.euclidean(a, b)
+        Self::PAIRWISE.euclidean(a, b)
     }
 
     fn euclidean_squared(&self, a: &[f32], b: &[f32]) -> f32 {
-        Self::PAIRWISE_FALLBACK.euclidean_squared(a, b)
+        Self::PAIRWISE.euclidean_squared(a, b)
     }
 }

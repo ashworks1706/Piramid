@@ -5,7 +5,6 @@
 
 use piramid_core::error::{Result, StorageError};
 use serde::{Deserialize, Serialize};
-use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionMetadata {
@@ -21,10 +20,7 @@ pub const SCHEMA_VERSION: u32 = 1;
 
 impl CollectionMetadata {
     pub fn new(name: String) -> Self {
-        let now = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        let now = piramid_core::clock::unix_secs();
 
         Self {
             schema_version: SCHEMA_VERSION,
@@ -43,10 +39,7 @@ impl CollectionMetadata {
     }
 
     pub fn touch(&mut self) {
-        self.updated_at = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .unwrap()
-            .as_secs();
+        self.updated_at = piramid_core::clock::unix_secs();
     }
 
     /// Record the collection's vector width the first time a vector is stored.

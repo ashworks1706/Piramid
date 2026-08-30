@@ -36,10 +36,7 @@ impl Collection {
     pub(super) fn track_operation(&mut self) -> Result<()> {
         let interval_due = if let Some(last) = self.checkpoint.last_checkpoint() {
             if let Some(interval) = self.config.wal.checkpoint_interval_secs {
-                let now = std::time::SystemTime::now()
-                    .duration_since(std::time::UNIX_EPOCH)
-                    .unwrap()
-                    .as_secs();
+                let now = piramid_core::clock::unix_secs();
                 now.saturating_sub(last) >= interval
             } else {
                 false

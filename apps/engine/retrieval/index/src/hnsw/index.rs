@@ -104,20 +104,25 @@ impl HnswIndex {
         };
         let layer = self.random_layer();
 
-        // First node becomes the entry point.
-        if self.start_node.is_none() {
-            self.start_node = Some(id);
-            self.max_level = layer as isize;
-            let node = HnswNode {
-                connections: vec![Vec::new(); layer + 1],
-                tombstone: false,
-            };
-            self.nodes.insert(id, node);
-            return Ok(());
-        }
+        // The first node becomes the entry point and has nothing to link to.
+        let entry_point = match self.start_node {
+            None => {
+                self.start_node = Some(id);
+                self.max_level = layer as isize;
+                self.nodes.insert(
+                    id,
+                    HnswNode {
+                        connections: vec![Vec::new(); layer + 1],
+                        tombstone: false,
+                    },
+                );
+                return Ok(());
+            }
+            Some(entry_point) => entry_point,
+        };
 
-        // Greedy descent from the current entry point to find where to link.
-        let mut current_entry = vec![self.start_node.unwrap()];
+        // Greedy descent from the entry point to find where to link.
+        let mut current_entry = vec![entry_point];
 
         for lc in ((layer as isize + 1)..=self.max_level).rev() {
             current_entry =
@@ -158,7 +163,14 @@ impl HnswIndex {
                         if neighbor.connections[lc].len() > m {
                             // Cloned to release the borrow on `self.nodes` before pruning.
                             let neighbor_connections = neighbor.connections[lc].clone();
-                            let neighbor_vec = vectors.get(&neighbor_id).unwrap().to_vec();
+                            let neighbor_vec = vectors
+                                .get(&neighbor_id)
+                                .ok_or_else(|| {
+                                    IndexError::SearchFailed(format!(
+                                        "HNSW neighbour {neighbor_id} is missing from vector storage"
+                                    ))
+                                })?
+                                .to_vec();
 
                             let pruned = self.select_neighbors(
                                 &neighbor_connections,
@@ -206,12 +218,11 @@ impl HnswIndex {
         filter: Option<&piramid_core::metadata::Filter>,
         metadatas: &dyn MetadataReader,
     ) -> Result<Vec<Uuid>> {
-        if self.start_node.is_none() {
+        let Some(ep) = self.start_node else {
             return Ok(Vec::new());
-        }
+        };
         let kernels = for_mode(self.config.mode)?;
 
-        let ep = self.start_node.unwrap();
         if vectors.get(&ep).is_none() {
             return Err(IndexError::SearchFailed(format!(
                 "HNSW entry point {ep} is missing from vector storage"

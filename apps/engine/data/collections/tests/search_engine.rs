@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use std::fs;
 use {
     piramid_collections::Collection, piramid_compute::Metric, piramid_core::metadata::metadata,

@@ -48,8 +48,7 @@ impl Default for AppConfig {
 
 impl AppConfig {
     pub fn validate(&self) -> Result<(), String> {
-        // Ask compute, so the feature flag stays owned by the crate that defines it. A missing
-        // device at runtime falls back to CPU with a warning rather than failing.
+        // Ask compute, so the feature flag stays owned by the crate that defines it.
         if matches!(self.execution, ExecutionMode::Gpu)
             && piramid_compute::backends::for_mode(ExecutionMode::Gpu).is_err()
         {
@@ -338,13 +337,6 @@ impl AppConfig {
                 self.memory.max_memory_per_collection = Some(8 * 1024 * 1024 * 1024);
             }
         }
-    }
-
-    pub fn from_env() -> Self {
-        let mut cfg = AppConfig::default();
-        cfg.apply_env_overrides()
-            .expect("invalid application configuration environment override");
-        cfg
     }
 }
 

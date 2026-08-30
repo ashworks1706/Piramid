@@ -1,4 +1,4 @@
-use std::time::{Instant, SystemTime, UNIX_EPOCH};
+use std::time::Instant;
 
 use crate::runtime::{RebuildJobStatus, RebuildState, SharedState};
 use crate::services::types::*;
@@ -156,10 +156,7 @@ pub fn rebuild_index(state: &SharedState, collection: String) -> Result<RebuildI
     ensure_available(state)?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
-    let started_at = SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .unwrap()
-        .as_secs();
+    let started_at = piramid_core::clock::unix_secs();
     state.rebuild_jobs.insert(
         collection.clone(),
         RebuildJobStatus {
@@ -185,10 +182,7 @@ pub fn rebuild_index(state: &SharedState, collection: String) -> Result<RebuildI
                 error=%e,
                 "index_rebuild_failed"
             );
-            let finished = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            let finished = piramid_core::clock::unix_secs();
             jobs.insert(
                 collection_name.clone(),
                 RebuildJobStatus {
@@ -206,10 +200,7 @@ pub fn rebuild_index(state: &SharedState, collection: String) -> Result<RebuildI
                 elapsed_ms = start.elapsed().as_millis(),
                 "index_rebuild_complete"
             );
-            let finished = SystemTime::now()
-                .duration_since(UNIX_EPOCH)
-                .unwrap()
-                .as_secs();
+            let finished = piramid_core::clock::unix_secs();
             jobs.insert(
                 collection_name.clone(),
                 RebuildJobStatus {

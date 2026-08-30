@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use std::f64::consts::PI;
 use {piramid_core::metadata::metadata, piramid_core::metadata::MetadataValue};
 

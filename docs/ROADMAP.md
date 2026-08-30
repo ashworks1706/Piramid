@@ -24,7 +24,6 @@
 
 - [ ] wire `piramid-storage::quantization` into the search path
 - [ ] binary pre-filter into full-precision rerank, with a recall measurement
-- [ ] fix the 21 `unwrap`/`expect` sites outside tests, then `deny` `unwrap_used`/`expect_used`
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
 - [ ] decide what happens to `cluster`
 - [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects
@@ -56,13 +55,12 @@
 - [ ] migrate bincode 1.x → 2.x: a format migration for records, sidecars and the WAL, with a read
       path for existing data (RUSTSEC-2025-0141, ignored in `deny.toml` until then)
 - [ ] cut the website down to what the product actually does today
-- [ ] make the npm and python SDKs real clients, or unpublish them
+- [ ] make the npm and python SDKs real clients, or unpublish them. They also predate the
+      one-shape request bodies, so whatever ships has to speak the current API
 - [ ] decide on authentication and rate limiting. `ErrorKind::Unauthenticated` maps to 401 and
       nothing emits it; CORS allows any origin, method and header; `/config/reload` is open
 - [ ] test `apps/cli`. It has none, and `support-bundle` is the path that must never emit a secret
 - [ ] one HTTP-level test that builds the router and hits it. 25 routes, no test constructs one
-- [ ] build a dashboard or drop the fallback. `ServeDir::new("dashboard")` serves a directory that
-      does not exist and nothing produces
 - [ ] untrack `apps/sdk/python/dist/` and `piramid.egg-info/` — build artifacts committed to git
 
 ## Out of scope

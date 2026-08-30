@@ -1,3 +1,5 @@
+#![allow(clippy::unwrap_used, clippy::expect_used, reason = "benchmark setup")]
+
 use criterion::{criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
 use uuid::Uuid;

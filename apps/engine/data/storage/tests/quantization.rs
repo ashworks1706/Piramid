@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_core::config::QuantizationConfig;
 use piramid_storage::quantization::{ProductQuantizedVector, QuantizationKind, QuantizedVector};
 

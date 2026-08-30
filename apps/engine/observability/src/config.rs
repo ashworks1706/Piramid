@@ -31,9 +31,10 @@ pub struct OtlpConfig {
 impl ObservabilityConfig {
     /// Read configuration from the environment.
     ///
-    /// Never fails: a malformed sample rate falls back to the default rather than preventing the
-    /// server from starting. Telemetry misconfiguration should not take down the database.
-    pub fn from_env() -> Self {
+    /// A value the parser rejects is an error, the same as everywhere else in config. Treating a
+    /// typo in `PIRAMID_LOG_SPANS` as `false` would leave an operator staring at a server that
+    /// silently ignored what they asked for.
+    pub fn from_env() -> Result<Self, String> {
         let otlp = env::var("PIRAMID_OTLP_ENDPOINT")
             .ok()
             .filter(|value| !value.trim().is_empty())
@@ -43,11 +44,20 @@ impl ObservabilityConfig {
                     .unwrap_or_else(|_| "piramid".to_string()),
             });
 
-        let span_events = env::var("PIRAMID_LOG_SPANS")
-            .map(|v| matches!(v.to_ascii_lowercase().as_str(), "1" | "true" | "yes" | "on"))
-            .unwrap_or(false);
+        let span_events = match env::var("PIRAMID_LOG_SPANS") {
+            Ok(value) => match value.as_str() {
+                "true" => true,
+                "false" => false,
+                other => {
+                    return Err(format!(
+                        "PIRAMID_LOG_SPANS: expected 'true' or 'false', got '{other}'"
+                    ))
+                }
+            },
+            Err(_) => false,
+        };
 
-        Self { otlp, span_events }
+        Ok(Self { otlp, span_events })
     }
 
     /// Whether any exporter is configured.

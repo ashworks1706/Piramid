@@ -1,3 +1,9 @@
+#![allow(
+    clippy::unwrap_used,
+    clippy::expect_used,
+    reason = "assertions in tests"
+)]
+
 use piramid_compute::backends::for_mode;
 use piramid_compute::{
     cosine_similarity, dot_product, euclidean_distance, euclidean_distance_squared,
