@@ -1,14 +1,22 @@
 import type { Metadata } from "next";
+import { JetBrains_Mono } from "next/font/google";
 import "./globals.css";
 import "katex/dist/katex.min.css";
+
+// Self-hosted by next/font, so there is no render-blocking request to Google.
+const mono = JetBrains_Mono({
+  subsets: ["latin"],
+  display: "swap",
+  variable: "--font-mono",
+});
 
 export const metadata: Metadata = {
   title: {
     template: "%s | Piramid",
-    default: "Piramid – Vector Database for Agentic Applications",
+    default: "Piramid – Inference engine for RAG",
   },
   description:
-    "Piramid is a Rust vector database built for agentic workloads: mmap + WAL, HNSW/IVF/Flat indexes, filter-aware search, embeddings (OpenAI/local), for low-latency agentic applications.",
+    "Piramid is a single-binary vector database in Rust: mmap and WAL durability, HNSW, IVF and flat indexes, filter-aware search, and embedding providers. Built toward running retrieval and inference in one process.",
   keywords: [
     "vector database",
     "rust",
@@ -39,9 +47,9 @@ export const metadata: Metadata = {
     type: "website",
     locale: "en_US",
     url: "https://piramiddb.com",
-    title: "Piramid - Vector Database for Agentic Applications",
+    title: "Piramid – Inference engine for RAG",
     description:
-      "Open-source hybrid vector database combining graph-based and traditional vector search capabilities.",
+      "A single-binary vector database in Rust, built toward running retrieval and inference in one process.",
     siteName: "Piramid",
     images: [
       {
@@ -54,9 +62,9 @@ export const metadata: Metadata = {
   },
   twitter: {
     card: "summary_large_image",
-    title: "Piramid - Vector Database for Agentic Applications",
+    title: "Piramid – Inference engine for RAG",
     description:
-      "Open-source hybrid vector database combining graph-based and traditional vector search capabilities.",
+      "A single-binary vector database in Rust, built toward running retrieval and inference in one process.",
     images: ["../public/logo_dark.png"],
     creator: "@piramiddb",
   },
@@ -72,7 +80,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className="dark">
+    <html lang="en" className={`dark ${mono.variable}`}>
       <body className="antialiased">{children}</body>
     </html>
   );

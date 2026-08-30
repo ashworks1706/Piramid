@@ -143,10 +143,10 @@ export function BlogImage({ src, alt }: Props) {
           </button>
 
           {/* Zoom hint */}
-          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-slate-400 backdrop-blur select-none pointer-events-none">
+          <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 backdrop-blur select-none pointer-events-none">
             <span>scroll or click to zoom</span>
             {isZoomed && (
-              <span className="text-indigo-300">{Math.round(zoom * 100)}%</span>
+              <span className="text-red-300">{Math.round(zoom * 100)}%</span>
             )}
           </div>
 
@@ -195,7 +195,7 @@ export function BlogImage({ src, alt }: Props) {
           {/* Caption */}
           {alt && (
             <div
-              className="absolute bottom-5 left-1/2 -translate-x-1/2 max-w-lg text-center text-sm text-slate-300 px-4 py-2 rounded-xl border border-white/10 bg-black/50 backdrop-blur pointer-events-none"
+              className="absolute bottom-5 left-1/2 -translate-x-1/2 max-w-lg text-center text-sm text-zinc-300 px-4 py-2 rounded-xl border border-white/10 bg-black/50 backdrop-blur pointer-events-none"
               onClick={(e) => e.stopPropagation()}
             >
               {alt}
@@ -218,10 +218,10 @@ export function BlogImage({ src, alt }: Props) {
             setZoomIdx(0);
             setOffset({ x: 0, y: 0 });
           }}
-          className="inline-block max-w-full h-auto rounded-xl border border-white/10 shadow-lg shadow-slate-900/40 cursor-zoom-in transition-all duration-200 group-hover:brightness-110 group-hover:border-indigo-400/40 group-hover:shadow-indigo-900/30"
+          className="inline-block max-w-full h-auto rounded-xl border border-white/10 shadow-lg shadow-zinc-900/40 cursor-zoom-in transition-all duration-200 group-hover:brightness-110 group-hover:border-red-400/40 group-hover:shadow-red-950/30"
         />
         {alt && (
-          <span className="mt-2 block text-xs text-slate-500 italic">
+          <span className="mt-2 block text-xs text-zinc-500 italic">
             {alt}
           </span>
         )}

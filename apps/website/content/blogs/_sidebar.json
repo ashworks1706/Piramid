@@ -4,7 +4,9 @@
       "label": "History",
       "items": ["history", "history/student", "history/piramid"]
     },
-
-   { "label": "Contributions", "items": ["contributions", "contributions/roadmap"] }
+    {
+      "label": "Contributions",
+      "items": ["contributions", "contributions/roadmap"]
+    }
   ]
 }

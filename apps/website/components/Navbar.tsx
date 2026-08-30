@@ -17,7 +17,7 @@ export function Navbar({ searchEntries }: Props) {
             piramid
           </span>
         </Link>
-        <div className="flex items-center gap-4 text-sm text-slate-400">
+        <div className="flex items-center gap-4 text-sm text-zinc-400">
           <Link href="/blogs" className="hover:text-white transition-colors">
             blog
           </Link>

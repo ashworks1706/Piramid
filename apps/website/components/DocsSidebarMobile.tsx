@@ -16,7 +16,7 @@ export function DocsSidebarMobile({ sections }: Props) {
       <button
         type="button"
         onClick={() => setOpen((v) => !v)}
-        className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-slate-900/30 transition hover:border-indigo-400/60"
+        className="flex w-full items-center justify-between rounded-xl border border-white/10 bg-white/5 px-4 py-3 text-sm font-semibold text-white shadow-sm shadow-zinc-900/30 transition hover:border-red-400/60"
       >
         <span>Blog navigation</span>
         <span aria-hidden="true" className="text-lg">

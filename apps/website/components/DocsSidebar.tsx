@@ -23,7 +23,7 @@ export function DocsSidebar({
 
   return (
     <div
-      className={`${sticky ? "sticky top-24" : ""} space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-slate-900/30 backdrop-blur ${className}`}
+      className={`${sticky ? "sticky top-24" : ""} space-y-4 rounded-2xl border border-white/10 bg-white/5 p-4 shadow-lg shadow-zinc-900/30 backdrop-blur ${className}`}
     >
       <div className="space-y-6">
         {sections.map((section) => (
@@ -31,12 +31,12 @@ export function DocsSidebar({
             {section.items.length > 0 ? (
               <Link
                 href={hrefForSlug(section.items[0].slug)}
-                className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400 hover:text-white"
+                className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400 hover:text-white"
               >
                 {section.label}
               </Link>
             ) : (
-              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-slate-400">
+              <div className="text-xs font-semibold uppercase tracking-[0.18em] text-zinc-400">
                 {section.label}
               </div>
             )}
@@ -52,8 +52,8 @@ export function DocsSidebar({
                     href={href}
                     className={`block rounded-lg px-3 py-2 text-sm transition ${
                       isActive
-                        ? "bg-indigo-500/20 text-white font-semibold ring-1 ring-inset ring-indigo-400/30"
-                        : "text-slate-200 hover:bg-indigo-500/10 hover:text-white"
+                        ? "bg-red-500/20 text-white font-semibold ring-1 ring-inset ring-red-400/30"
+                        : "text-zinc-200 hover:bg-red-500/10 hover:text-white"
                     }`}
                   >
                     {label}
@@ -64,7 +64,7 @@ export function DocsSidebar({
           </div>
         ))}
         {sections.length === 0 ? (
-          <div className="text-xs text-slate-400">No posts.</div>
+          <div className="text-xs text-zinc-400">No posts.</div>
         ) : null}
       </div>
     </div>

@@ -17,7 +17,7 @@ export function DocsPager({ prev, next, wide = false }: Props) {
     : "mb-4 flex flex-wrap gap-3 text-sm";
 
   const linkBase =
-    "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-slate-200 shadow-sm shadow-slate-900/20 transition w-full";
+    "inline-flex items-center gap-2 rounded-full border px-4 py-2 text-zinc-200 shadow-sm shadow-zinc-900/20 transition w-full";
 
   return (
     <div className={containerClass}>
@@ -28,7 +28,7 @@ export function DocsPager({ prev, next, wide = false }: Props) {
               ? "/blogs"
               : `/blogs/${prev.slug.join("/")}`
           }
-          className={`${linkBase} border-white/10 bg-white/5 hover:border-indigo-400/60 hover:text-white`}
+          className={`${linkBase} border-white/10 bg-white/5 hover:border-red-400/60 hover:text-white`}
         >
           <span aria-hidden="true">←</span>
           <span className="truncate max-w-[180px] sm:max-w-[260px]">
@@ -43,7 +43,7 @@ export function DocsPager({ prev, next, wide = false }: Props) {
               ? "/blogs"
               : `/blogs/${next.slug.join("/")}`
           }
-          className={`${linkBase} border-indigo-400/50 bg-indigo-500/10 text-slate-100 shadow-indigo-900/30 hover:border-indigo-300/70`}
+          className={`${linkBase} border-red-400/50 bg-red-500/10 text-zinc-100 shadow-red-950/30 hover:border-red-300/70`}
         >
           <span className="truncate max-w-[180px] sm:max-w-[260px]">
             {next.title}

@@ -91,6 +91,12 @@ function slugFromPath(filePath: string): string[] {
 let cachedBlogs: BlogMeta[] | null = null;
 let cachedSearch: BlogSearchEntry[] | null = null;
 
+/**
+ * Whether a post is ready to show in navigation.
+ *
+ * The architecture series is written but held back; its pages still render if you know the URL.
+ * Delete the check to publish them.
+ */
 function isFrontendVisibleBlog(slug: string[]): boolean {
   return slug[0] !== "architecture";
 }
@@ -166,7 +172,9 @@ export function buildSidebar(): SidebarSection[] {
       const match = lookup.get(itemSlug);
       if (match && isFrontendVisibleBlog(match.slug)) items.push(match);
     }
-    sections.push({ label: section.label, items });
+    // Skip sections whose items are all hidden, so a filtered-out group does not render as a
+    // heading with nothing beneath it.
+    if (items.length > 0) sections.push({ label: section.label, items });
   }
   return sections;
 }

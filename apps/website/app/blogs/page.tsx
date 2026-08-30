@@ -1,42 +1,23 @@
 import fs from "fs";
+import Link from "next/link";
 import { compileMDX } from "next-mdx-remote/rsc";
-import rehypeAutolinkHeadings from "rehype-autolink-headings";
-import rehypeSlug from "rehype-slug";
 import remarkGfm from "remark-gfm";
-import { mdxComponents } from "../../mdx-components";
-import {
-  findBlog,
-  extractHeadings,
-  blogSeo,
-  blogNeighbors,
-} from "../../lib/blogs";
-import { remarkRewriteImages } from "../../lib/remark-rewrite-images";
-import { DocsToc } from "../../components/DocsToc";
-import { DocsPager } from "../../components/DocsPager";
 import type { Metadata } from "next";
+import { mdxComponents } from "../../mdx-components";
+import { blogSeo, buildSidebar, findBlog } from "../../lib/blogs";
+import { remarkRewriteImages } from "../../lib/remark-rewrite-images";
 
 export const runtime = "nodejs";
 
 export async function generateMetadata(): Promise<Metadata> {
   const seo = blogSeo(["index"]);
   const pageTitle = seo?.title ?? "Blogs";
-  const fullTitle = `${pageTitle} | Piramid`;
-  const description =
-    seo?.description ?? "Piramid updates, notes, and deep dives.";
-  const url = "/blogs";
+  const description = seo?.description ?? "Piramid updates, notes, and deep dives.";
   return {
     title: pageTitle,
     description,
-    openGraph: {
-      title: fullTitle,
-      description,
-      url,
-    },
-    twitter: {
-      title: fullTitle,
-      description,
-      card: "summary",
-    },
+    openGraph: { title: `${pageTitle} | Piramid`, description, url: "/blogs" },
+    twitter: { title: `${pageTitle} | Piramid`, description, card: "summary" },
   };
 }
 
@@ -44,33 +25,47 @@ export default async function BlogsIndex() {
   const blog = findBlog(["index"]);
   if (!blog) return null;
 
+  // The listing is generated from the sidebar config rather than hand-written in index.md, which
+  // is how the whole Architecture section came to be missing from this page while its posts were
+  // live.
+  const sections = buildSidebar();
+
   const source = await fs.promises.readFile(blog.filePath, "utf8");
-  const headings = extractHeadings(blog.filePath);
-  const nav = blogNeighbors(blog.slug);
-  const docTitle = blog.title || "Overview";
-  const { content, frontmatter } = await compileMDX<{ title?: string }>({
+  const { content } = await compileMDX({
     source,
     components: mdxComponents,
     options: {
       parseFrontmatter: true,
-      mdxOptions: {
-        remarkPlugins: [remarkGfm, remarkRewriteImages()],
-        rehypePlugins: [rehypeSlug, rehypeAutolinkHeadings],
-      },
+      mdxOptions: { remarkPlugins: [remarkGfm, remarkRewriteImages()] },
     },
   });
 
   return (
-    <div className="space-y-6">
-      <DocsPager prev={nav.prev} next={nav.next} wide />
-      <div className="grid gap-8 lg:grid-cols-[minmax(0,1fr)_240px]">
-        <article className="space-y-4 animate-fade-in rounded-3xl border border-white/10 bg-gradient-to-br from-white/5 to-indigo-500/5 p-6 shadow-2xl shadow-slate-900/30 backdrop-blur">
-          <h1>{frontmatter?.title ?? docTitle}</h1>
-          {content}
-        </article>
-        <DocsToc headings={headings} />
-      </div>
-      <DocsPager prev={nav.prev} next={nav.next} wide />
+    <div className="blog-index animate-fade-in">
+      <div className="blog-index-intro">{content}</div>
+
+      <nav className="blog-index-sections">
+        {sections.map((section) => (
+          <section key={section.label} className="blog-index-section">
+            <h2 className="blog-index-label">{section.label}</h2>
+            <ul className="blog-index-list">
+              {section.items.map((item) => (
+                <li key={item.slug.join("/")}>
+                  <Link href={`/blogs/${item.slug.join("/")}`} className="blog-index-item">
+                    <span className="blog-index-arrow" aria-hidden="true">
+                      &rsaquo;
+                    </span>
+                    <span className="blog-index-title">{item.title}</span>
+                    <span className="blog-index-path">
+                      /{item.slug.join("/")}
+                    </span>
+                  </Link>
+                </li>
+              ))}
+            </ul>
+          </section>
+        ))}
+      </nav>
     </div>
   );
 }

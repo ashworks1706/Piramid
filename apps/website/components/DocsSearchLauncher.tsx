@@ -33,7 +33,7 @@ function Highlight({ text, query }: { text: string; query: string }) {
   return (
     <>
       {text.slice(0, idx)}
-      <mark className="bg-indigo-400/25 text-indigo-200 rounded px-0.5">
+      <mark className="bg-red-400/25 text-red-300 rounded px-0.5">
         {text.slice(idx, idx + query.length)}
       </mark>
       {text.slice(idx + query.length)}
@@ -133,10 +133,10 @@ export function DocsSearchLauncher({ entries, className }: Props) {
           setOpen(true);
           requestAnimationFrame(() => inputRef.current?.focus());
         }}
-        className={`rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-slate-300 hover:border-indigo-300/40 hover:text-white transition-colors ${className ?? ""}`}
+        className={`rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-sm text-zinc-300 hover:border-red-300/40 hover:text-white transition-colors ${className ?? ""}`}
       >
         Search
-        <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-slate-400">
+        <span className="ml-2 rounded bg-white/10 px-1.5 py-0.5 text-[11px] text-zinc-400">
           ⌘K
         </span>
       </button>
@@ -153,7 +153,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
             {/* Input */}
             <div className="flex items-center gap-2 border-b border-white/10 px-4 py-3">
               <svg
-                className="w-4 h-4 text-slate-500 flex-shrink-0"
+                className="w-4 h-4 text-zinc-500 flex-shrink-0"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
@@ -175,13 +175,13 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                 }}
                 onKeyDown={onKeyDown}
                 placeholder="Search sections and content…"
-                className="w-full bg-transparent text-sm text-slate-100 placeholder:text-slate-500 focus:outline-none"
+                className="w-full bg-transparent text-sm text-zinc-100 placeholder:text-zinc-500 focus:outline-none"
                 autoComplete="off"
                 spellCheck={false}
               />
               <button
                 onClick={close}
-                className="rounded-md px-2 py-0.5 text-xs text-slate-500 hover:text-white transition-colors"
+                className="rounded-md px-2 py-0.5 text-xs text-zinc-500 hover:text-white transition-colors"
               >
                 Esc
               </button>
@@ -190,12 +190,12 @@ export function DocsSearchLauncher({ entries, className }: Props) {
             {/* Results */}
             <div ref={listRef} className="max-h-[60vh] overflow-y-auto">
               {!q ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">
+                <div className="px-4 py-10 text-center text-sm text-zinc-500">
                   Type to search sections and content…
                 </div>
               ) : results.length === 0 ? (
-                <div className="px-4 py-10 text-center text-sm text-slate-500">
-                  No results for <span className="text-slate-300">&quot;{q}&quot;</span>
+                <div className="px-4 py-10 text-center text-sm text-zinc-500">
+                  No results for <span className="text-zinc-300">&quot;{q}&quot;</span>
                 </div>
               ) : (
                 results.map((res, i) => {
@@ -214,16 +214,16 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                       onClick={close}
                       onMouseEnter={() => setCursor(i)}
                       className={`block px-4 py-3 border-b border-white/5 transition-colors ${
-                        isActive ? "bg-indigo-500/15" : "hover:bg-white/[0.04]"
+                        isActive ? "bg-red-500/15" : "hover:bg-white/[0.04]"
                       }`}
                     >
                       {/* Breadcrumb */}
-                      <div className="flex items-center gap-1 text-[11px] text-slate-500 mb-1">
+                      <div className="flex items-center gap-1 text-[11px] text-zinc-500 mb-1">
                         <span>{res.pageTitle}</span>
                         {res.section && (
                           <>
                             <span>/</span>
-                            <span className="text-slate-400">
+                            <span className="text-zinc-400">
                               {res.section}
                             </span>
                           </>
@@ -232,7 +232,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
 
                       {/* Section heading or page title */}
                       {res.section ? (
-                        <div className="text-sm font-medium text-slate-100 leading-snug">
+                        <div className="text-sm font-medium text-zinc-100 leading-snug">
                           {res.section
                             .toLowerCase()
                             .includes(q.toLowerCase()) ? (
@@ -242,16 +242,16 @@ export function DocsSearchLauncher({ entries, className }: Props) {
                           )}
                         </div>
                       ) : (
-                        <div className="text-sm font-semibold text-indigo-300">
+                        <div className="text-sm font-semibold text-red-300">
                           {res.pageTitle}
                         </div>
                       )}
 
                       {/* Text snippet with highlight */}
                       {snippet && (
-                        <p className="mt-1 text-xs text-slate-500 leading-relaxed">
+                        <p className="mt-1 text-xs text-zinc-500 leading-relaxed">
                           {snippet.before}
-                          <mark className="bg-indigo-400/25 text-indigo-200 rounded px-0.5 not-italic">
+                          <mark className="bg-red-400/25 text-red-300 rounded px-0.5 not-italic">
                             {snippet.match}
                           </mark>
                           {snippet.after}
@@ -264,7 +264,7 @@ export function DocsSearchLauncher({ entries, className }: Props) {
             </div>
 
             {results.length > 0 && (
-              <div className="border-t border-white/5 px-4 py-2 flex gap-4 text-[11px] text-slate-500">
+              <div className="border-t border-white/5 px-4 py-2 flex gap-4 text-[11px] text-zinc-500">
                 <span>
                   <kbd className="font-sans">↑↓</kbd> navigate
                 </span>
