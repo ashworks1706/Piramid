@@ -2,10 +2,16 @@
 
 ## Now (v0.3.0) — make the batch path reachable
 
-- [ ] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
-- [ ] split `ExecutionMode`'s two axes once that bench exists. `ParallelStrategy` runs a scalar
-      inner loop, so "SIMD across all cores" — the fastest CPU configuration — cannot currently be
-      asked for (ADR 0013)
+- [x] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
+- [ ] split `ExecutionMode`'s two axes. The bench settles it: SIMD is 4.5–5.8x scalar pairwise
+      across 384–3072 dims, and `Parallel` is *slower than scalar at every dimension and every
+      candidate count measured* — 0.29x at 384, 0.08x at 1536, 0.43–0.46x throughout the batch
+      group. It chunks within a single vector at `max(len/ncpus, 1024)`, so a realistic embedding
+      is one or two chunks of trivial work behind a rayon fan-out. "SIMD across all cores" —
+      parallel over rows, vectorized within a row — is the configuration that cannot be asked for
+      and the only one worth having (ADR 0013)
+- [ ] decide whether `Parallel` survives that split at all. As an execution mode over a single
+      vector, the bench found no regime where it wins
 - [ ] route the flat index scan through `cosine_batch` instead of a per-vector loop
 - [ ] route the rerank loop in `search::engine` through the batch API
 
@@ -15,7 +21,10 @@
       `Uuid → u32` ordinal map, implementing `VectorReader::as_slab`. Removal is the open design
       question — a slab cannot cheaply delete a row, so it needs a tombstone or swap-remove story
       settled alongside HNSW's. Write it with tests this time
-- [ ] re-run the compute bench: scattered vs contiguous candidates, same kernel
+- [ ] re-run the compute bench: scattered vs contiguous candidates, same kernel. The batch group
+      already shows the ceiling to beat — SIMD's advantage falls from 5.1x at 128 candidates to
+      2.7x at 8192, where the slab is 25 MB and the kernel is memory-bound rather than
+      compute-bound
 - [ ] use `u32` ordinals instead of `Uuid` in HNSW adjacency lists (sidecar format bump + load path)
 
 ## Now (v0.3.0) — GPU

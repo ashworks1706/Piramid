@@ -1261,6 +1261,7 @@ dependencies = [
 name = "piramid-compute"
 version = "0.2.0"
 dependencies = [
+ "criterion",
  "num_cpus",
  "rayon",
  "serde",

@@ -18,10 +18,15 @@ num_cpus.workspace = true
 tracing.workspace = true
 
 [dev-dependencies]
+criterion.workspace = true
 
 [features]
 default = []
 gpu-cuda = []
+
+[[bench]]
+name = "strategies_performance"
+harness = false
 
 [lints]
 workspace = true
