@@ -98,8 +98,20 @@ just audit        # cargo-deny: advisories, bans, licences, sources
 ## Website
 
 ```bash
-cd apps/website && npm ci && npm run dev
+just web-setup      # npm ci, once
+just web            # dev server with hot reload on :3000
+just web-build      # production build
+just web-preview    # build and serve what actually deploys
+just web-shots      # headless screenshots into target/screenshots
+just check-website  # eslint
+just web-frames     # regenerate the landing animation from the CLI's frames
 ```
+
+`just web` runs a dev bundle, which hides prerender and font-loading problems. Check `web-preview`
+before pushing.
+
+`web-shots` needs `google-chrome`. Reading the markup is not enough to review a design; it has
+already caught a stylesheet that never loaded and an animation frozen on its first frame.
 
 ## Troubleshooting
 

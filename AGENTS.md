@@ -20,6 +20,9 @@ just cli support-bundle diagnostics to attach to a bug report
 just doc                rustdoc, warnings are errors
 just bench              criterion
 just audit              cargo-deny: advisories, bans, licences, sources
+just web                dev server for the site on :3000
+just web-preview        build and serve what actually deploys
+just web-shots          headless screenshots into target/screenshots
 just up | down | logs   docker compose
 ```
 

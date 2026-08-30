@@ -44,6 +44,7 @@ check-rust:
     cargo test --workspace
     ./scripts/check-deps.sh
 
+# eslint over the website
 check-website:
     cd apps/website && npm run lint
 
@@ -93,6 +94,59 @@ bench *ARGS:
 # Advisories, licences, bans, sources
 audit:
     cargo deny check advisories bans licenses sources
+
+# ---------- website ----------
+
+# Dev server with hot reload, http://localhost:3000
+web:
+    cd apps/website && npm run dev
+
+# Production build. Catches type errors and prerender failures that `just web` does not.
+web-build:
+    cd apps/website && npm run build
+
+# `just web` serves an uncompiled dev bundle, which hides prerender and font-loading problems.
+# This runs what actually deploys, so it is the one to check before pushing.
+
+# Build and serve the production bundle
+web-preview: web-build
+    cd apps/website && npm run start
+
+# Install website dependencies
+web-setup:
+    cd apps/website && npm ci
+
+# Regenerate the landing-page animation from the CLI's frames
+web-frames:
+    ./scripts/sync-ascii-frames.py
+
+# Reviewing the site by reading its markup does not work. This caught a stylesheet that never
+# loaded and an animation that silently froze on its first frame. Needs google-chrome installed.
+
+# Screenshot the production build into target/screenshots
+web-shots:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v google-chrome >/dev/null || { echo "google-chrome not found"; exit 1; }
+    out="target/screenshots"
+    mkdir -p "$out"
+    cd apps/website && npm run build >/dev/null
+    npm run start >/dev/null 2>&1 &
+    server=$!
+    trap 'kill $server 2>/dev/null || true' EXIT
+    for _ in $(seq 30); do
+      curl -sf -o /dev/null http://localhost:3000/ && break
+      sleep 0.5
+    done
+    cd - >/dev/null
+    for page in "landing:/" "blogs:/blogs" "post:/blogs/history/piramid"; do
+      name="${page%%:*}"
+      path="${page#*:}"
+      google-chrome --headless=new --disable-gpu --hide-scrollbars \
+        --window-size=1440,900 --virtual-time-budget=4000 \
+        --screenshot="$out/$name.png" "http://localhost:3000$path" 2>/dev/null
+      echo "  $out/$name.png"
+    done
 
 # ---------- containers ----------
 
