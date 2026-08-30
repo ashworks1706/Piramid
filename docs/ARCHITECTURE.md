@@ -196,9 +196,9 @@ means both share one `Device`, which is what puts vectors and model weights in t
 space.
 
 ```
-compute/backends/cuda.rs ──┐
-                           ├──→ gpu  (Device, DeviceBuffer, Stream, KernelModule)
-inference/backends/*.rs  ──┘
+compute/strategies/cuda.rs ─┐
+                            ├──→ gpu  (Device, DeviceBuffer, Stream, KernelModule)
+inference/backends/*.rs   ──┘
 ```
 
 ## The three seams
@@ -207,7 +207,9 @@ Everything else exists to make these cheap to implement and swap.
 
 ### compute::DistanceKernels
 
-One backend per file in `compute/backends/`, one arm in the registry. Nothing else changes.
+One strategy per file in `compute/strategies/`, one arm in the registry. Nothing else changes.
+"Backends" means the vendor layer — `gpu/backends/`, `inference/backends/` — and nothing else; see
+[ADR 0013](decisions/0013-strategies-are-not-backends.md).
 
 ```rust
 fn cosine_batch(&self, query: &[f32], candidates: &[f32], dim: usize, out: &mut [f32])

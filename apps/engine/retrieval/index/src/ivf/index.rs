@@ -6,7 +6,7 @@ use uuid::Uuid;
 
 use super::config::IvfConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
-use piramid_compute::{backends::for_mode, DistanceKernels};
+use piramid_compute::{strategies::for_mode, DistanceKernels};
 use piramid_core::error::{IndexError, Result};
 
 #[derive(Clone, Serialize, Deserialize)]

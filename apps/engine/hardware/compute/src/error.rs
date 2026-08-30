@@ -2,13 +2,13 @@
 
 use std::fmt::{Display, Formatter};
 
-/// A kernel failed to run: dimension mismatch, unavailable backend, or a device fault.
+/// A kernel failed to run: dimension mismatch, unavailable strategy, or a device fault.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ComputeError {
-    /// The requested backend is not compiled in, or the hardware is absent.
-    BackendUnavailable {
-        /// Backend that was requested.
-        backend: &'static str,
+    /// The requested strategy is not compiled in, or the hardware it needs is absent.
+    StrategyUnavailable {
+        /// Strategy that was requested.
+        strategy: &'static str,
         /// Why it could not be used.
         reason: String,
     },
@@ -22,9 +22,9 @@ pub enum ComputeError {
     /// A quantized vector's encoding is internally inconsistent and cannot be decoded, or a
     /// quantization level has no encoder.
     InvalidEncoding(String),
-    /// The backend ran but failed.
+    /// The underlying vendor backend ran but failed.
     Backend {
-        /// Backend that failed.
+        /// Vendor backend that failed.
         backend: &'static str,
         /// Underlying message.
         message: String,
@@ -34,8 +34,8 @@ pub enum ComputeError {
 impl Display for ComputeError {
     fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
         match self {
-            Self::BackendUnavailable { backend, reason } => {
-                write!(f, "compute backend '{backend}' unavailable: {reason}")
+            Self::StrategyUnavailable { strategy, reason } => {
+                write!(f, "compute strategy '{strategy}' unavailable: {reason}")
             }
             Self::ShapeMismatch { expected, got } => {
                 write!(f, "compute shape mismatch: expected {expected}, got {got}")

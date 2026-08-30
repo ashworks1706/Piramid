@@ -1,4 +1,4 @@
-//! Backend registry: one file per backend, one arm per backend in [`for_mode`].
+//! Strategy registry: one file per strategy, one arm in [`for_mode`].
 
 mod binary;
 mod parallel;
@@ -28,19 +28,20 @@ static BINARY: BinaryBackend = BinaryBackend;
 #[cfg(feature = "gpu-cuda")]
 static CUDA: CudaBackend = CudaBackend;
 
-/// Every backend compiled into this build, available or not, for admin/introspection surfaces.
+/// Every strategy compiled into this build, available or not, for admin/introspection surfaces.
 pub fn all() -> Vec<&'static dyn DistanceKernels> {
     // `mut` is only used by the feature-gated push below.
     #[allow(unused_mut)]
-    let mut backends: Vec<&'static dyn DistanceKernels> = vec![&SCALAR, &SIMD, &PARALLEL, &BINARY];
+    let mut strategies: Vec<&'static dyn DistanceKernels> =
+        vec![&SCALAR, &SIMD, &PARALLEL, &BINARY];
     #[cfg(feature = "gpu-cuda")]
-    backends.push(&CUDA);
-    backends
+    strategies.push(&CUDA);
+    strategies
 }
 
-/// The backend serving `mode` (resolving `Auto` first); errors rather than silently falling back.
+/// The strategy serving `mode` (resolving `Auto` first); errors rather than silently falling back.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
-    let backend: &'static dyn DistanceKernels = match mode.resolve() {
+    let strategy: &'static dyn DistanceKernels = match mode.resolve() {
         ExecutionMode::Scalar | ExecutionMode::Auto => &SCALAR,
         ExecutionMode::Simd => &SIMD,
         ExecutionMode::Parallel => &PARALLEL,
@@ -52,19 +53,19 @@ pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKerne
             }
             #[cfg(not(feature = "gpu-cuda"))]
             {
-                return Err(crate::error::ComputeError::BackendUnavailable {
-                    backend: "gpu",
+                return Err(crate::error::ComputeError::StrategyUnavailable {
+                    strategy: "gpu",
                     reason: "built without the `gpu-cuda` feature".to_string(),
                 });
             }
         }
     };
 
-    if backend.is_available() {
-        Ok(backend)
+    if strategy.is_available() {
+        Ok(strategy)
     } else {
-        Err(crate::error::ComputeError::BackendUnavailable {
-            backend: backend.name(),
+        Err(crate::error::ComputeError::StrategyUnavailable {
+            strategy: strategy.name(),
             reason: "not available on this machine".to_string(),
         })
     }

@@ -20,3 +20,4 @@ to someone reading the tree in a year. Write it when the decision is made, not a
 | [0010](0010-name-audit.md) | One name, one meaning |
 | [0011](0011-open-standards-only.md) | Telemetry speaks open standards only |
 | [0012](0012-managers-name-domains.md) | Managers name domains, not resources |
+| [0013](0013-strategies-are-not-backends.md) | Strategies are not backends |

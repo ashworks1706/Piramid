@@ -1,4 +1,4 @@
-//! Explicitly vectorized CPU backend using `wide`'s `f32x8` (AVX2 on x86_64, NEON on aarch64).
+//! Explicitly vectorized CPU strategy using `wide`'s `f32x8` (AVX2 on x86_64, NEON on aarch64).
 
 use wide::f32x8;
 

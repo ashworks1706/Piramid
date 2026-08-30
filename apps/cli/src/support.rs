@@ -78,14 +78,14 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     }
     let _ = writeln!(out);
 
-    let _ = writeln!(out, "## Compute backends");
+    let _ = writeln!(out, "## Compute strategies");
     let _ = writeln!(out);
-    for backend in piramid::compute::backends::all() {
+    for strategy in piramid::compute::strategies::all() {
         let _ = writeln!(
             out,
             "{:<10} {}",
-            backend.name(),
-            if backend.is_available() {
+            strategy.name(),
+            if strategy.is_available() {
                 "available"
             } else {
                 "unavailable"

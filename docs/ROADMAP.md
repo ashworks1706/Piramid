@@ -4,6 +4,9 @@
 
 - [ ] add unit tests for `VectorSlab` — push, replace, ordinals, row bounds, gather
 - [ ] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
+- [ ] split `ExecutionMode`'s two axes once that bench exists. `ParallelBackend` runs a scalar
+      inner loop, so "SIMD across all cores" — the fastest CPU configuration — cannot currently be
+      asked for (ADR 0013)
 - [ ] route the flat index scan through `cosine_batch` instead of a per-vector loop
 - [ ] route the rerank loop in `search::engine` through the batch API
 
@@ -23,8 +26,11 @@
 ## Now (v0.3.0) — independent
 
 - [ ] wire `piramid-compute::quantization` into the search path, starting with a PQ distance
-      kernel in `compute/backends/` beside `binary`
-- [ ] binary pre-filter into full-precision rerank, with a recall measurement
+      kernel in `compute/strategies/` beside `binary`
+- [ ] binary pre-filter into full-precision rerank, with a recall measurement — and in the same
+      change move `BinaryBackend` out of `DistanceKernels`. It returns a different, approximate
+      answer rather than the same one faster, so it is a recall trade, not an execution strategy
+      (ADR 0013)
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
 - [ ] decide what happens to `cluster`
 - [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects

@@ -4,7 +4,7 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 use super::collection::Collection;
-use piramid_compute::{backends::for_mode, Metric};
+use piramid_compute::{strategies::for_mode, Metric};
 use piramid_core::error::Result;
 use piramid_index::IndexSearchRequest;
 

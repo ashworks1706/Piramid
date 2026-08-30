@@ -1,8 +1,8 @@
 //! CUDA-backed distance kernels; the compute-layer adapter, owns no CUDA types itself.
 
-use crate::backends::scalar::ScalarBackend;
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;
+use crate::strategies::scalar::ScalarBackend;
 
 /// GPU kernels dispatched through `piramid-gpu`.
 #[derive(Debug, Default, Clone, Copy)]

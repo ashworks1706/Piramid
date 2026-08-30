@@ -97,7 +97,8 @@ at a device.
 
 Everything else is infrastructure for these. Change them deliberately.
 
-`compute::DistanceKernels` — one backend per file in `compute/backends/`, one arm in the registry.
+`compute::DistanceKernels` — one strategy per file in `compute/strategies/`, one arm in the registry.
+"Backends" means the vendor layer and lives only in `gpu` and `inference`; see ADR 0013.
 Batch methods take a contiguous row-major slab and a caller-owned `out`, because that shape
 uploads to a device in one copy. A slice of `Vec`s can't, and forces a gather on every call that
 costs more than the kernel saves. Don't reintroduce it.
@@ -148,8 +149,8 @@ retrieval stack.
 - One name, one meaning. Before naming a module, check the word isn't already used for something
   else in the tree. Repeating a word is fine when it means the same thing at each layer, as with
   `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See ADR 0010.
-- Traits are named for the capability, not the implementation. Backends are named for the
-  technology, one file each, so new hardware is a new file rather than a new match arm.
+- Traits are named for the capability, not the implementation. Strategies and backends are named
+  for the technology, one file each, so new hardware is a new file rather than a new match arm.
 - `mod.rs` and `lib.rs` re-export; they don't define types. A domain's manager lives in its
   `manager.rs` and is importable from the crate root, one predictable place per domain. Managers
   exist only for crates with state to own; grouping folders never get one.

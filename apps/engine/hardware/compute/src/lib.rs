@@ -1,14 +1,14 @@
 #![deny(missing_docs)]
 
-//! Distance and similarity math, and the backend dispatch that runs it.
+//! Distance and similarity math, and the strategy dispatch that runs it.
 
-pub mod backends;
 pub mod error;
 pub mod kernels;
 pub mod metric;
 pub mod mode;
 pub mod pairwise;
 pub mod quantization;
+pub mod strategies;
 
 pub use error::{ComputeError, ComputeResult};
 pub use kernels::{check_batch_shape, DistanceKernels};

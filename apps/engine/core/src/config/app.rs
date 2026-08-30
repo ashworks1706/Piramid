@@ -49,7 +49,7 @@ impl AppConfig {
     pub fn validate(&self) -> Result<(), String> {
         // Ask compute, so the feature flag stays owned by the crate that defines it.
         if matches!(self.execution, ExecutionMode::Gpu)
-            && piramid_compute::backends::for_mode(ExecutionMode::Gpu).is_err()
+            && piramid_compute::strategies::for_mode(ExecutionMode::Gpu).is_err()
         {
             return Err(
                 "EXECUTION_MODE gpu requires a build with the `gpu-cuda` feature enabled".into(),

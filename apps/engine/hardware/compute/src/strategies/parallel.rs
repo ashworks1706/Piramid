@@ -1,4 +1,4 @@
-//! Rayon-parallel CPU backend; chunks operands across cores, worthwhile only at high dimensionality.
+//! Rayon-parallel CPU strategy; chunks operands across cores, worthwhile only at high dimensionality.
 
 use rayon::prelude::*;
 

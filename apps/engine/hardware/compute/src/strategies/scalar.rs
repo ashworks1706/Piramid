@@ -1,4 +1,4 @@
-//! Portable scalar backend: no intrinsics or threads, the correctness reference for the others.
+//! Portable scalar strategy: no intrinsics or threads, the correctness reference for the others.
 
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;

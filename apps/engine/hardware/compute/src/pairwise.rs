@@ -1,4 +1,4 @@
-//! Single-pair distance entry points; hot-path wrappers over a caller-resolved backend. Panics on
+//! Single-pair distance entry points; hot-path wrappers over a caller-resolved strategy. Panics on
 //! mismatched lengths — a caller contract checked upstream; untrusted input should use the batch
 //! kernels on [`crate::DistanceKernels`] instead.
 

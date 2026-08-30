@@ -1,4 +1,4 @@
-//! Similarity metrics: a [`Metric`] is what to measure, orthogonal to which backend measures it.
+//! Similarity metrics: a [`Metric`] is what to measure, orthogonal to which strategy measures it.
 
 use serde::{Deserialize, Serialize};
 

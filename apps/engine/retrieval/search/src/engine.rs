@@ -1,7 +1,7 @@
 //! Query execution: plans overfetch, asks the index for candidates, scores and filters them.
 
 use crate::{utils::sort_and_truncate, Hit};
-use piramid_compute::{backends::for_mode, ExecutionMode, Metric};
+use piramid_compute::{strategies::for_mode, ExecutionMode, Metric};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_core::metadata::Filter;

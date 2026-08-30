@@ -1,11 +1,11 @@
-//! Execution-mode selection: [`ExecutionMode`] names which backend runs a kernel.
+//! Execution-mode selection: [`ExecutionMode`] names which strategy runs a kernel.
 
 use serde::{Deserialize, Serialize};
 
-/// Which compute backend should execute a kernel; `Auto` is a request, not a backend.
+/// Which execution strategy should run a kernel; `Auto` is a request, not a strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ExecutionMode {
-    /// Detect the best available backend at runtime.
+    /// Detect the best available strategy at runtime.
     #[default]
     Auto,
     /// Portable scalar reference implementation.
@@ -21,7 +21,7 @@ pub enum ExecutionMode {
 }
 
 impl ExecutionMode {
-    /// Resolve `Auto` into a concrete backend using detected CPU features; other modes pass through.
+    /// Resolve `Auto` into a concrete strategy using detected CPU features; other modes pass through.
     pub fn resolve(&self) -> ExecutionMode {
         match self {
             ExecutionMode::Auto => {
@@ -87,7 +87,7 @@ impl ExecutionMode {
         }
     }
 
-    /// Whether the resolved backend uses explicit vectorization.
+    /// Whether the resolved strategy uses explicit vectorization.
     pub fn use_simd(&self) -> bool {
         matches!(
             self.resolve(),
@@ -95,7 +95,7 @@ impl ExecutionMode {
         )
     }
 
-    /// Whether the resolved backend fans out across threads.
+    /// Whether the resolved strategy fans out across threads.
     pub fn use_parallel(&self) -> bool {
         matches!(self.resolve(), ExecutionMode::Parallel)
     }

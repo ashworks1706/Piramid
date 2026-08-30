@@ -1,4 +1,4 @@
-use piramid_compute::{backends::for_mode, DistanceKernels, Metric};
+use piramid_compute::{strategies::for_mode, DistanceKernels, Metric};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};

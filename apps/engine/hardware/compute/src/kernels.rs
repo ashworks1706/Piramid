@@ -1,17 +1,17 @@
-//! The kernel contract every compute backend implements; batch methods take a row-major slab.
+//! The kernel contract every execution strategy implements; batch methods take a row-major slab.
 
 use crate::error::{ComputeError, ComputeResult};
 use crate::mode::ExecutionMode;
 
-/// Distance and similarity kernels for one execution backend.
+/// Distance and similarity kernels for one execution strategy.
 pub trait DistanceKernels: Send + Sync {
-    /// The execution mode this backend serves.
+    /// The execution mode this strategy serves.
     fn mode(&self) -> ExecutionMode;
 
     /// Stable name for logs, metrics, and error messages.
     fn name(&self) -> &'static str;
 
-    /// Whether this backend can actually run on this machine right now.
+    /// Whether this strategy can actually run on this machine right now.
     fn is_available(&self) -> bool;
 
     // Pairwise. Callers guarantee equal lengths.
