@@ -8,6 +8,10 @@ use super::config::{HnswConfig, HnswStats};
 use crate::{MetadataReader, VectorReader};
 use piramid_core::error::{IndexError, Result};
 
+fn cmp_scores(a: f32, b: f32) -> Ordering {
+    a.partial_cmp(&b).unwrap_or(Ordering::Equal)
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize)]
 struct HnswNode {
     /// Neighbours per layer, layer 0 first.
@@ -46,10 +50,7 @@ impl PartialOrd for SearchCandidate {
 impl Ord for SearchCandidate {
     fn cmp(&self, other: &Self) -> Ordering {
         // Reversed: BinaryHeap is a max-heap, and we want the closest first.
-        other
-            .distance
-            .partial_cmp(&self.distance)
-            .unwrap_or(Ordering::Equal)
+        cmp_scores(other.distance, self.distance)
     }
 }
 
@@ -117,8 +118,14 @@ impl HnswIndex {
         let mut current_entry = vec![entry_point];
 
         for lc in ((layer as isize + 1)..=self.max_level).rev() {
-            current_entry =
-                self.search_layer(vector, &current_entry, 1, lc as usize, &search_context);
+            current_entry = self.search_layer(
+                vector,
+                &current_entry,
+                1,
+                lc as usize,
+                &search_context,
+                true,
+            );
         }
 
         // Connect from the target layer down to 0. Connections are staged and applied after
@@ -131,6 +138,7 @@ impl HnswIndex {
                 self.config.ef_construction,
                 lc,
                 &search_context,
+                true,
             );
 
             // Layer 0 allows M_max edges; higher layers allow M.
@@ -228,10 +236,18 @@ impl HnswIndex {
         };
 
         for lc in (1..=self.max_level as usize).rev() {
-            current_nearest = self.search_layer(query, &current_nearest, 1, lc, &search_context);
+            current_nearest =
+                self.search_layer(query, &current_nearest, 1, lc, &search_context, true);
         }
 
-        current_nearest = self.search_layer(query, &current_nearest, ef.max(k), 0, &search_context);
+        current_nearest = self.search_layer(
+            query,
+            &current_nearest,
+            ef.max(k),
+            0,
+            &search_context,
+            false,
+        );
 
         let mut filtered: Vec<Uuid> = current_nearest
             .into_iter()
@@ -242,6 +258,13 @@ impl HnswIndex {
     }
 
     /// Search one layer, returning neighbour ids nearest-first.
+    /// Walk one layer, returning the nearest ids found.
+    ///
+    /// `admit_all` is the difference between navigating and collecting. The greedy descent
+    /// through upper layers is pure navigation and must ignore the filter and tombstones
+    /// entirely: its job is to hand layer 0 a starting point, and a layer whose nodes happen not
+    /// to match would otherwise return nothing and strand the search. Only the layer-0 call
+    /// collects results, and only there does admission narrow.
     fn search_layer(
         &self,
         query: &[f32],
@@ -249,33 +272,30 @@ impl HnswIndex {
         num_closest: usize,
         level: usize,
         context: &SearchContext<'_>,
+        admit_all: bool,
     ) -> Vec<Uuid> {
         let mut visited = HashSet::new();
         let mut candidates = BinaryHeap::new();
         let mut nearest = BinaryHeap::new();
 
         for &ep in entry_points {
-            if let Some(ep_vector) = context.vectors.get(&ep) {
-                if let Some(f) = context.filter {
-                    if let Some(md) = context.metadatas.get(&ep) {
-                        if !f.matches(md) {
-                            continue;
-                        }
-                    }
-                }
-                let dist = self.distance(query, ep_vector, context.kernels);
-                candidates.push(SearchCandidate {
+            let Some(ep_vector) = context.vectors.get(&ep) else {
+                continue;
+            };
+            let dist = self.distance(query, ep_vector, context.kernels);
+            // Always a stepping stone: a filter narrows the result set, never the graph. Refusing
+            // to traverse through a non-matching node strands the search at the entry point.
+            candidates.push(SearchCandidate {
+                id: ep,
+                distance: dist,
+            });
+            if admit_all || (!self.is_tombstone(&ep) && self.passes_filter(&ep, context)) {
+                nearest.push(SearchCandidate {
                     id: ep,
                     distance: dist,
                 });
-                if !self.is_tombstone(&ep) {
-                    nearest.push(SearchCandidate {
-                        id: ep,
-                        distance: dist,
-                    });
-                }
-                visited.insert(ep);
             }
+            visited.insert(ep);
         }
 
         let mut furthest_distance = nearest.peek().map_or(f32::INFINITY, |c| c.distance);
@@ -286,54 +306,55 @@ impl HnswIndex {
                 break;
             }
 
-            if let Some(node) = self.nodes.get(&candidate.id) {
-                if level < node.connections.len() {
-                    for &neighbor_id in &node.connections[level] {
-                        if visited.insert(neighbor_id) {
-                            if let Some(neighbor_vector) = context.vectors.get(&neighbor_id) {
-                                if let Some(f) = context.filter {
-                                    if let Some(md) = context.metadatas.get(&neighbor_id) {
-                                        if !f.matches(md) {
-                                            continue;
-                                        }
-                                    }
-                                }
-                                let dist = self.distance(query, neighbor_vector, context.kernels);
-                                let neighbor_dead = self.is_tombstone(&neighbor_id);
+            let Some(node) = self.nodes.get(&candidate.id) else {
+                continue;
+            };
+            if level >= node.connections.len() {
+                continue;
+            }
+            for &neighbor_id in &node.connections[level] {
+                if !visited.insert(neighbor_id) {
+                    continue;
+                }
+                let Some(neighbor_vector) = context.vectors.get(&neighbor_id) else {
+                    continue;
+                };
+                let dist = self.distance(query, neighbor_vector, context.kernels);
+                let admissible = admit_all
+                    || (!self.is_tombstone(&neighbor_id)
+                        && self.passes_filter(&neighbor_id, context));
 
-                                if dist < furthest_distance || nearest.len() < num_closest {
-                                    candidates.push(SearchCandidate {
-                                        id: neighbor_id,
-                                        distance: dist,
-                                    });
-                                    if !neighbor_dead {
-                                        nearest.push(SearchCandidate {
-                                            id: neighbor_id,
-                                            distance: dist,
-                                        });
+                if dist < furthest_distance || nearest.len() < num_closest {
+                    candidates.push(SearchCandidate {
+                        id: neighbor_id,
+                        distance: dist,
+                    });
+                    if admissible {
+                        nearest.push(SearchCandidate {
+                            id: neighbor_id,
+                            distance: dist,
+                        });
 
-                                        if nearest.len() > num_closest {
-                                            nearest.pop(); // remove furthest
-                                        }
-
-                                        furthest_distance =
-                                            nearest.peek().map_or(f32::INFINITY, |c| c.distance);
-                                    }
-                                }
-                            }
+                        if nearest.len() > num_closest {
+                            nearest.pop(); // remove furthest
                         }
+
+                        furthest_distance = nearest.peek().map_or(f32::INFINITY, |c| c.distance);
                     }
                 }
             }
         }
 
         let mut result: Vec<_> = nearest.into_iter().collect();
-        result.sort_by(|a, b| {
-            a.distance
-                .partial_cmp(&b.distance)
-                .unwrap_or(Ordering::Equal)
-        });
+        result.sort_by(|a, b| b.cmp(a)); // reverses the max-heap order back to nearest-first
         result.into_iter().map(|c| c.id).collect()
+    }
+
+    // No filter, or no metadata for `id`, or a match: any of the three lets a candidate through.
+    fn passes_filter(&self, id: &Uuid, context: &SearchContext<'_>) -> bool {
+        context
+            .filter
+            .is_none_or(|f| context.metadatas.get(id).is_none_or(|md| f.matches(md)))
     }
 
     /// Pick the `m` closest candidates by distance only (no diversity heuristic).
@@ -362,7 +383,7 @@ impl HnswIndex {
             })
             .collect();
 
-        distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
+        distances.sort_by(|a, b| cmp_scores(a.1, b.1));
         distances.truncate(m);
         distances.into_iter().map(|(id, _)| id).collect()
     }

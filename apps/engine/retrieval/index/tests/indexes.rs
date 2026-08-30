@@ -184,3 +184,55 @@ fn index_selector_prefers_expected_types() {
     assert_eq!(cfg.select_type(50_000), IndexKind::Ivf);
     assert_eq!(cfg.select_type(500_000), IndexKind::Hnsw);
 }
+
+// HNSW evaluates filters mid-traversal, unlike flat which post-filters. Every other filter test
+// in the workspace runs against a small collection, which auto-selects flat — so this is the only
+// coverage of `passes_filter` on the graph path.
+#[test]
+fn hnsw_search_applies_a_filter_during_traversal() {
+    use piramid_core::metadata::{metadata, Filter, Metadata};
+
+    let mut idx = HnswIndex::new(HnswConfig::default());
+    let mut vectors = HashMap::new();
+    let mut metadatas: HashMap<Uuid, Metadata> = HashMap::new();
+
+    let mut wanted = Vec::new();
+    for i in 0..40 {
+        let id = Uuid::new_v4();
+        let vector = vec![i as f32 * 0.01, 1.0, 0.0];
+        let lang = if i % 2 == 0 { "rust" } else { "go" };
+        if lang == "rust" {
+            wanted.push(id);
+        }
+        vectors.insert(id, vector);
+        metadatas.insert(id, metadata([("lang", lang.into())]));
+    }
+
+    let reader = HashMapVectorReader::new(&vectors);
+    for (id, vector) in &vectors {
+        idx.insert(*id, vector, &reader).unwrap();
+    }
+
+    let filter = Filter::new().eq("lang", "rust");
+    let hits = idx
+        .search(
+            &[0.0, 1.0, 0.0],
+            10,
+            200,
+            &reader,
+            Some(&filter),
+            &metadatas,
+        )
+        .unwrap();
+
+    assert!(!hits.is_empty(), "filter must not exclude everything");
+    for id in &hits {
+        assert!(wanted.contains(id), "a 'go' document survived the filter");
+    }
+
+    // No filter reaches strictly more of the graph than a filtered search.
+    let unfiltered = idx
+        .search(&[0.0, 1.0, 0.0], 10, 200, &reader, None, &metadatas)
+        .unwrap();
+    assert!(unfiltered.len() >= hits.len());
+}
