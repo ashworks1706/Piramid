@@ -12,7 +12,13 @@ export function Navbar({ searchEntries }: Props) {
     <header className="sticky top-0 z-20 backdrop-blur border-b border-white/5 bg-black/30">
       <div className="mx-auto flex max-w-6xl items-center justify-between px-4 sm:px-6 py-4">
         <Link href="/" className="flex items-center gap-2.5">
-          <Image src="/logo_light.png" alt="Piramid" width={32} height={32} />
+          <Image
+            src="/logo_light.png"
+            alt="Piramid"
+            width={32}
+            height={32}
+            className="h-8 w-auto"
+          />
           <span className="text-base font-semibold tracking-wide text-white">
             piramid
           </span>

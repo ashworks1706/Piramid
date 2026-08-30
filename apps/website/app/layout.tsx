@@ -80,7 +80,10 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={`dark ${mono.variable}`}>
+    // suppressHydrationWarning covers only this element's own attributes, not its children.
+    // Extensions commonly add attributes to <html>, and React reports that as a mismatch it
+    // cannot patch even though the app itself renders identically on both sides.
+    <html lang="en" className={`dark ${mono.variable}`} suppressHydrationWarning>
       <body className="antialiased">{children}</body>
     </html>
   );
