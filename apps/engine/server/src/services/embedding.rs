@@ -97,10 +97,12 @@ pub async fn embed_text(
 
     let ids = collection_guard.insert_batch(entries)?;
     state.enforce_cache_budget();
-    state
-        .embeddings
-        .metrics()
-        .record(1, ids.len() as u64, total_tokens as u64, start.elapsed());
+    state.embeddings.metrics().record(
+        1,
+        ids.len() as u64,
+        u64::from(total_tokens),
+        start.elapsed(),
+    );
 
     Ok(EmbedResponse {
         ids: ids.into_iter().map(|id| id.to_string()).collect(),
@@ -135,10 +137,12 @@ pub async fn search_by_text(
     let start = Instant::now();
     let response = embedder.embed(&req.query).await?;
     let embed_duration = start.elapsed();
-    state
-        .embeddings
-        .metrics()
-        .record(1, 1, response.tokens.unwrap_or(0) as u64, embed_duration);
+    state.embeddings.metrics().record(
+        1,
+        1,
+        u64::from(response.tokens.unwrap_or(0)),
+        embed_duration,
+    );
 
     let metric = parse_metric(req.metric)?;
     let filter = parse_filter(req.filter)?;

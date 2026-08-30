@@ -1,11 +1,12 @@
 //! Errors raised by compute kernels.
 
-use std::fmt::{Display, Formatter};
+use thiserror::Error;
 
 /// A kernel failed to run: dimension mismatch, unavailable strategy, or a device fault.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ComputeError {
     /// The requested strategy is not compiled in, or the hardware it needs is absent.
+    #[error("compute strategy '{strategy}' unavailable: {reason}")]
     StrategyUnavailable {
         /// Strategy that was requested.
         strategy: &'static str,
@@ -13,6 +14,7 @@ pub enum ComputeError {
         reason: String,
     },
     /// Operand shapes disagree.
+    #[error("compute shape mismatch: expected {expected}, got {got}")]
     ShapeMismatch {
         /// What the kernel expected.
         expected: usize,
@@ -21,8 +23,10 @@ pub enum ComputeError {
     },
     /// A quantized vector's encoding is internally inconsistent and cannot be decoded, or a
     /// quantization level has no encoder.
+    #[error("invalid quantized encoding: {0}")]
     InvalidEncoding(String),
     /// The underlying vendor backend ran but failed.
+    #[error("compute backend '{backend}' failed: {message}")]
     Backend {
         /// Vendor backend that failed.
         backend: &'static str,
@@ -30,27 +34,6 @@ pub enum ComputeError {
         message: String,
     },
 }
-
-impl Display for ComputeError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result {
-        match self {
-            Self::StrategyUnavailable { strategy, reason } => {
-                write!(f, "compute strategy '{strategy}' unavailable: {reason}")
-            }
-            Self::ShapeMismatch { expected, got } => {
-                write!(f, "compute shape mismatch: expected {expected}, got {got}")
-            }
-            Self::InvalidEncoding(message) => {
-                write!(f, "invalid quantized encoding: {message}")
-            }
-            Self::Backend { backend, message } => {
-                write!(f, "compute backend '{backend}' failed: {message}")
-            }
-        }
-    }
-}
-
-impl std::error::Error for ComputeError {}
 
 /// Convenience alias for kernel results.
 pub type ComputeResult<T> = std::result::Result<T, ComputeError>;

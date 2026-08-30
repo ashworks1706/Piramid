@@ -93,7 +93,7 @@ impl Wal {
         }
         if let Some(file) = &mut self.file {
             let json = serde_json::to_string(entry)?;
-            writeln!(file, "{}", json)?;
+            writeln!(file, "{json}")?;
             file.flush()?;
         }
         self.next_seq += 1;
@@ -142,7 +142,7 @@ impl Wal {
                     version: WAL_VERSION,
                 };
                 let json = serde_json::to_string(&header)?;
-                writeln!(writer, "{}", json)?;
+                writeln!(writer, "{json}")?;
                 writer.flush()?;
             }
         }

@@ -251,19 +251,14 @@ fn preload_collections_for_metrics(state: &std::sync::Arc<AppState>) -> std::io:
     let entries = fs::read_dir(&state.data_dir)?;
     for entry in entries {
         let entry = entry?;
-        let file_name = match entry.file_name().to_str() {
-            Some(v) => v.to_string(),
-            None => continue,
+        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
+            continue;
         };
-        let collection_name = match collection_name_from_base_db_filename(&file_name) {
-            Some(v) => v,
-            None => continue,
+        let Some(collection_name) = collection_name_from_base_db_filename(&file_name) else {
+            continue;
         };
         if let Err(error) = state.get_existing_collection(&collection_name) {
-            eprintln!(
-                "Skipping collection '{}' while building metrics: {}",
-                collection_name, error
-            );
+            eprintln!("Skipping collection '{collection_name}' while building metrics: {error}");
         }
     }
     Ok(())
@@ -341,7 +336,7 @@ fn start_server_inline() -> std::io::Result<()> {
         );
 
         let app = server::create_router(state);
-        let addr = format!("0.0.0.0:{}", port);
+        let addr = format!("0.0.0.0:{port}");
         tracing::info!(
             target: "piramid::config",
             address = addr.as_str(),

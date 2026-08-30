@@ -24,7 +24,7 @@ pub struct EmbeddingResponse {
 pub trait Embedder: Send + Sync {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse>;
 
-    fn provider_name(&self) -> &str;
+    fn provider_name(&self) -> &'static str;
 
     fn model_name(&self) -> &str;
 

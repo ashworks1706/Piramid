@@ -1263,6 +1263,7 @@ dependencies = [
  "num_cpus",
  "rayon",
  "serde",
+ "thiserror 1.0.69",
  "tracing",
  "wide",
 ]
@@ -1300,6 +1301,9 @@ dependencies = [
 [[package]]
 name = "piramid-gpu"
 version = "0.2.0"
+dependencies = [
+ "thiserror 1.0.69",
+]
 
 [[package]]
 name = "piramid-index"

@@ -94,7 +94,7 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
     // Report what resolved, so a variable that did not take effect is visible at startup.
     tracing::info!(
         target: "piramid::observability",
-        otlp = config.otlp.as_ref().map(|c| c.endpoint.as_str()).unwrap_or("off"),
+        otlp = config.otlp.as_ref().map_or("off", |c| c.endpoint.as_str()),
         span_events = config.span_events,
         json_logs = json,
         "observability_ready"

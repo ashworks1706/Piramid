@@ -1,18 +1,21 @@
 //! Configuration loading: file, then environment overrides.
 
 use std::env;
-use std::fmt::{self, Display, Formatter};
 use std::fs;
 use std::path::PathBuf;
+
+use thiserror::Error;
 
 use crate::config::{AppConfig, EmbeddingConfig};
 
 /// Configuration could not be loaded.
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ConfigError {
     /// `CONFIG_FILE` could not be read or parsed.
+    #[error("invalid configuration file: {0}")]
     File(String),
     /// An environment variable held a value the parser rejected.
+    #[error("invalid environment configuration: {name}: {reason}")]
     Env {
         /// Variable name.
         name: String,
@@ -20,22 +23,9 @@ pub enum ConfigError {
         reason: String,
     },
     /// The merged configuration failed validation.
+    #[error("invalid configuration: {0}")]
     Invalid(String),
 }
-
-impl Display for ConfigError {
-    fn fmt(&self, f: &mut Formatter<'_>) -> fmt::Result {
-        match self {
-            Self::File(message) => write!(f, "invalid configuration file: {message}"),
-            Self::Env { name, reason } => {
-                write!(f, "invalid environment configuration: {name}: {reason}")
-            }
-            Self::Invalid(message) => write!(f, "invalid configuration: {message}"),
-        }
-    }
-}
-
-impl std::error::Error for ConfigError {}
 
 /// Resolved runtime configuration: application settings plus process-level knobs.
 #[derive(Debug, Clone)]
@@ -76,7 +66,7 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
         Ok(dir) => dir,
         Err(_) => default_data_dir()?,
     };
-    let slow_query_default = app.logging.slow_query_ms.unwrap_or(500) as u128;
+    let slow_query_default = u128::from(app.logging.slow_query_ms.unwrap_or(500));
     let slow_query_ms = parse_env_or_default("SLOW_QUERY_MS", slow_query_default)?;
 
     let embedding_provider = env::var("EMBEDDING_PROVIDER").ok();
@@ -93,14 +83,11 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
 
     let embedding = match embedding_provider {
         Some(provider) => {
-            let model = match embedding_model.or_else(|| default_embedding_model(&provider)) {
-                Some(model) => model,
-                None => {
-                    return Err(ConfigError::Env {
-                        name: "EMBEDDING_MODEL".to_string(),
-                        reason: format!("no default model for provider '{provider}'; set it"),
-                    })
-                }
+            let Some(model) = embedding_model.or_else(|| default_embedding_model(&provider)) else {
+                return Err(ConfigError::Env {
+                    name: "EMBEDDING_MODEL".to_string(),
+                    reason: format!("no default model for provider '{provider}'; set it"),
+                });
             };
             Some(EmbeddingConfig {
                 provider,
@@ -135,9 +122,8 @@ fn default_embedding_model(provider: &str) -> Option<String> {
 }
 
 fn load_from_file() -> Result<Option<AppConfig>, ConfigError> {
-    let path = match env::var("CONFIG_FILE") {
-        Ok(path) => path,
-        Err(_) => return Ok(None),
+    let Ok(path) = env::var("CONFIG_FILE") else {
+        return Ok(None);
     };
     let data = fs::read_to_string(&path)
         .map_err(|e| ConfigError::File(format!("failed to read CONFIG_FILE '{path}': {e}")))?;

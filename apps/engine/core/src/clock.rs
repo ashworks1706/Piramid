@@ -6,6 +6,5 @@ use std::time::{SystemTime, UNIX_EPOCH};
 pub fn unix_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)
-        .map(|elapsed| elapsed.as_secs())
-        .unwrap_or(0)
+        .map_or(0, |elapsed| elapsed.as_secs())
 }

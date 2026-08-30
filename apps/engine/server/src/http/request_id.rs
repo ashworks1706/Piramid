@@ -13,14 +13,12 @@ pub async fn assign_request_id(mut req: Request<Body>, next: Next) -> Response {
         .get("x-request-id")
         .and_then(|value| value.to_str().ok())
         .filter(|value| !value.trim().is_empty())
-        .map(ToOwned::to_owned)
-        .unwrap_or_else(|| Uuid::new_v4().to_string());
+        .map_or_else(|| Uuid::new_v4().to_string(), ToOwned::to_owned);
     let method = req.method().to_string();
     let path = req
         .uri()
         .path_and_query()
-        .map(|v| v.as_str().to_string())
-        .unwrap_or_else(|| req.uri().path().to_string());
+        .map_or_else(|| req.uri().path().to_string(), |v| v.as_str().to_string());
     let request_content_length = req
         .headers()
         .get(axum::http::header::CONTENT_LENGTH)

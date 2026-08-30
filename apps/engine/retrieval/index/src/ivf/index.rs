@@ -222,7 +222,7 @@ impl VectorIndex for IvfIndex {
     }
 
     fn stats(&self) -> IndexStats {
-        let vectors_per_cluster = self.inverted_lists.iter().map(|list| list.len()).collect();
+        let vectors_per_cluster = self.inverted_lists.iter().map(std::vec::Vec::len).collect();
 
         let memory_usage = self.centroids.len() * self.dimensions * std::mem::size_of::<f32>()
             + self.vector_to_cluster.len()

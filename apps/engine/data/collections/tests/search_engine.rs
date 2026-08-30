@@ -12,10 +12,10 @@ use {
 
 fn cleanup(path: &str) {
     let sidecars = [
-        format!("{}.index.db", path),
-        format!("{}.wal.db", path),
-        format!("{}.vecindex.db", path),
-        format!("{}.metadata.db", path),
+        format!("{path}.index.db"),
+        format!("{path}.wal.db"),
+        format!("{path}.vecindex.db"),
+        format!("{path}.metadata.db"),
     ];
     for p in std::iter::once(path.to_string()).chain(sidecars) {
         let _ = fs::remove_file(p);

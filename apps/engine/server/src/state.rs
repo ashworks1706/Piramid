@@ -178,9 +178,8 @@ impl AppState {
             return;
         }
 
-        let max_bytes = match cache_config.max_bytes {
-            Some(v) => v,
-            None => return,
+        let Some(max_bytes) = cache_config.max_bytes else {
+            return;
         };
         let mut total: u64 = 0;
         let mut collections = Vec::new();

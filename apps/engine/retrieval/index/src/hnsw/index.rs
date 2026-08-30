@@ -72,7 +72,7 @@ impl HnswIndex {
     }
 
     fn is_tombstone(&self, id: &Uuid) -> bool {
-        self.nodes.get(id).map(|n| n.tombstone).unwrap_or(false)
+        self.nodes.get(id).is_some_and(|n| n.tombstone)
     }
 
     fn mark_tombstone(&mut self, id: &Uuid) {
@@ -100,20 +100,17 @@ impl HnswIndex {
         let layer = self.random_layer();
 
         // The first node becomes the entry point and has nothing to link to.
-        let entry_point = match self.start_node {
-            None => {
-                self.start_node = Some(id);
-                self.max_level = layer as isize;
-                self.nodes.insert(
-                    id,
-                    HnswNode {
-                        connections: vec![Vec::new(); layer + 1],
-                        tombstone: false,
-                    },
-                );
-                return Ok(());
-            }
-            Some(entry_point) => entry_point,
+        let Some(entry_point) = self.start_node else {
+            self.start_node = Some(id);
+            self.max_level = layer as isize;
+            self.nodes.insert(
+                id,
+                HnswNode {
+                    connections: vec![Vec::new(); layer + 1],
+                    tombstone: false,
+                },
+            );
+            return Ok(());
         };
 
         // Greedy descent from the entry point to find where to link.
@@ -281,7 +278,7 @@ impl HnswIndex {
             }
         }
 
-        let mut furthest_distance = nearest.peek().map(|c| c.distance).unwrap_or(f32::INFINITY);
+        let mut furthest_distance = nearest.peek().map_or(f32::INFINITY, |c| c.distance);
 
         // Explore the closest candidate first, stopping once nothing closer remains.
         while let Some(candidate) = candidates.pop() {
@@ -319,10 +316,8 @@ impl HnswIndex {
                                             nearest.pop(); // remove furthest
                                         }
 
-                                        furthest_distance = nearest
-                                            .peek()
-                                            .map(|c| c.distance)
-                                            .unwrap_or(f32::INFINITY);
+                                        furthest_distance =
+                                            nearest.peek().map_or(f32::INFINITY, |c| c.distance);
                                     }
                                 }
                             }

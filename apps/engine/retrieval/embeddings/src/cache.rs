@@ -45,7 +45,7 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
         Ok(response)
     }
 
-    fn provider_name(&self) -> &str {
+    fn provider_name(&self) -> &'static str {
         self.inner.provider_name()
     }
 

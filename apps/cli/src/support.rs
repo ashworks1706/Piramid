@@ -102,19 +102,17 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     let _ = writeln!(
         out,
         "embedding_provider  {}",
-        config
-            .embedding
-            .as_ref()
-            .map(|e| format!("{} ({})", e.provider, e.model))
-            .unwrap_or_else(|| "none".to_string())
+        config.embedding.as_ref().map_or_else(
+            || "none".to_string(),
+            |e| format!("{} ({})", e.provider, e.model)
+        )
     );
     let _ = writeln!(
         out,
         "disk_min_free       {}",
         config
             .disk_min_free_bytes
-            .map(|b| b.to_string())
-            .unwrap_or_else(|| "unset".to_string())
+            .map_or_else(|| "unset".to_string(), |b| b.to_string())
     );
     let _ = writeln!(out);
 
@@ -174,11 +172,9 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
                     "{:<20} size={} checkpoint_age_secs={}",
                     w.collection,
                     w.wal_size_bytes
-                        .map(|b| b.to_string())
-                        .unwrap_or_else(|| "?".into()),
+                        .map_or_else(|| "?".into(), |b| b.to_string()),
                     w.checkpoint_age_secs
-                        .map(|a| a.to_string())
-                        .unwrap_or_else(|| "?".into()),
+                        .map_or_else(|| "?".into(), |a| a.to_string()),
                 );
             }
         }

@@ -19,7 +19,7 @@ fn quantization_roundtrip() {
 
     for (o, d) in original.iter().zip(dequantized.iter()) {
         let error = (o - d).abs();
-        assert!(error < 0.01, "Error too large: {} vs {}", o, d);
+        assert!(error < 0.01, "Error too large: {o} vs {d}");
     }
 }
 
@@ -38,7 +38,7 @@ fn quantization_negative_values() {
     let dequantized = int8(&original).to_f32().unwrap();
     for (o, d) in original.iter().zip(dequantized.iter()) {
         let error = (o - d).abs();
-        assert!(error < 0.01, "Error too large: {} vs {}", o, d);
+        assert!(error < 0.01, "Error too large: {o} vs {d}");
     }
 }
 

@@ -162,7 +162,7 @@ fn search_returns_results() {
     ];
     for (i, vec) in vectors.iter().enumerate() {
         storage
-            .insert(Document::new(vec.clone(), format!("vec{}", i)))
+            .insert(Document::new(vec.clone(), format!("vec{i}")))
             .unwrap();
     }
 
@@ -202,7 +202,7 @@ fn batch_search_multi_queries() {
     let mut storage = Collection::open(test_path).unwrap();
     for i in 0..10 {
         storage
-            .insert(Document::new(vec![i as f32, 0.0, 0.0], format!("vec{}", i)))
+            .insert(Document::new(vec![i as f32, 0.0, 0.0], format!("vec{i}")))
             .unwrap();
     }
 
@@ -307,7 +307,7 @@ fn updates_write_one_wal_entry_each() {
         vec![3.0, 2.0, 1.0]
     );
 
-    let wal = fs::read_to_string(format!("{}.wal.db", test_path)).unwrap();
+    let wal = fs::read_to_string(format!("{test_path}.wal.db")).unwrap();
     assert_eq!(
         wal.lines()
             .filter(|line| line.contains("\"Insert\""))
@@ -416,13 +416,13 @@ fn sidecar_files_persist_at_checkpoint_only() {
         .insert(Document::new(vec![1.0, 2.0, 3.0], "checkpoint only".into()))
         .unwrap();
 
-    assert!(fs::metadata(format!("{}.index.db", test_path)).is_err());
-    assert!(fs::metadata(format!("{}.vecindex.db", test_path)).is_err());
+    assert!(fs::metadata(format!("{test_path}.index.db")).is_err());
+    assert!(fs::metadata(format!("{test_path}.vecindex.db")).is_err());
 
     storage.checkpoint().unwrap();
 
-    assert!(fs::metadata(format!("{}.index.db", test_path)).is_ok());
-    assert!(fs::metadata(format!("{}.vecindex.db", test_path)).is_ok());
+    assert!(fs::metadata(format!("{test_path}.index.db")).is_ok());
+    assert!(fs::metadata(format!("{test_path}.vecindex.db")).is_ok());
 
     drop(storage);
     cleanup_test_files(&files);
@@ -591,7 +591,7 @@ fn compaction_rewrites_live_records_through_temp_record_store() {
     assert_eq!(storage.count(), 1);
     assert_eq!(storage.get(&keep_id).unwrap().unwrap().text, "keep");
     assert!(storage.get(&delete_id).unwrap().is_none());
-    assert!(fs::metadata(format!("{}.compact", test_path)).is_err());
+    assert!(fs::metadata(format!("{test_path}.compact")).is_err());
 
     drop(storage);
     cleanup_test_files(&files);

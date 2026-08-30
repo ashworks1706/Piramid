@@ -23,7 +23,7 @@ impl Embedder for MockEmbedder {
         })
     }
 
-    fn provider_name(&self) -> &str {
+    fn provider_name(&self) -> &'static str {
         "mock"
     }
 

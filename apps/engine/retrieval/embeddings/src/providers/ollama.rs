@@ -74,10 +74,7 @@ impl Embedder for OllamaEmbedder {
                 .await
                 .unwrap_or_else(|error| format!("<body unreadable: {error}>"));
 
-            return Err(EmbeddingError::ApiError(format!(
-                "{}: {}",
-                status, error_text
-            )));
+            return Err(EmbeddingError::ApiError(format!("{status}: {error_text}")));
         }
 
         let api_response: OllamaEmbeddingResponse = response
@@ -92,7 +89,7 @@ impl Embedder for OllamaEmbedder {
         })
     }
 
-    fn provider_name(&self) -> &str {
+    fn provider_name(&self) -> &'static str {
         "ollama"
     }
 

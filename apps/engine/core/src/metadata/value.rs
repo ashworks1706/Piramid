@@ -64,7 +64,7 @@ impl From<i64> for MetadataValue {
 
 impl From<i32> for MetadataValue {
     fn from(i: i32) -> Self {
-        MetadataValue::Integer(i as i64)
+        MetadataValue::Integer(i64::from(i))
     }
 }
 
@@ -76,7 +76,7 @@ impl From<f64> for MetadataValue {
 
 impl From<f32> for MetadataValue {
     fn from(f: f32) -> Self {
-        MetadataValue::Float(f as f64)
+        MetadataValue::Float(f64::from(f))
     }
 }
 

@@ -11,13 +11,12 @@ pub fn validate_vector(vector: &[f32]) -> Result<()> {
     for (i, &value) in vector.iter().enumerate() {
         if value.is_nan() {
             return Err(
-                ServerError::InvalidRequest(format!("Vector contains NaN at index {}", i)).into(),
+                ServerError::InvalidRequest(format!("Vector contains NaN at index {i}")).into(),
             );
         }
         if value.is_infinite() {
             return Err(ServerError::InvalidRequest(format!(
-                "Vector contains Infinity at index {}",
-                i
+                "Vector contains Infinity at index {i}"
             ))
             .into());
         }
@@ -30,7 +29,7 @@ pub fn validate_vector(vector: &[f32]) -> Result<()> {
 pub fn validate_vectors(vectors: &[Vec<f32>]) -> Result<()> {
     for (i, vector) in vectors.iter().enumerate() {
         validate_vector(vector)
-            .map_err(|e| ServerError::InvalidRequest(format!("Vector at index {}: {}", i, e)))?;
+            .map_err(|e| ServerError::InvalidRequest(format!("Vector at index {i}: {e}")))?;
     }
     Ok(())
 }
@@ -109,14 +108,13 @@ pub fn validate_collection_name(name: &str) -> Result<()> {
 pub fn validate_batch_size(size: usize, max_size: usize, operation: &str) -> Result<()> {
     if size == 0 {
         return Err(
-            ServerError::InvalidRequest(format!("{} batch cannot be empty", operation)).into(),
+            ServerError::InvalidRequest(format!("{operation} batch cannot be empty")).into(),
         );
     }
 
     if size > max_size {
         return Err(ServerError::InvalidRequest(format!(
-            "{} batch too large: {} items (max {})",
-            operation, size, max_size
+            "{operation} batch too large: {size} items (max {max_size})"
         ))
         .into());
     }

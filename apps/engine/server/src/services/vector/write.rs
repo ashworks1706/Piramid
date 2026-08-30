@@ -166,7 +166,7 @@ pub fn delete_vectors(
     let mut uuids = Vec::with_capacity(req.ids.len());
     for id in &req.ids {
         let uuid = Uuid::parse_str(id)
-            .map_err(|_| ServerError::InvalidRequest(format!("Invalid UUID: {}", id)))?;
+            .map_err(|_| ServerError::InvalidRequest(format!("Invalid UUID: {id}")))?;
         uuids.push(uuid);
     }
 

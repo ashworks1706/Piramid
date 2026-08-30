@@ -48,9 +48,8 @@ pub fn find_duplicates(
     let mut seen = HashSet::new();
 
     for id in &ids {
-        let vec = match vectors.get(id) {
-            Some(v) => v,
-            None => continue,
+        let Some(vec) = vectors.get(id) else {
+            continue;
         };
         let neighbors = collection.vector_index().search(IndexSearchRequest::new(
             vec,

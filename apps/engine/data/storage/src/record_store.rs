@@ -143,7 +143,7 @@ impl RecordStore {
 fn next_append_offset(index: &std::collections::HashMap<uuid::Uuid, EntryPointer>) -> u64 {
     index
         .values()
-        .map(|pointer| pointer.offset + pointer.length as u64)
+        .map(|pointer| pointer.offset + u64::from(pointer.length))
         .max()
         .unwrap_or(0)
 }

@@ -76,7 +76,7 @@ impl Embedder for OpenAIEmbedder {
             return Err(match status.as_u16() {
                 401 => EmbeddingError::AuthenticationFailed(error_text),
                 429 => EmbeddingError::RateLimitExceeded,
-                _ => EmbeddingError::ApiError(format!("{}: {}", status, error_text)),
+                _ => EmbeddingError::ApiError(format!("{status}: {error_text}")),
             });
         }
 
@@ -96,7 +96,7 @@ impl Embedder for OpenAIEmbedder {
         })
     }
 
-    fn provider_name(&self) -> &str {
+    fn provider_name(&self) -> &'static str {
         "openai"
     }
 

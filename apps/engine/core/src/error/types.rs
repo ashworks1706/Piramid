@@ -69,8 +69,12 @@ impl PiramidError {
             Self::Server(e) => e.kind(),
             Self::Embedding(_) => ErrorKind::Upstream,
             Self::Compute(_) => ErrorKind::Unavailable,
-            Self::Storage(_) | Self::Index(_) | Self::Io(_) => ErrorKind::Internal,
-            Self::Serialization(_) | Self::Json(_) | Self::Other(_) => ErrorKind::Internal,
+            Self::Storage(_)
+            | Self::Index(_)
+            | Self::Io(_)
+            | Self::Serialization(_)
+            | Self::Json(_)
+            | Self::Other(_) => ErrorKind::Internal,
         }
     }
 }

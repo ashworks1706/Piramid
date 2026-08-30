@@ -22,7 +22,7 @@ fn app_config_serializes_expanded_research_knobs() {
 
 #[test]
 fn minimal_config_files_receive_defaults_for_new_knobs() {
-    let yaml = r#"
+    let yaml = r"
 index:
   type: Auto
   metric: Cosine
@@ -44,7 +44,7 @@ execution: Auto
 search:
   filter_overfetch: 10
 limits: {}
-"#;
+";
 
     let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
     assert_eq!(cfg.hardware.profile, HardwareProfile::Auto);

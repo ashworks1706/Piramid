@@ -78,7 +78,7 @@ impl ScalarQuantizedVector {
         self.values
             .iter()
             .map(|&q| {
-                let normalized = (q as f32 + 127.0) / 254.0;
+                let normalized = (f32::from(q) + 127.0) / 254.0;
                 normalized * range + self.min
             })
             .collect()
@@ -188,7 +188,7 @@ impl ProductQuantizedVector {
                         "PQ vector missing code at position {idx}"
                     ))
                 })?;
-                let normalized = code as f32 / 255.0;
+                let normalized = f32::from(code) / 255.0;
                 values.push(normalized * range + self.block_mins[block_idx]);
                 idx += 1;
             }
@@ -286,7 +286,7 @@ impl QuantizedVector {
     pub fn dim(&self) -> Option<usize> {
         match self.kind {
             QuantizationKind::Scalar => Some(self.values.len()),
-            QuantizationKind::Pq => self.pq.as_ref().map(|pq| pq.dim()),
+            QuantizationKind::Pq => self.pq.as_ref().map(ProductQuantizedVector::dim),
         }
     }
 }

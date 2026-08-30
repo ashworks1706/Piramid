@@ -35,15 +35,13 @@ pub enum EmbeddingError {
 impl EmbeddingError {
     pub fn is_recoverable(&self) -> bool {
         match self {
-            Self::RequestFailed(_) => true,
-            Self::ApiError(_) => true,
-            Self::InvalidResponse(_) => true,
-            Self::ConfigError(_) => false,
-            Self::RateLimitExceeded => true,
-            Self::AuthenticationFailed(_) => false,
-            Self::ProviderUnavailable(_) => true,
-            Self::Timeout(_) => true,
-            Self::InvalidModel(_) => false,
+            Self::RequestFailed(_)
+            | Self::ApiError(_)
+            | Self::InvalidResponse(_)
+            | Self::RateLimitExceeded
+            | Self::ProviderUnavailable(_)
+            | Self::Timeout(_) => true,
+            Self::ConfigError(_) | Self::AuthenticationFailed(_) | Self::InvalidModel(_) => false,
         }
     }
 }

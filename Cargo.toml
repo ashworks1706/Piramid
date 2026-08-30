@@ -100,6 +100,13 @@ print_stderr = "deny"
 # Tests opt back in with #[allow] at the module level.
 unwrap_used = "deny"
 expect_used = "deny"
+# Modern idioms, so the codebase does not drift back to older forms.
+uninlined_format_args = "deny"
+manual_let_else = "deny"
+map_unwrap_or = "deny"
+match_same_arms = "deny"
+cast_lossless = "deny"
+needless_raw_string_hashes = "deny"
 
 [profile.release]
 lto = "thin"

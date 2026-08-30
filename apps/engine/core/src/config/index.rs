@@ -130,20 +130,20 @@ impl IndexConfig {
     /// Metric and execution mode shared by every variant.
     pub fn get_metric_and_mode(&self) -> (Metric, ExecutionMode) {
         match self {
-            IndexConfig::Auto { metric, mode, .. } => (*metric, *mode),
-            IndexConfig::Flat { metric, mode, .. } => (*metric, *mode),
-            IndexConfig::Hnsw { metric, mode, .. } => (*metric, *mode),
-            IndexConfig::Ivf { metric, mode, .. } => (*metric, *mode),
+            IndexConfig::Auto { metric, mode, .. }
+            | IndexConfig::Flat { metric, mode, .. }
+            | IndexConfig::Hnsw { metric, mode, .. }
+            | IndexConfig::Ivf { metric, mode, .. } => (*metric, *mode),
         }
     }
 
     /// Per-query recall/speed knobs.
     pub fn search_config(&self) -> SearchConfig {
         match self {
-            IndexConfig::Auto { search, .. } => *search,
-            IndexConfig::Flat { search, .. } => *search,
-            IndexConfig::Hnsw { search, .. } => *search,
-            IndexConfig::Ivf { search, .. } => *search,
+            IndexConfig::Auto { search, .. }
+            | IndexConfig::Flat { search, .. }
+            | IndexConfig::Hnsw { search, .. }
+            | IndexConfig::Ivf { search, .. } => *search,
         }
     }
 
