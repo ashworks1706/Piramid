@@ -1,10 +1,8 @@
 //! Model execution backends.
 //!
-//! Same containment rule as `piramid-gpu::backends`: an execution framework's types stay inside
-//! its own module here, and the rest of the crate sees only the traits above.
-//!
-//! `candle` is the initial target, chosen because it keeps the stack Rust-native and shares the
-//! same CUDA device the retrieval path already uses.
+//! Same containment rule as `piramid-gpu::backends`: a framework's types stay in its own module,
+//! the rest of the crate sees only traits. `candle` is the initial target — Rust-native, and it
+//! shares the CUDA device retrieval already uses.
 
 #[cfg(feature = "inference-candle")]
 pub mod candle;

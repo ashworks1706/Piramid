@@ -1,11 +1,10 @@
-//! Batched distance kernels.
+//! Batched distance kernels: one query against a contiguous slab of candidates.
 //!
-//! Scores one query against a contiguous slab of candidate vectors. Mirrors the batch methods on
-//! `piramid-compute::DistanceKernels`, which is why that trait takes a slab: the slab uploads in
-//! one transfer and indexes directly as a device-side 2-D array.
+//! Mirrors the batch methods on `piramid-compute::DistanceKernels`, which is why that trait takes
+//! a slab — it uploads in one transfer and indexes as a device-side 2-D array.
 //!
-//! Not yet implemented. `distance.cu` alongside this file is the intended home for the device
-//! code; this wrapper builds the launch geometry and binds arguments.
+//! Not implemented. `distance.cu` beside this file is where the device code goes; this wrapper
+//! builds the launch geometry and binds arguments.
 
 use crate::buffer::DeviceBuffer;
 use crate::error::{GpuError, GpuResult};

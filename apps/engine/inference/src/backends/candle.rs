@@ -1,13 +1,8 @@
-//! Candle-backed model execution.
+//! Candle-backed model execution. Compiled only under `inference-candle`.
 //!
-//! Compiled only under the `inference-candle` feature, so default builds pull in no model runtime.
-//!
-//! # Filling this in
-//!
-//! 1. Add `candle-core` and `candle-nn` to `Cargo.toml` under the `inference-candle` feature.
-//! 2. Construct candle's device from the same `piramid-gpu::Device` the retrieval path holds — do
-//!    not open a second context, or vectors and weights end up in separate allocations.
-//! 3. Keep `candle` types inside this file.
+//! To fill in: add `candle-core` and `candle-nn` under that feature, construct candle's device
+//! from the same `piramid-gpu::Device` the retrieval path holds (a second context puts vectors
+//! and weights in separate allocations), and keep `candle` types inside this file.
 
 use piramid_gpu::error::{GpuError, GpuResult};
 

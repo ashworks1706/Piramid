@@ -15,7 +15,7 @@ env:
   RUSTFLAGS: -D warnings
 
 jobs:
-  # fmt, clippy, tests, and the dependency law — the same recipe developers run locally.
+  # The same recipe developers run locally.
   rust:
     name: Rust
     runs-on: ubuntu-latest
@@ -28,8 +28,8 @@ jobs:
       - uses: extractions/setup-just@v3
       - run: just check-rust
 
-  # Feature flags are additive and default-off, so every combination needs its own compile check.
-  # These are `cargo check`, not builds: they catch cfg mistakes without needing a GPU runner.
+  # Additive default-off features only break in combinations nobody builds locally.
+  # cargo check, so no GPU runner is needed.
   features:
     name: Features (${{ matrix.name }})
     runs-on: ubuntu-latest
@@ -55,7 +55,7 @@ jobs:
           key: ${{ matrix.name }}
       - run: cargo check --workspace --all-targets ${{ matrix.flags }}
 
-  # The declared MSRV has to actually build, or it is decoration.
+  # The declared MSRV has to actually build.
   msrv:
     name: MSRV
     runs-on: ubuntu-latest
@@ -69,7 +69,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo check --workspace --all-targets
 
-  # Broken intra-doc links are invisible until someone reads the docs; fail on them here.
+  # Broken intra-doc links are invisible until someone reads the docs.
   docs:
     name: Docs
     runs-on: ubuntu-latest
@@ -81,8 +81,7 @@ jobs:
         env:
           RUSTDOCFLAGS: -D warnings
 
-  # The published crate must build from its packaged tarball, not just from the repo. Catches a
-  # missing `include` or a path dependency without a version well before release day.
+  # Catches a missing include or an unversioned path dependency before release day.
   package:
     name: Package
     runs-on: ubuntu-latest
@@ -92,7 +91,7 @@ jobs:
       - uses: Swatinem/rust-cache@v2
       - run: cargo package --workspace --no-verify --allow-dirty
 
-  # The image has to build on PRs too, or it only breaks on the release that needs it.
+  # Build the image on PRs, so it doesn't only break on the release that needs it.
   docker:
     name: Docker
     runs-on: ubuntu-latest

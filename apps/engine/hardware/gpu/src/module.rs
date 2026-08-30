@@ -1,8 +1,7 @@
 //! Compiled kernel modules.
 //!
-//! A [`KernelModule`] is a loaded PTX/cubin image; a [`LaunchConfig`] is the geometry one launch
-//! runs with. Keeping both here means kernel *sources* under [`crate::kernels`] stay pure
-//! device code with a thin typed wrapper, and nothing above has to know how a module was built.
+//! A [`KernelModule`] is a loaded PTX/cubin image, a [`LaunchConfig`] the geometry of one launch.
+//! Both here, so [`crate::kernels`] stays device code plus a thin wrapper.
 
 use crate::device::Device;
 use crate::error::GpuResult;

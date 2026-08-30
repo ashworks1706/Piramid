@@ -1,9 +1,8 @@
 //! Filesystem capacity probing.
 //!
-//! The server refuses writes when the data directory runs low on space, which means asking the
-//! OS how much is left. There is no safe wrapper for `statvfs` in the dependency set, so this is
-//! the one place in `piramid-server` that uses `unsafe` — factored here so both the readiness
-//! check and the admin metrics endpoint share a single audited implementation.
+//! The server refuses writes when the data directory runs low, which means asking the OS. No safe
+//! `statvfs` wrapper is in the dependency set, so this is the one `unsafe` in `piramid-server` —
+//! factored here so the readiness check and the metrics endpoint share one audited copy.
 
 use piramid_core::error::{Result, ServerError};
 
@@ -19,12 +18,9 @@ pub fn stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
         let c_path = CString::new(path)
             .map_err(|_| ServerError::Internal("data_dir contains an interior NUL byte".into()))?;
 
-        // SAFETY: `statvfs` is a plain C struct of integers, so an all-zero bit pattern is a
-        // valid (if meaningless) value; `statvfs(3)` overwrites every field it defines before we
-        // read any of it. The pointer passed in comes from a `CString` that outlives the call and
-        // is guaranteed NUL-terminated with no interior NUL, which is the function's only
-        // precondition. A non-zero return means the struct was not populated, and we take the
-        // error path instead of reading it.
+        // SAFETY: statvfs is a struct of integers, so all-zero is a valid bit pattern, and
+        // statvfs(3) overwrites every field before we read it. The pointer comes from a CString
+        // that outlives the call. A non-zero return takes the error path without reading.
         #[allow(unsafe_code)]
         let (rc, stat) = unsafe {
             let mut stat: libc::statvfs = std::mem::zeroed();

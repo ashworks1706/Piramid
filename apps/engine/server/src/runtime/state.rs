@@ -32,8 +32,7 @@ pub struct RebuildJobStatus {
     pub elapsed_ms: Option<u128>, // Optional elapsed time for the rebuild job in milliseconds
 }
 
-// Collections are independent, each backed by its own file, so a DashMap lets requests touch
-// different collections without contending.
+// One file per collection, so a DashMap keeps unrelated collections from contending.
 pub struct AppState {
     pub collection_manager: CollectionManager,
     pub data_dir: String, // Base directory for collection files, e.g. "./data"

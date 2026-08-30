@@ -1,6 +1,6 @@
 //! Input validation for vectors, text, names, and batch sizes.
 //!
-//! Runs at the service boundary so everything below can assume well-formed input — which is why
+//! Runs at the service boundary so everything below can assume well-formed input, which is why
 //! the compute kernels assert on dimension rather than returning a `Result`.
 
 use crate::error::{Result, ServerError};

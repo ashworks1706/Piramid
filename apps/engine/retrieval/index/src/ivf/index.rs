@@ -1,8 +1,8 @@
 //! Inverted-file index.
 //!
-//! Partitions vectors into k-means clusters and searches only the partitions nearest the query,
-//! trading recall for an `O(sqrt N)` candidate set. Suited to collections large enough that a
-//! full scan is too slow but not large enough to justify a graph index.
+//! Partitions vectors into k-means clusters and searches only those nearest the query, trading
+//! recall for an `O(sqrt N)` candidate set. For collections too big to scan and too small to
+//! justify a graph.
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -197,8 +197,8 @@ impl VectorIndex for IvfIndex {
 
         let nprobe = quality.nprobe.unwrap_or(self.config.num_probes);
 
-        // Only the `nprobe` nearest partitions are scanned; the rest are skipped, which is where
-        // the speedup and the recall loss both come from.
+        // Only the nprobe nearest partitions are scanned. Both the speedup and the recall loss
+        // come from this.
         let mut candidates: Vec<(Uuid, f32)> = Vec::new();
 
         for (cluster_id, _) in centroid_distances.iter().take(nprobe) {

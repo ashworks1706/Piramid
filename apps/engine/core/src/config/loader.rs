@@ -1,8 +1,7 @@
 //! Configuration loading: file, then environment overrides.
 //!
-//! Every entry point here returns a [`Result`]. A library must not decide that the process should
-//! die — it reports what is wrong and lets the binary choose. `apps/cli` is the only place that
-//! turns a [`ConfigError`] into a message and an exit code.
+//! Everything here returns a [`Result`]. A library must not decide the process should die;
+//! `apps/cli` is the only place that turns a [`ConfigError`] into a message and an exit code.
 
 use std::env;
 use std::fmt::{self, Display, Formatter};

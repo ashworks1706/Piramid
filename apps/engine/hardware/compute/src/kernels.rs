@@ -1,26 +1,14 @@
 //! The kernel contract every compute backend implements.
 //!
-//! # Adding a backend
+//! To add a backend: implement [`DistanceKernels`] in one new file under [`crate::backends`] and
+//! add an arm to [`crate::backends::for_mode`]. Nothing else in the crate changes.
 //!
-//! Implement [`DistanceKernels`] in a single new file under [`crate::backends`], add one
-//! arm to [`crate::backends::for_mode`], and you are done. No other file in the crate
-//! changes. That is the whole point of this trait.
-//!
-//! # Why the batch methods look like that
-//!
-//! [`DistanceKernels::cosine_batch`] and friends take candidates as one **contiguous, row-major
-//! `&[f32]` slab** with an explicit `dim`, and write into a caller-owned `out: &mut [f32]`.
-//!
-//! This shape is deliberate and non-negotiable for new kernels:
-//!
-//! - A slab can be uploaded to a device in one `memcpy`. A `&[Vec<f32>]` cannot: each row is a
-//!   separate allocation, so a device backend would have to gather every call, which costs more
-//!   than the kernel saves.
-//! - A caller-owned `out` keeps allocation out of the kernel, so the same buffer can be reused
-//!   across queries and, later, pinned for async device transfer.
-//!
-//! CPU backends get correct batch behavior for free from the default implementations below.
-//! A device backend overrides them with a real launch.
+//! The batch methods take candidates as one contiguous row-major slab with an explicit `dim` and
+//! write into a caller-owned `out`. That shape is non-negotiable for new kernels: a slab uploads
+//! to a device in one memcpy where a `&[Vec<f32>]` would need a per-call gather, and a
+//! caller-owned `out` keeps allocation out of the kernel so the buffer can be reused and later
+//! pinned. CPU backends get correct batch behavior from the defaults below; device backends
+//! override with a real launch.
 
 use crate::error::{ComputeError, ComputeResult};
 use crate::mode::ExecutionMode;
@@ -42,9 +30,7 @@ pub trait DistanceKernels: Send + Sync {
     /// [`crate::backends::resolve_available`].
     fn is_available(&self) -> bool;
 
-    // ---- pairwise ----------------------------------------------------------------------------
-    // Hot-path, single-pair kernels. Callers guarantee equal lengths; use `check_dims` first if
-    // the input is untrusted.
+    // Pairwise. Callers guarantee equal lengths; use check_dims for untrusted input.
 
     /// Cosine similarity of two equal-length vectors.
     fn cosine(&self, a: &[f32], b: &[f32]) -> f32;
@@ -58,9 +44,7 @@ pub trait DistanceKernels: Send + Sync {
     /// Squared L2 distance, skipping the final `sqrt`.
     fn euclidean_squared(&self, a: &[f32], b: &[f32]) -> f32;
 
-    // ---- batch -------------------------------------------------------------------------------
-    // Device-shaped kernels. Defaults loop over the pairwise methods, which is correct for every
-    // CPU backend; device backends override with a single launch.
+    // Batch. Defaults loop over pairwise, which is right for CPU; devices override with a launch.
 
     /// Score `query` against every row of the `candidates` slab.
     ///

@@ -1,9 +1,8 @@
 //! Compaction: rewrite the record store without dead entries.
 //!
-//! Copies live documents to a temporary file and swaps it in, so an interrupted compaction leaves
-//! the original intact.
+//! Copies live documents to a temp file and swaps it in, so an interrupted run leaves the
+//! original intact.
 
-// Compaction logic for collections, including rewriting live documents and rebuilding indexes.
 use std::collections::HashMap;
 
 use super::collection::Collection;
@@ -16,7 +15,7 @@ use piramid_storage::record_store::RecordStore;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
 pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
-    // 1. Get all live documents and their count before compaction
+    // Get all live documents and their count before compaction
     let original_entries = collection.index.len();
     let docs: Vec<Document> = collection.get_all()?;
 
@@ -57,7 +56,7 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
     collection.clear_caches_for_rebuild();
     collection.rebuild_vector_cache()?;
 
-    // 4. Save the new index, vector index, and metadata to disk after compaction
+    // Save the new index, vector index, and metadata to disk after compaction
     save_index(&collection.path, &collection.index)?;
     save_vector_index(&collection.path, collection.vector_index())?;
     save_metadata(&collection.path, &collection.metadata)?;

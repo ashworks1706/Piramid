@@ -1,8 +1,7 @@
-// defines the Hit struct, which represents a single search result containing the vector entry and its similarity score.
 use piramid_core::metadata::Metadata;
 use uuid::Uuid;
 
-// A search result containing the vector entry plus its similarity score
+/// A search result: the stored entry plus its similarity score.
 #[derive(Debug, Clone)]
 pub struct Hit {
     pub id: Uuid,

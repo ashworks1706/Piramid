@@ -230,9 +230,8 @@ fn support_bundle(
         )
         .map_err(std::io::Error::other)?,
     );
-    // Best-effort: a collection that fails to open is reported in the bundle rather than
-    // preventing one from being written, since a broken collection is often the reason someone
-    // is running this in the first place.
+    // Best-effort: a broken collection is often why someone is running this, so report it in
+    // the bundle rather than refusing to write one.
     let _ = preload_collections_for_metrics(&state);
 
     let path = support::write(&runtime, &state, Some(output))?;

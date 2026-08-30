@@ -1,10 +1,8 @@
 //! Retry wrapper for embedding providers.
 //!
-//! Retries only errors `EmbeddingError::is_recoverable` accepts, with exponential backoff. A
-//! permanent failure — a bad API key, a malformed request — returns immediately rather than
-//! burning the retry budget.
+//! Exponential backoff, but only for errors `EmbeddingError::is_recoverable` accepts. A bad API
+//! key or malformed request returns immediately instead of burning the budget.
 
-// wraps any Embedder implementation and adds retry logic with exponential backoff.
 use crate::{Embedder, EmbeddingError, EmbeddingResponse, EmbeddingResult};
 use async_trait::async_trait;
 use std::sync::Arc;

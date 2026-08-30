@@ -1,8 +1,7 @@
 //! 1-bit quantized backend.
 //!
-//! Reduces each component to its sign bit and scores on Hamming agreement. Lossy by construction:
-//! this is a candidate pre-filter, not a ranking kernel. Full-precision reranking is expected to
-//! follow.
+//! Reduces each component to its sign bit and scores on Hamming agreement. Lossy by
+//! construction: a candidate pre-filter, not a ranking kernel. Rerank at full precision.
 
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;

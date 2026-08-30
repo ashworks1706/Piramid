@@ -1,8 +1,8 @@
 //! Execution streams.
 //!
-//! A [`Stream`] is an ordered queue of device work. Separate streams overlap: uploading the next
-//! batch of candidate vectors while the current kernel still runs is the difference between a GPU
-//! path that beats CPU and one that does not.
+//! A [`Stream`] is an ordered queue of device work, and separate streams overlap. Uploading the
+//! next batch while the current kernel runs is what separates a GPU path that beats CPU from one
+//! that does not.
 
 use crate::device::Device;
 use crate::error::GpuResult;

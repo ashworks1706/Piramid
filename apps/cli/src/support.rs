@@ -1,20 +1,9 @@
 //! Diagnostic bundle generation.
 //!
-//! Piramid is self-hosted: the operator runs it on their hardware with their data, and no
-//! telemetry reaches this project unless they deliberately configure an exporter of their own.
-//! That is the correct default for a database, and it means a bug report is the only channel
-//! through which a maintainer learns anything.
-//!
-//! This command exists to make that channel carry enough signal. It writes everything a
-//! maintainer usually has to ask for over three round-trips — version, platform, resolved
-//! configuration, enabled features, collection and WAL state — into one file the operator can
-//! read, check, and attach.
-//!
-//! # What it must never do
-//!
-//! Emit a secret. The bundle is written to be pasted into a public issue tracker, so every value
-//! that could be a credential is redacted, and the operator is told what was collected so they
-//! can verify before sharing.
+//! Piramid sends no telemetry anywhere, so a bug report is the only thing a maintainer ever sees.
+//! This writes what they'd otherwise ask for over three round-trips into one file: version,
+//! platform, resolved config, features, collection and WAL state. Every value that could be a
+//! credential is redacted, because the bundle is meant to be pasted into a public issue.
 
 use std::fmt::Write as _;
 use std::fs;

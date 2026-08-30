@@ -1,7 +1,6 @@
 //! Embedding throughput counters.
 //!
-//! Atomics rather than a lock: these are written on every embed call and read only when metrics
-//! are scraped.
+//! Atomics rather than a lock: written on every embed call, read only when metrics are scraped.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;

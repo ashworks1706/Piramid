@@ -1,8 +1,7 @@
 //! Execution-mode selection for compute kernels.
 //!
-//! [`ExecutionMode`] names *which backend* should run a kernel. It lives in `compute/` rather than
-//! `config/` so the kernel layer stays a leaf: `config/` re-exports this type for callers, but
-//! `compute/` never depends on application configuration.
+//! [`ExecutionMode`] names which backend runs a kernel. It lives here rather than in `config/` so
+//! the kernel layer stays a leaf; `config/` re-exports it.
 
 use serde::{Deserialize, Serialize};
 

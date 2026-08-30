@@ -2,7 +2,6 @@ use piramid_compute::Metric;
 use piramid_core::config::ExecutionMode;
 use serde::{Deserialize, Serialize};
 
-// HNSW (Hierarchical Navigable Small World) index configuration
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct HnswConfig {
     pub m: usize,               // max number of connections per node

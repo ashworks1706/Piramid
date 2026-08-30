@@ -1,8 +1,7 @@
 //! Observability configuration, read from the environment.
 //!
-//! Every exporter is opt-in and disabled when its variable is unset, so a default deployment
-//! sends nothing anywhere. That is the right default for a database people run on their own
-//! hardware, and there is no endpoint here that this project controls.
+//! Every exporter is opt-in and off when its variable is unset, so a default deployment sends
+//! nothing anywhere. There is no endpoint here that this project controls.
 
 use std::env;
 

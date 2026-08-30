@@ -1,11 +1,8 @@
 #!/usr/bin/env bash
-# Verify the workspace dependency rule.
+# Verify the workspace dependency rule from docs/ARCHITECTURE.md.
 #
-# The layering in docs/ARCHITECTURE.md only holds if something checks it. Cargo already makes
-# an undeclared edge a compile error; this script makes a *declared* one a CI failure, so adding
-# `piramid-server` to `piramid-compute`'s manifest fails here rather than being noticed in review.
-#
-# Run by `just check-rust`, the pre-commit hook, and CI.
+# Cargo rejects an undeclared edge; this rejects a declared one. Run by just check-rust, the
+# pre-commit hook, and CI.
 set -euo pipefail
 cd "$(git rev-parse --show-toplevel)"
 
@@ -72,9 +69,8 @@ while IFS= read -r edge; do
   fi
 done <<<"$ACTUAL"
 
-# `compute` and `gpu` are leaves: they must depend on nothing in the workspace. This is what lets
-# kernels be lifted into a standalone benchmark, and what keeps inference from reaching retrieval
-# math to get at a device.
+# compute and gpu are leaves, so kernels stay liftable and inference never reaches through
+# retrieval math for a device.
 for leaf in piramid-compute piramid-gpu; do
   if grep -q "^$leaf -> " <<<"$ACTUAL"; then
     echo "FAIL $leaf must be a leaf crate but depends on:"
@@ -83,11 +79,8 @@ for leaf in piramid-compute piramid-gpu; do
   fi
 done
 
-# The model runtime must not depend on the retrieval stack. `inference::retrieval` holds only the
-# RetrievalHook trait; a strategy that actually queries an index is a separate crate depending on
-# both piramid-inference and piramid-search. If the runtime itself ever gains a retrieval
-# dependency, a collection stops being queryable without a model loaded and the single-process
-# design loses its point.
+# The runtime must not depend on retrieval, or a collection stops being queryable without a
+# model. A strategy that queries an index belongs in its own crate.
 for retrieval in piramid-storage piramid-index piramid-search piramid-collections; do
   if grep -q "^piramid-inference -> $retrieval\$" <<<"$ACTUAL"; then
     echo "FAIL piramid-inference must not depend on the retrieval stack: $retrieval"

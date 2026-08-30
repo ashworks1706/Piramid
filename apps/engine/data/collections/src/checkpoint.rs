@@ -9,7 +9,7 @@ use serde::{Deserialize, Serialize};
 use std::{fs, path::PathBuf};
 
 pub struct CheckpointManager {
-    pub wal: Wal, // The write-ahead log instance for managing durability and recovery
+    pub wal: Wal,
     operation_count: usize, // Counter for the number of operations since the last checkpoint
     last_checkpoint_ts: Option<u64>, // Timestamp of the last checkpoint for recovery purposes
 }
@@ -90,7 +90,6 @@ fn save_wal_meta(path: &str, last_checkpoint_seq: u64) -> Result<()> {
 }
 
 pub fn checkpoint(storage: &mut Collection) -> Result<()> {
-    // This timestamp can be used for recovery purposes to determine the point in time at which the checkpoint was taken,
     let timestamp = std::time::SystemTime::now()
         .duration_since(std::time::UNIX_EPOCH)
         .unwrap()

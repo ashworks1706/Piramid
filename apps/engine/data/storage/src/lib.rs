@@ -1,7 +1,7 @@
 //! Persistence primitives: records, WAL, sidecars, mmap, and vector layout.
 //!
-//! Storage never decides API behavior, search semantics, or collection lifecycle. It provides
-//! safe byte-level primitives for the domain layer above it.
+//! Byte-level primitives only. API behavior, search semantics and collection lifecycle are
+//! decided above.
 
 pub mod document;
 pub mod manifest;

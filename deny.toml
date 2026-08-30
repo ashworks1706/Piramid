@@ -4,7 +4,11 @@ all-features = true
 [advisories]
 version = 2
 yanked = "warn"
-ignore = []
+ignore = [
+  # bincode 1.x unmaintained, no safe upgrade. It defines our on-disk format, so 2.x is a
+  # migration, not a bump. See docs/ROADMAP.md.
+  "RUSTSEC-2025-0141",
+]
 
 [licenses]
 version = 2
@@ -19,9 +23,7 @@ allow = [
   "MPL-2.0",
   "Unicode-3.0",
   "Unicode-DFS-2016",
-  # webpki-roots ships Mozilla's CA certificate bundle. CDLA-Permissive-2.0 is a data licence,
-  # which is the right kind for a dataset of root certificates rather than for code. It reached
-  # us through opentelemetry-otlp -> tonic -> rustls once the otel feature existed.
+  # webpki-roots ships Mozilla's CA bundle; CDLA is a data licence, right for certificate data.
   "CDLA-Permissive-2.0",
   "CC0-1.0",
   "Zlib",

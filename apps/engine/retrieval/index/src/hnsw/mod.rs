@@ -17,7 +17,6 @@ impl VectorIndex for HnswIndex {
         self.insert(id, vector, vectors);
     }
 
-    // Search for nearest neighbors to the query vector with filters.
     fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>> {
         // Use the per-query `ef` override when present, otherwise the configured `ef_search`.
         let ef = request

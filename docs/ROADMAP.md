@@ -134,6 +134,9 @@ Things that are wrong or missing today, verified against the code rather than re
 - `cluster` always routes locally and is carried through `AppState` for nothing.
 - IVF works but is untuned. HNSW covers the sizes we actually test at.
 - 21 `unwrap`/`expect` call sites outside tests, so `unwrap_used` is still `allow`.
+- bincode 1.x is unmaintained (RUSTSEC-2025-0141), ignored in `deny.toml` because it defines the
+  on-disk format for records, sidecars and the WAL. Moving to 2.x is a format migration with a
+  compatibility path for existing data, not a version bump.
 - Roughly 860 undocumented public items outside `compute`, `gpu`, and `inference`.
 - The website is fourteen components for a product whose headline feature isn't built.
 - The npm and python SDKs are 11 and 7 lines, published under names already claimed on their

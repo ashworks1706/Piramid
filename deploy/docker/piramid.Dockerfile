@@ -1,13 +1,13 @@
 # CPU image. Built and pushed by .github/workflows/cd.yml.
 #
-# Uses cargo-chef so dependency compilation is cached in its own layer: an eleven-crate workspace
-# otherwise rebuilds every dependency on any source change, which dominates CI time.
+# cargo-chef caches dependency builds in their own layer.
+# Builder tracks stable, not the MSRV: cargo-chef needs newer, and CI checks MSRV separately.
 
-FROM rust:1.87-slim AS chef
+FROM rust:1-slim AS chef
 RUN cargo install cargo-chef --locked
 WORKDIR /app
 
-# Record just the dependency graph, so the next stage's cache key ignores source edits.
+# Record the dependency graph only, so source edits don't bust the cache.
 FROM chef AS planner
 COPY . .
 RUN cargo chef prepare --recipe-path recipe.json
@@ -31,7 +31,7 @@ RUN apt-get update \
     && apt-get install -y --no-install-recommends ca-certificates curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Unprivileged: the server needs no root capability, and the data volume is chowned to it.
+# Unprivileged; the data volume is chowned to this user.
 RUN useradd --system --create-home --uid 10001 piramid
 WORKDIR /app
 COPY --from=builder /app/target/release/piramid /usr/local/bin/piramid

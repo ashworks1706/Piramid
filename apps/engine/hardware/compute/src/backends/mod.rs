@@ -1,7 +1,7 @@
 //! Backend registry.
 //!
 //! One file per backend, one arm per backend in [`for_mode`]. Adding a backend touches this file
-//! and nothing else in the crate.
+//! and nothing else.
 
 mod binary;
 mod parallel;

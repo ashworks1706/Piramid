@@ -6,7 +6,7 @@ on:
   pull_request:
     branches: [main]
   schedule:
-    # Weekly, so a new advisory against a pinned dependency surfaces without waiting for a PR.
+    # Weekly, so advisories surface without waiting for a PR.
     - cron: "0 9 * * 1"
 
 permissions:
@@ -22,8 +22,7 @@ jobs:
         with:
           command: check advisories bans licenses sources
 
-  # `unsafe_code` is denied workspace-wide with a small number of audited exceptions
-  # (see SECURITY.md). This makes a new one impossible to add unnoticed.
+  # unsafe_code is denied workspace-wide with two audited exceptions. See SECURITY.md.
   unsafe-audit:
     name: Unsafe audit
     runs-on: ubuntu-latest

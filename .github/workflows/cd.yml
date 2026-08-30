@@ -17,8 +17,7 @@ env:
   REGISTRY: ghcr.io
 
 jobs:
-  # Publish a CPU and a CUDA image on every green main. Tagged with both the SHA (pin this) and
-  # `main` (convenient, moves).
+  # CPU and CUDA images per green main, tagged with the SHA (pin this) and main (moves).
   image:
     name: Image (${{ matrix.name }})
     runs-on: ubuntu-latest

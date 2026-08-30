@@ -1,36 +1,22 @@
 //! Telemetry export.
 //!
-//! `piramid_core::stats` holds what the engine measures about itself — latency, lock contention,
-//! embedding throughput — as plain atomics with no dependency on `tracing` or any exporter. This
-//! crate is where those measurements *go*: it builds the tracing subscriber and, when configured,
-//! ships spans over OTLP.
+//! `piramid_core::stats` holds what the engine measures about itself as plain atomics with no
+//! exporter dependency. This crate is where those measurements go: it builds the tracing
+//! subscriber and, when configured, ships spans over OTLP. The split is load-bearing — merging
+//! them would link `tracing-subscriber` and OpenTelemetry into every crate that times a lock.
 //!
-//! The split is load-bearing, not cosmetic. Recording is cheap and happens in `collections`,
-//! `server`, and anywhere else; exporting pulls in `tracing-subscriber` and OpenTelemetry.
-//! Merging them would link all of that into every crate that times a lock.
+//! Exporters are optional at compile time and off at runtime unless their variable is set. The
+//! `otel` feature plus `PIRAMID_OTLP_ENDPOINT` sends spans over OTLP. `PIRAMID_LOG_SPANS=true`
+//! needs no feature and logs one line per finished operation with its duration and fields, which
+//! is how span instrumentation stays visible to the operators who never run a collector.
 //!
-//! # Exporters
+//! OTLP is the wire format rather than any vendor SDK, so Axiom, Tempo, Honeycomb and Jaeger all
+//! work from one configuration. That is the line this crate holds: open standards only, no
+//! vendor integration. Errors reach operators as `tracing` events on stderr.
 //!
-//! Both are optional at compile time and disabled at runtime unless their environment variable is
-//! set, so a default build sends nothing anywhere:
-//!
-//! | Feature | Variable | Effect |
-//! |---|---|---|
-//! | `otel` | `PIRAMID_OTLP_ENDPOINT` | Spans over OTLP |
-//!
-//! `PIRAMID_LOG_SPANS=true` needs no feature: it logs one line per finished operation with its
-//! duration and fields. Most operators will never run a collector, and this is what makes the
-//! span instrumentation visible to them.
-//!
-//! OTLP is the wire format rather than any vendor's SDK, so Axiom, Grafana Tempo, Honeycomb, and
-//! Jaeger all work from one configuration. That is the line this crate holds: it speaks open
-//! standards — OTLP and the Prometheus exposition format — and integrates with no vendor's
-//! product. Errors reach an operator as panics and `tracing` events on stderr, which their log
-//! pipeline already collects.
-//!
-//! Metrics are separate: [`prometheus`] renders what `piramid_core::stats` already aggregates,
-//! served at `/metrics`. For a database, a scrape endpoint matters more than distributed tracing,
-//! which is why it has no feature gate and no dependency.
+//! Metrics are separate. [`prometheus`] renders what `piramid_core::stats` already aggregates,
+//! served at `/metrics` with no feature gate — for a database a scrape endpoint matters more than
+//! distributed tracing.
 
 pub mod config;
 pub mod prometheus;
@@ -78,8 +64,7 @@ impl Drop for ObservabilityGuard {
 /// Exporter setup failures are logged and skipped rather than propagated: telemetry not reaching
 /// a collector is not a reason to refuse to serve queries.
 pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> ObservabilityGuard {
-    // FmtSpan::CLOSE emits one line per finished operation carrying its duration and recorded
-    // fields. That is how the span instrumentation becomes visible without a collector.
+    // One line per finished operation, so spans are visible without a collector.
     let span_events = if config.span_events {
         FmtSpan::CLOSE
     } else {
@@ -135,8 +120,7 @@ pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> Obse
         }
     }
 
-    // Report what actually resolved. Telemetry that silently does nothing is worse than none,
-    // and an operator who set a variable needs to see whether it took effect.
+    // Report what resolved, so a variable that did not take effect is visible at startup.
     tracing::info!(
         target: "piramid::observability",
         otlp = config.otlp.as_ref().map(|c| c.endpoint.as_str()).unwrap_or("off"),

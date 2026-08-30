@@ -1,16 +1,8 @@
 //! What the engine measures about itself: latency, lock contention, embedding throughput.
 //!
-//! Plain atomics and durations, with no dependency on `tracing`, OpenTelemetry, or anything else
-//! that ships data anywhere — which is why this can live in `core` and be recorded into from
-//! `collections`, `server`, and anywhere else without dragging exporters along.
-//!
-//! Where these numbers *go* is `piramid-observability`: the tracing subscriber, the OTLP
-//! exporter, and the Prometheus encoder. That crate carries the heavy dependencies, and only the
-//! binary and `server` link it.
-//!
-//! The two were called `telemetry` and `observability`, which most engineers use
-//! interchangeably. The split is real — recording is cheap and ubiquitous, exporting is
-//! expensive and centralized — so the names now say which is which.
+//! Plain atomics and durations, with no dependency on `tracing` or any exporter, so anything can
+//! record into it. Where the numbers go is `piramid-observability`, which carries those deps and
+//! is linked only by `server` and the binary. Recording is cheap and everywhere; exporting is not.
 
 pub mod embed;
 pub mod latency;
