@@ -2,15 +2,16 @@
 //!
 //! - [`http`] — axum routes, handlers, request ids. Handlers stay thin: parse, call a service,
 //!   serialize.
-//! - [`services`] — use cases and the canonical API DTOs. Services know about runtime state and
-//!   domain objects, never about file formats or index internals.
-//! - [`runtime`] — [`AppState`], the process-wide shared state.
+//! - [`services`] — everything true because a server exists: admission checks, lock acquisition,
+//!   metrics, and the canonical API DTOs. Durability belongs to `collections`, not here.
+//! - [`state`] — [`AppState`], the process-wide shared state, and [`disk`] the pressure watcher.
 //! - [`cluster`] — node identity and routing. Local-only today.
 
 pub mod cluster;
+pub mod disk;
 pub mod http;
-pub mod runtime;
 pub mod services;
+pub mod state;
 
 pub use http::create_router;
-pub use runtime::{AppState, SharedState};
+pub use state::{AppState, SharedState};

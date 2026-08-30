@@ -13,7 +13,7 @@ pub use piramid_index as index;
 pub use piramid_inference as inference;
 pub use piramid_observability as observability;
 pub use piramid_search as search;
-pub use piramid_server::{cluster, http as server, runtime, services};
+pub use piramid_server::{cluster, disk, http as server, services, state};
 pub use piramid_storage as storage;
 
 pub use collections::Collection;

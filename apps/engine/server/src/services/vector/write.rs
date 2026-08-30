@@ -2,12 +2,12 @@ use std::time::Instant;
 
 use uuid::Uuid;
 
-use crate::runtime::SharedState;
 use crate::services::convert::json_to_metadata;
 use crate::services::types::{
     DeleteResponse, DeleteVectorsRequest, InsertRequest, InsertResponse, UpsertRequest,
     UpsertResponse,
 };
+use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::Metadata;
 use piramid_core::stats::record_lock_write;

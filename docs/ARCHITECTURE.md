@@ -75,7 +75,7 @@ configuration carries.
 ```mermaid
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
-    Server[server<br/>http · services · runtime · cluster]
+    Server[server<br/>http · services · state · cluster]
     Inference[inference<br/>forward pass · kv_cache · augment seam]
     Collections[collections<br/>Collection · checkpoint · compact]
     Cache[cache<br/>VectorStore · MetadataCache]
@@ -128,7 +128,7 @@ flowchart TD
 | `collections` | The `Collection` object, checkpoint, compaction | Serve HTTP |
 | `embeddings` | Provider adapters, caching, retries, `EmbeddingsManager` | Know about collections, or depend on `inference` |
 | `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
-| `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
+| `server` | Routes, handlers, services (admission, locks, metrics, DTOs), `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
 ## What it's built on

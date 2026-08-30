@@ -5,9 +5,9 @@ use axum::{
 
 use crate::http::request_id::RequestId;
 use crate::http::ApiResult as Result;
-use crate::runtime::SharedState;
 use crate::services::embedding;
 use crate::services::types::*;
+use crate::state::SharedState;
 
 pub async fn embed_text(
     State(state): State<SharedState>,

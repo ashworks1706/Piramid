@@ -6,7 +6,7 @@ use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
 use piramid::config::loader::RuntimeConfig;
-use piramid::runtime::AppState;
+use piramid::state::AppState;
 
 /// Substrings matched case-insensitively against env var names to redact their values.
 const SECRET_MARKERS: &[&str] = &[

@@ -60,7 +60,8 @@ apps/engine/retrieval/search      query planning, filtering, scoring, ranking
 apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
 apps/engine/inference             forward pass, kv_cache, batching, sampling,
                                   augment (the RetrievalHook seam)
-apps/engine/server                http, services, runtime state, cluster
+apps/engine/server                http (axum only), services (locks, metrics, DTOs),
+                                  state, disk, cluster
 apps/cli                          the piramid binary and the umbrella piramid facade crate
 apps/website                      piramiddb.com, blog content and images included
 apps/sdk                          npm and python clients
@@ -118,7 +119,7 @@ retrieval stack.
   source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
   a one-line reason.
 - `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/hardware/gpu` and at two
-  audited sites, `storage::persistence::mmap::create_mmap` and `server::runtime::disk`. Every
+  audited sites, `storage::persistence::mmap::create_mmap` and `server::disk`. Every
   block carries a `// SAFETY:` comment stating its precondition, and the security workflow fails
   if a fourth site appears.
 - A library never ends the process. No `std::process::exit` outside `apps/cli`. Loading

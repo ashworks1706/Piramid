@@ -1,11 +1,11 @@
 use std::time::Instant;
 
-use crate::runtime::SharedState;
 use crate::services::convert::{
     apply_search_overrides, hit_to_response, parse_filter, parse_metric,
 };
 use crate::services::types::range::RangeSearchRequest;
 use crate::services::types::{SearchRequest, SearchResponse};
+use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 use piramid_core::validation;

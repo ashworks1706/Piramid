@@ -10,7 +10,7 @@ use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
 mod support;
 use piramid::config::{self, AppConfig, LogLevel, LoggingConfig};
-use piramid::runtime::AppState;
+use piramid::state::AppState;
 use piramid::{config::loader::RuntimeConfig, embeddings, server};
 use piramid_observability::{ObservabilityConfig, ObservabilityGuard};
 use tokio::runtime::Runtime;

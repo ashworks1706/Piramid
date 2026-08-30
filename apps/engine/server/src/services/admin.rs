@@ -1,7 +1,7 @@
 use std::time::{SystemTime, UNIX_EPOCH};
 
-use crate::runtime::SharedState;
 use crate::services::types::*;
+use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 
@@ -205,7 +205,7 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
     }
 
     let loaded_collections = state.collection_manager.len();
-    let (disk_total_bytes, disk_available_bytes) = crate::runtime::disk::stats(&state.data_dir)?;
+    let (disk_total_bytes, disk_available_bytes) = crate::disk::stats(&state.data_dir)?;
     let ok = collections
         .iter()
         .all(|collection| collection.integrity_ok && collection.loaded);

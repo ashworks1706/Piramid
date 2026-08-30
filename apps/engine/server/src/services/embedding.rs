@@ -1,11 +1,11 @@
 use std::time::Instant;
 
-use crate::runtime::SharedState;
 use crate::services::convert::{
     apply_search_overrides, hit_to_response, json_to_metadata, parse_filter, parse_metric,
 };
 use crate::services::types::*;
 use crate::services::EMBEDDING_NOT_CONFIGURED;
+use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::Metadata;
 use piramid_core::stats::{record_lock_read, record_lock_write};

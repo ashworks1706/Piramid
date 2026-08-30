@@ -1,4 +1,4 @@
-use crate::runtime::SharedState;
+use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 
 mod read;

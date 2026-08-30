@@ -64,5 +64,5 @@ as `just audit`. Dependabot proposes updates weekly.
 
 `unsafe_code` is denied workspace-wide. It's permitted in `apps/engine/hardware/gpu` for device
 memory, and at two audited sites: `storage::persistence::mmap::create_mmap` and
-`server::runtime::disk`. Each carries a `// SAFETY:` comment stating its precondition. A PR
+`server::disk`. Each carries a `// SAFETY:` comment stating its precondition. A PR
 introducing `unsafe` anywhere else fails CI.

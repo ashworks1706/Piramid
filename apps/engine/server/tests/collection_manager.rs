@@ -14,10 +14,10 @@ use piramid_core::error::{ErrorKind, PiramidError};
 use piramid_core::metadata::metadata;
 use piramid_server::http::handlers::{collections, vectors};
 use piramid_server::http::ApiResult;
-use piramid_server::runtime::AppState;
 use piramid_server::services::types::{
     InsertRequest, ListVectorsQuery, SearchRequest, SearchTuning,
 };
+use piramid_server::state::AppState;
 use piramid_storage::Document;
 use std::{fs, sync::Arc};
 
