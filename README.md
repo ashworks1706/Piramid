@@ -68,6 +68,13 @@ flowchart TD
 both `compute` and `inference` can share one device, which is what lets vectors and model weights
 live in the same address space later.
 
+Built on Rust 1.87 with `axum` and `tokio` for the server, `serde` for the wire and disk formats,
+`wide` for SIMD kernels that lower to AVX2 and NEON, `memmap2` for zero-copy record reads,
+`dashmap` and `parking_lot` for the concurrent paths, and `tracing` with OTLP for telemetry. The
+`gpu-cuda` and `inference-candle` features are reserved for CUDA and model execution and are still
+empty, so a default build needs neither a CUDA toolkit nor a model runtime. The full list and the
+reasoning is in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md#what-its-built-on).
+
 Full guide in [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md). Decisions and their reasoning in
 [docs/decisions/](docs/decisions/).
 

@@ -97,6 +97,9 @@ just audit        # cargo-deny: advisories, bans, licences, sources
 
 ## Website
 
+Next.js 16 on React 19, TypeScript, Tailwind 4, and MDX for the blog. It is not part of the
+workspace build and ships with nothing.
+
 ```bash
 just web-setup      # npm ci, once
 just web            # dev server with hot reload on :3000

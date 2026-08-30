@@ -126,6 +126,41 @@ flowchart TD
 | `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
+## What it's built on
+
+Rust 1.87, edition 2021. One binary, no runtime services to install alongside it: the storage
+engine, the indexes and the HTTP server are all in-process.
+
+| Area | Crate | Why this one |
+|---|---|---|
+| HTTP | `axum`, `tower-http` | Rides on `hyper` and the `tower` middleware ecosystem, so timeouts, CORS and tracing are layers rather than framework features |
+| Async | `tokio` | What `axum` and `reqwest` already require; a second runtime would mean two thread pools |
+| Serialization | `serde` with `serde_json`, `serde_yaml`, `bincode` | JSON on the wire and in the WAL, YAML for config, `bincode` for the index sidecars where size matters more than readability |
+| Errors | `thiserror` | Typed enums per layer. No `anyhow` in libraries: a caller has to be able to match on the failure |
+| SIMD | `wide` | `f32x8` that lowers to AVX2 on x86_64 and NEON on aarch64, so one kernel covers both without intrinsics |
+| Parallelism | `rayon` | Work-stealing for the batch kernels, kept out of the hot single-pair path |
+| Storage | `memmap2` | Reads records without copying them into the heap first |
+| Concurrency | `dashmap`, `parking_lot`, `lru` | Sharded map so unrelated collections don't contend, smaller and faster locks, bounded caches |
+| Telemetry | `tracing`, OpenTelemetry, OTLP | Open standards only, no vendor SDK. See ADR 0011 |
+| CLI | `clap` | Derive API, so the parser and the help text cannot drift apart |
+| Benchmarks | `criterion` | Statistical comparison, which matters when a kernel change is worth single-digit percent |
+
+Two features are reserved for hardware and model runtimes. Both are additive, off by default, and
+currently empty — the backend modules behind them are stubs, so `cargo build` needs no CUDA
+toolkit and no model runtime, and `CudaBackend::is_available` reports `false` rather than
+pretending:
+
+| Feature | Intended crate | For |
+|---|---|---|
+| `gpu-cuda` | `cudarc` | Device runtime in `hardware/gpu`, confined to `gpu/backends/` |
+| `inference-candle` | `candle` | Model execution in `inference`, confined to `inference/backends/` |
+
+When those land, the vendor types stay inside those backend modules. Nothing above them imports
+either crate, which is what allows a second backend later without touching the layers between.
+
+The website is separate and ships nothing: Next.js 16 on React 19, TypeScript, Tailwind 4, and
+MDX through `next-mdx-remote` with KaTeX for the maths in the blog posts.
+
 ## The dependency rule
 
 A crate may depend on one listed below it. The reverse is a violation.
