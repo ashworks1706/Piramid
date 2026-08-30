@@ -38,6 +38,12 @@
 - [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit
 - [ ] paged KV cache
 - [ ] the first real `RetrievalHook` implementation, as its own crate
+- [ ] an in-process embedding provider, `provider: piramid`, once `candle` is loaded —
+      encoder-only, no KV cache or sampling, reusing the device retrieval already holds. A fourth
+      option beside `openai` (including any server speaking that format) and `ollama`, not a
+      replacement: a self-hosted embedder stays a supported setup. It needs its own crate, since
+      `embeddings` must not depend on `inference`; the binary wires it in through
+      `EmbeddingsManager`, the same shape as a `RetrievalHook` implementation
 - [ ] `/api/infer` and an OpenAI-compatible `/v1/chat/completions`
 - [ ] SSE streaming
 - [ ] continuous batching

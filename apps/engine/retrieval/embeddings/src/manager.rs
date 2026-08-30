@@ -25,6 +25,18 @@ impl EmbeddingsManager {
         }
     }
 
+    /// Wrap an embedder the caller built, in the same cache-and-retry stack.
+    ///
+    /// The seam for a provider this crate cannot construct: an in-process one needs a model
+    /// runtime, and `embeddings` must not depend on `inference`. The binary builds it and passes
+    /// it here, the same way a `RetrievalHook` implementation reaches `inference`.
+    pub fn with_embedder(embedder: Arc<dyn Embedder>) -> Self {
+        Self {
+            embedder: Some(Arc::new(RetryEmbedder::new(embedder))),
+            metrics: EmbedMetrics::default(),
+        }
+    }
+
     /// Build the full stack `config` names: provider, response cache, retries.
     pub fn from_config(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let embedder = create_embedder(config)?;
