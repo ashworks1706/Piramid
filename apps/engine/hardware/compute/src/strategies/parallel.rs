@@ -37,10 +37,10 @@ impl DistanceKernels for ParallelStrategy {
                 let mut dot = 0.0;
                 let mut norm_a = 0.0;
                 let mut norm_b = 0.0;
-                for i in 0..chunk_a.len() {
-                    dot += chunk_a[i] * chunk_b[i];
-                    norm_a += chunk_a[i] * chunk_a[i];
-                    norm_b += chunk_b[i] * chunk_b[i];
+                for (&x, &y) in chunk_a.iter().zip(chunk_b) {
+                    dot += x * y;
+                    norm_a += x * x;
+                    norm_b += y * y;
                 }
                 (dot, norm_a, norm_b)
             })
@@ -63,8 +63,8 @@ impl DistanceKernels for ParallelStrategy {
             .zip(b.par_chunks(width))
             .map(|(chunk_a, chunk_b)| {
                 let mut sum = 0.0;
-                for i in 0..chunk_a.len() {
-                    sum += chunk_a[i] * chunk_b[i];
+                for (&x, &y) in chunk_a.iter().zip(chunk_b) {
+                    sum += x * y;
                 }
                 sum
             })
@@ -81,8 +81,8 @@ impl DistanceKernels for ParallelStrategy {
             .zip(b.par_chunks(width))
             .map(|(chunk_a, chunk_b)| {
                 let mut sum = 0.0;
-                for i in 0..chunk_a.len() {
-                    let diff = chunk_a[i] - chunk_b[i];
+                for (&x, &y) in chunk_a.iter().zip(chunk_b) {
+                    let diff = x - y;
                     sum += diff * diff;
                 }
                 sum

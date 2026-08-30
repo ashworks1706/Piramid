@@ -43,15 +43,18 @@ pub fn delete_internal(storage: &mut Collection, id: &Uuid) {
     storage.metadata.update_vector_count(storage.index.len());
 }
 
-pub fn insert(storage: &mut Collection, entry: Document) -> Result<Uuid> {
-    let vector = entry.vector().to_vec();
-    let mut wal_entry = WalEntry::Insert {
+fn insert_wal_entry(entry: &Document) -> WalEntry {
+    WalEntry::Insert {
         id: entry.id,
-        vector,
+        vector: entry.vector().to_vec(),
         text: entry.text.clone(),
         metadata: entry.metadata.clone(),
         seq: 0,
-    };
+    }
+}
+
+pub fn insert(storage: &mut Collection, entry: Document) -> Result<Uuid> {
+    let mut wal_entry = insert_wal_entry(&entry);
     storage.checkpoint.wal.log(&mut wal_entry)?;
 
     let id = insert_internal(storage, entry)?;
@@ -63,14 +66,7 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
     let mut ids = Vec::with_capacity(entries.len());
 
     for entry in &entries {
-        let vector = entry.vector().to_vec();
-        let mut wal_entry = WalEntry::Insert {
-            id: entry.id,
-            vector,
-            text: entry.text.clone(),
-            metadata: entry.metadata.clone(),
-            seq: 0,
-        };
+        let mut wal_entry = insert_wal_entry(entry);
         storage.checkpoint.wal.log(&mut wal_entry)?;
     }
 
@@ -112,28 +108,25 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
 pub fn upsert(storage: &mut Collection, entry: Document) -> Result<Uuid> {
     let id = entry.id;
     let bytes = RecordStore::encode_document(&entry)?;
+    limits::enforce_single(storage, bytes.len())?;
 
-    let existing = storage.index.contains_key(&id);
-    if existing {
-        limits::enforce_single(storage, bytes.len())?;
-        let vector = entry.vector().to_vec();
-        let mut wal_entry = WalEntry::Update {
-            id,
-            vector,
-            text: entry.text.clone(),
-            metadata: entry.metadata.clone(),
-            seq: 0,
-        };
-        storage.checkpoint.wal.log(&mut wal_entry)?;
-
-        delete_internal(storage, &id);
-        insert_internal(storage, entry)?;
-        storage.track_operation()?;
-        Ok(id)
-    } else {
-        limits::enforce_single(storage, bytes.len())?;
-        insert(storage, entry)
+    if !storage.index.contains_key(&id) {
+        return insert(storage, entry);
     }
+
+    let mut wal_entry = WalEntry::Update {
+        id,
+        vector: entry.vector().to_vec(),
+        text: entry.text.clone(),
+        metadata: entry.metadata.clone(),
+        seq: 0,
+    };
+    storage.checkpoint.wal.log(&mut wal_entry)?;
+
+    delete_internal(storage, &id);
+    insert_internal(storage, entry)?;
+    storage.track_operation()?;
+    Ok(id)
 }
 
 pub fn delete(storage: &mut Collection, id: &Uuid) -> Result<bool> {

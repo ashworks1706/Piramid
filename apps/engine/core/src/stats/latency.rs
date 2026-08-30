@@ -4,7 +4,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, Default)]
 pub struct LatencyTracker {
     // Microseconds, so the atomics stay integral.
     insert_latency_us: Arc<AtomicU64>,
@@ -22,28 +22,9 @@ pub struct LatencyTracker {
     lock_write_count: Arc<AtomicU64>,
 }
 
-impl Default for LatencyTracker {
-    fn default() -> Self {
-        Self::new()
-    }
-}
-
 impl LatencyTracker {
     pub fn new() -> Self {
-        Self {
-            insert_latency_us: Arc::new(AtomicU64::new(0)),
-            search_latency_us: Arc::new(AtomicU64::new(0)),
-            delete_latency_us: Arc::new(AtomicU64::new(0)),
-            update_latency_us: Arc::new(AtomicU64::new(0)),
-            lock_read_latency_us: Arc::new(AtomicU64::new(0)),
-            lock_write_latency_us: Arc::new(AtomicU64::new(0)),
-            insert_count: Arc::new(AtomicU64::new(0)),
-            search_count: Arc::new(AtomicU64::new(0)),
-            delete_count: Arc::new(AtomicU64::new(0)),
-            update_count: Arc::new(AtomicU64::new(0)),
-            lock_read_count: Arc::new(AtomicU64::new(0)),
-            lock_write_count: Arc::new(AtomicU64::new(0)),
-        }
+        Self::default()
     }
 
     pub fn record_insert(&self, duration: Duration) {
@@ -83,39 +64,25 @@ impl LatencyTracker {
     }
 
     pub fn avg_insert_latency_ms(&self) -> Option<f32> {
-        let us = self.insert_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
+        Self::avg_ms(&self.insert_latency_us)
     }
 
     pub fn avg_search_latency_ms(&self) -> Option<f32> {
-        let us = self.search_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
+        Self::avg_ms(&self.search_latency_us)
     }
 
     pub fn avg_lock_read_latency_ms(&self) -> Option<f32> {
-        let us = self.lock_read_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
+        Self::avg_ms(&self.lock_read_latency_us)
     }
 
     pub fn avg_lock_write_latency_ms(&self) -> Option<f32> {
-        let us = self.lock_write_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
+        Self::avg_ms(&self.lock_write_latency_us)
+    }
+
+    /// `None` until at least one sample has landed.
+    fn avg_ms(latency_us: &AtomicU64) -> Option<f32> {
+        let us = latency_us.load(Ordering::Relaxed);
+        (us > 0).then(|| us as f32 / 1000.0)
     }
 
     /// Fold a new sample into the running average.

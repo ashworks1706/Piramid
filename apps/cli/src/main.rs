@@ -103,14 +103,22 @@ enum OutputFormat {
     Json,
 }
 
+/// Run `action`, printing `context` and exiting 1 on failure.
+fn run_or_exit(action: impl FnOnce() -> std::io::Result<()>, context: &str) {
+    if let Err(e) = action() {
+        eprintln!("{context}: {e}");
+        std::process::exit(1);
+    }
+}
+
 fn main() {
     let cli = Cli::parse();
     match cli.command {
         Some(Commands::Init { path, format }) => {
-            if let Err(e) = write_config_file(&path, format) {
-                eprintln!("Failed to write config: {e}");
-                std::process::exit(1);
-            }
+            run_or_exit(
+                || write_config_file(&path, format),
+                "Failed to write config",
+            );
             println!("Wrote config to {}", path.display());
         }
         Some(Commands::SupportBundle {
@@ -118,16 +126,16 @@ fn main() {
             config,
             data_dir,
         }) => {
-            if let Err(e) = support_bundle(output, config, data_dir) {
-                eprintln!("Failed to write support bundle: {e}");
-                std::process::exit(1);
-            }
+            run_or_exit(
+                || support_bundle(output, config, data_dir),
+                "Failed to write support bundle",
+            );
         }
         Some(Commands::Show { command }) => {
-            if let Err(e) = handle_show_command(command) {
-                eprintln!("Failed to show information: {e}");
-                std::process::exit(1);
-            }
+            run_or_exit(
+                || handle_show_command(command),
+                "Failed to show information",
+            );
         }
         Some(Commands::Serve {
             config,
@@ -144,17 +152,11 @@ fn main() {
             if let Some(dir) = data_dir {
                 std::env::set_var("DATA_DIR", dir);
             }
-            if let Err(e) = start_server_inline() {
-                eprintln!("Failed to start piramid-server: {e}");
-                std::process::exit(1);
-            }
+            run_or_exit(start_server_inline, "Failed to start piramid-server");
         }
         None => {
             let mut command = Cli::command();
-            if let Err(e) = command.print_help() {
-                eprintln!("Failed to print help: {e}");
-                std::process::exit(1);
-            }
+            run_or_exit(|| command.print_help(), "Failed to print help");
             println!();
         }
     }

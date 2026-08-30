@@ -172,7 +172,6 @@ impl ProductQuantizedVector {
 
         let mut values = Vec::with_capacity(self.dim);
         let block_len = self.dim.div_ceil(self.subquantizers);
-        let mut idx = 0;
 
         for block_idx in 0..self.subquantizers {
             let start = block_idx * block_len;
@@ -181,16 +180,16 @@ impl ProductQuantizedVector {
             }
             let end = (start + block_len).min(self.dim);
             let range = (self.block_maxs[block_idx] - self.block_mins[block_idx]).max(f32::EPSILON);
+            let block_min = self.block_mins[block_idx];
 
-            for _ in start..end {
-                let code = self.codes.get(idx).copied().ok_or_else(|| {
-                    ComputeError::InvalidEncoding(format!(
-                        "PQ vector missing code at position {idx}"
-                    ))
-                })?;
+            let codes = self.codes.get(start..end).ok_or_else(|| {
+                ComputeError::InvalidEncoding(format!(
+                    "PQ vector missing codes for block {block_idx}"
+                ))
+            })?;
+            for &code in codes {
                 let normalized = f32::from(code) / 255.0;
-                values.push(normalized * range + self.block_mins[block_idx]);
-                idx += 1;
+                values.push(normalized * range + block_min);
             }
         }
 

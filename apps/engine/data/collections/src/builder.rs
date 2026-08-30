@@ -50,10 +50,8 @@ impl CollectionBuilder {
 
         let loaded_vector_index = load_vector_index(path)?;
         let vector_index_missing = loaded_vector_index.is_none();
-        let mut vector_index = match loaded_vector_index {
-            Some(loaded_index) => loaded_index,
-            None => piramid_index::create_index(&config.index, index.len()),
-        };
+        let mut vector_index = loaded_vector_index
+            .unwrap_or_else(|| piramid_index::create_index(&config.index, index.len()));
 
         let min_seq = if config.wal.enabled {
             sidecars.load_wal_meta()?
@@ -78,32 +76,9 @@ impl CollectionBuilder {
             Vec::new()
         };
 
-        // Replay into a temporary collection: the WAL is only safe to clear once the replayed
-        // state is durable, so the checkpoint has to succeed first.
-
-        if !wal_entries.is_empty() {
-            let mut recovered_collection = Collection {
-                record_store,
-                index,
-                vector_index,
-                cache: CacheManager::new(config.cache),
-                config: config.clone(),
-                metadata,
-                path: path.to_string(),
-                checkpoint,
-            };
-
-            Self::replay_wal(&mut recovered_collection, wal_entries)?;
-
-            recovered_collection.rebuild_vector_cache()?;
-
-            super::checkpoint::checkpoint(&mut recovered_collection)?;
-
-            return Ok(recovered_collection);
-        }
-
-        // Records exist but the ANN sidecar does not — rebuild it from the record store.
-        if !index.is_empty() && vector_index_missing {
+        // Records exist but the ANN sidecar does not — rebuild it from the record store. Skipped
+        // when the WAL is about to replay, since replay reinserts every vector anyway.
+        if wal_entries.is_empty() && !index.is_empty() && vector_index_missing {
             Self::rebuild_vector_index(&mut vector_index, &index, &record_store)?;
         }
 
@@ -118,6 +93,15 @@ impl CollectionBuilder {
             checkpoint,
         };
 
+        // The WAL is only safe to clear once the replayed state is durable, so the checkpoint
+        // has to succeed first.
+        if !wal_entries.is_empty() {
+            Self::replay_wal(&mut collection, wal_entries)?;
+            collection.rebuild_vector_cache()?;
+            super::checkpoint::checkpoint(&mut collection)?;
+            return Ok(collection);
+        }
+
         collection.rebuild_vector_cache()?;
         Ok(collection)
     }
@@ -125,7 +109,6 @@ impl CollectionBuilder {
     fn replay_wal(collection: &mut Collection, entries: Vec<WalEntry>) -> Result<()> {
         for entry in entries {
             match entry {
-                // An update is a delete followed by an insert so the ANN index sees the change.
                 WalEntry::Insert {
                     id,
                     vector,
@@ -133,15 +116,15 @@ impl CollectionBuilder {
                     metadata,
                     ..
                 } => {
-                    let vec_entry = Document {
+                    let document = Document {
                         id,
                         vector,
                         text,
                         metadata,
                     };
-                    super::operations::insert_internal(collection, vec_entry)?;
+                    super::operations::insert_internal(collection, document)?;
                 }
-
+                // An update is a delete followed by an insert so the ANN index sees the change.
                 WalEntry::Update {
                     id,
                     vector,
@@ -150,13 +133,13 @@ impl CollectionBuilder {
                     ..
                 } => {
                     super::operations::delete_internal(collection, &id);
-                    let vec_entry = Document {
+                    let document = Document {
                         id,
                         vector,
                         text,
                         metadata,
                     };
-                    super::operations::insert_internal(collection, vec_entry)?;
+                    super::operations::insert_internal(collection, document)?;
                 }
                 WalEntry::Delete { id, .. } => {
                     super::operations::delete_internal(collection, &id);

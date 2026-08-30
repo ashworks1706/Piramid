@@ -115,8 +115,8 @@ impl RecordStore {
         let offset = pointer.offset as usize;
         let length = pointer.length as usize;
         if let Some(mmap) = self.mmap.as_ref() {
-            if offset + length <= mmap.len() {
-                return Ok(mmap[offset..offset + length].to_vec());
+            if let Some(end) = offset.checked_add(length).filter(|&end| end <= mmap.len()) {
+                return Ok(mmap[offset..end].to_vec());
             }
         }
 

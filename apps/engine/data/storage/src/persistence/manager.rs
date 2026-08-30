@@ -2,7 +2,6 @@
 
 use std::collections::HashMap;
 use std::fs;
-use std::path::Path;
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -60,17 +59,14 @@ impl<'a> SidecarManager<'a> {
 
     /// Persist the offset index.
     pub fn save_offsets(&self, index: &HashMap<Uuid, EntryPointer>) -> Result<()> {
-        fs::write(self.offsets_path(), bincode::serialize(index)?)?;
-        Ok(())
+        Self::write_bincode(&self.offsets_path(), index)
     }
 
     /// Load the offset index; a missing sidecar is an empty collection.
     pub fn load_offsets(&self) -> Result<HashMap<Uuid, EntryPointer>> {
         let path = self.offsets_path();
-        let data = match fs::read(&path) {
-            Ok(data) => data,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(HashMap::new()),
-            Err(error) => return Err(error.into()),
+        let Some(data) = Self::read_optional(&path)? else {
+            return Ok(HashMap::new());
         };
         bincode::deserialize(&data).map_err(|e| {
             StorageError::CorruptedIndex(format!("failed to decode {path}: {e}")).into()
@@ -79,18 +75,15 @@ impl<'a> SidecarManager<'a> {
 
     /// Persist the collection manifest.
     pub fn save_manifest(&self, metadata: &CollectionMetadata) -> Result<()> {
-        fs::write(self.manifest_path(), bincode::serialize(metadata)?)?;
-        Ok(())
+        Self::write_bincode(&self.manifest_path(), metadata)
     }
 
     /// Load the manifest, refusing one written under a different schema version.
     pub fn load_manifest(&self) -> Result<Option<CollectionMetadata>> {
         let path = self.manifest_path();
-        if !Path::new(&path).exists() {
+        let Some(bytes) = Self::read_optional(&path)? else {
             return Ok(None);
-        }
-
-        let bytes = fs::read(&path)?;
+        };
         let metadata: CollectionMetadata = bincode::deserialize(&bytes)
             .map_err(|e| StorageError::CorruptedData(format!("failed to read manifest: {e}")))?;
         if metadata.schema_version != SCHEMA_VERSION {
@@ -119,12 +112,25 @@ impl<'a> SidecarManager<'a> {
 
     /// Last checkpointed WAL sequence; 0 when no checkpoint has ever happened.
     pub fn load_wal_meta(&self) -> Result<u64> {
-        let data = match fs::read(self.wal_meta_path()) {
-            Ok(data) => data,
-            Err(error) if error.kind() == std::io::ErrorKind::NotFound => return Ok(0),
-            Err(error) => return Err(error.into()),
+        let Some(data) = Self::read_optional(&self.wal_meta_path())? else {
+            return Ok(0);
         };
         let meta: WalMeta = serde_json::from_slice(&data)?;
         Ok(meta.last_checkpoint_seq)
+    }
+
+    /// Serializes `value` with bincode and writes it to `path`.
+    fn write_bincode<T: Serialize>(path: &str, value: &T) -> Result<()> {
+        fs::write(path, bincode::serialize(value)?)?;
+        Ok(())
+    }
+
+    /// Reads `path`, treating a missing file as absent rather than an error.
+    fn read_optional(path: &str) -> Result<Option<Vec<u8>>> {
+        match fs::read(path) {
+            Ok(data) => Ok(Some(data)),
+            Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+            Err(error) => Err(error.into()),
+        }
     }
 }

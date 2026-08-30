@@ -25,10 +25,10 @@ impl DistanceKernels for ScalarStrategy {
         let mut norm_a = 0.0;
         let mut norm_b = 0.0;
 
-        for i in 0..a.len() {
-            dot += a[i] * b[i];
-            norm_a += a[i] * a[i];
-            norm_b += b[i] * b[i];
+        for (&x, &y) in a.iter().zip(b) {
+            dot += x * y;
+            norm_a += x * x;
+            norm_b += y * y;
         }
 
         let denominator = norm_a.sqrt() * norm_b.sqrt();
@@ -41,8 +41,8 @@ impl DistanceKernels for ScalarStrategy {
 
     fn dot(&self, a: &[f32], b: &[f32]) -> f32 {
         let mut result = 0.0;
-        for i in 0..a.len() {
-            result += a[i] * b[i];
+        for (&x, &y) in a.iter().zip(b) {
+            result += x * y;
         }
         result
     }
@@ -53,8 +53,8 @@ impl DistanceKernels for ScalarStrategy {
 
     fn euclidean_squared(&self, a: &[f32], b: &[f32]) -> f32 {
         let mut sum_sq = 0.0;
-        for i in 0..a.len() {
-            let diff = a[i] - b[i];
+        for (&x, &y) in a.iter().zip(b) {
+            let diff = x - y;
             sum_sq += diff * diff;
         }
         sum_sq

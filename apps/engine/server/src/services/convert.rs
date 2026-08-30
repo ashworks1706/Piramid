@@ -20,26 +20,24 @@ pub fn parse_metric(metric: Option<String>) -> Result<Metric> {
     }
 }
 
+fn require_nonzero(value: usize, name: &str) -> Result<usize> {
+    if value == 0 {
+        return Err(ServerError::InvalidRequest(format!("{name} must be >= 1")).into());
+    }
+    Ok(value)
+}
+
 /// Layer per-request tuning onto a collection's configured defaults.
 pub fn apply_search_overrides(base: SearchConfig, tuning: &SearchTuning) -> Result<SearchConfig> {
     let mut cfg = base;
     if let Some(ef) = tuning.ef {
-        if ef == 0 {
-            return Err(ServerError::InvalidRequest("ef must be >= 1".to_string()).into());
-        }
-        cfg.ef = Some(ef);
+        cfg.ef = Some(require_nonzero(ef, "ef")?);
     }
     if let Some(nprobe) = tuning.nprobe {
-        if nprobe == 0 {
-            return Err(ServerError::InvalidRequest("nprobe must be >= 1".to_string()).into());
-        }
-        cfg.nprobe = Some(nprobe);
+        cfg.nprobe = Some(require_nonzero(nprobe, "nprobe")?);
     }
     if let Some(overfetch) = tuning.overfetch {
-        if overfetch == 0 {
-            return Err(ServerError::InvalidRequest("overfetch must be >= 1".to_string()).into());
-        }
-        cfg.filter_overfetch = overfetch;
+        cfg.filter_overfetch = require_nonzero(overfetch, "overfetch")?;
     }
     Ok(cfg)
 }

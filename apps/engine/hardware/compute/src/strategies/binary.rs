@@ -13,13 +13,10 @@ pub struct BinaryStrategy;
 /// Count positions where the two operands disagree in sign.
 #[inline]
 fn hamming(a: &[f32], b: &[f32]) -> u32 {
-    let mut distance = 0u32;
-    for i in 0..a.len() {
-        if (a[i] >= 0.0) != (b[i] >= 0.0) {
-            distance += 1;
-        }
-    }
-    distance
+    a.iter()
+        .zip(b)
+        .filter(|(&x, &y)| (x >= 0.0) != (y >= 0.0))
+        .count() as u32
 }
 
 impl DistanceKernels for BinaryStrategy {
@@ -45,13 +42,10 @@ impl DistanceKernels for BinaryStrategy {
     }
 
     fn dot(&self, a: &[f32], b: &[f32]) -> f32 {
-        let mut both_positive = 0u32;
-        for i in 0..a.len() {
-            if a[i] >= 0.0 && b[i] >= 0.0 {
-                both_positive += 1;
-            }
-        }
-        both_positive as f32
+        a.iter()
+            .zip(b)
+            .filter(|(&x, &y)| x >= 0.0 && y >= 0.0)
+            .count() as f32
     }
 
     fn euclidean(&self, a: &[f32], b: &[f32]) -> f32 {

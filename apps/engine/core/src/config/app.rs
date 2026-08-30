@@ -9,7 +9,7 @@ use super::{
 };
 use crate::config::{AutoIndexConfig, IndexConfig};
 
-#[derive(Debug, Clone, Serialize, Deserialize)]
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct AppConfig {
     pub index: IndexConfig,
     pub quantization: QuantizationConfig,
@@ -25,24 +25,6 @@ pub struct AppConfig {
     pub cache: CacheConfig,
     #[serde(default)]
     pub logging: LoggingConfig,
-}
-
-impl Default for AppConfig {
-    fn default() -> Self {
-        Self {
-            index: IndexConfig::default(),
-            quantization: QuantizationConfig::default(),
-            memory: MemoryConfig::default(),
-            wal: WalConfig::default(),
-            parallelism: ParallelismConfig::default(),
-            execution: ExecutionMode::Auto,
-            hardware: HardwareConfig::default(),
-            search: SearchConfig::default(),
-            limits: LimitsConfig::default(),
-            cache: CacheConfig::default(),
-            logging: LoggingConfig::default(),
-        }
-    }
 }
 
 impl AppConfig {

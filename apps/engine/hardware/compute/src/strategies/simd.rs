@@ -9,18 +9,15 @@ use crate::mode::ExecutionMode;
 #[derive(Debug, Default, Clone, Copy)]
 pub struct SimdStrategy;
 
-/// Load eight contiguous lanes starting at `offset`.
+/// Load an exact 8-element chunk into a lane vector.
+///
+/// Indexes rather than converting: callers only ever pass a `chunks_exact(8)` chunk, and if that
+/// invariant ever broke a bounds panic is the right answer. `try_into().unwrap_or([0.0; 8])` would
+/// silently score against zeros instead.
 #[inline(always)]
-fn load(v: &[f32], offset: usize) -> f32x8 {
+fn load(chunk: &[f32]) -> f32x8 {
     f32x8::new([
-        v[offset],
-        v[offset + 1],
-        v[offset + 2],
-        v[offset + 3],
-        v[offset + 4],
-        v[offset + 5],
-        v[offset + 6],
-        v[offset + 7],
+        chunk[0], chunk[1], chunk[2], chunk[3], chunk[4], chunk[5], chunk[6], chunk[7],
     ])
 }
 
@@ -38,16 +35,18 @@ impl DistanceKernels for SimdStrategy {
     }
 
     fn cosine(&self, a: &[f32], b: &[f32]) -> f32 {
-        let len = a.len();
         let mut dot_sum = f32x8::splat(0.0);
         let mut norm_a_sum = f32x8::splat(0.0);
         let mut norm_b_sum = f32x8::splat(0.0);
 
-        let chunks = len / 8;
-        for i in 0..chunks {
-            let offset = i * 8;
-            let va = load(a, offset);
-            let vb = load(b, offset);
+        let a_chunks = a.chunks_exact(8);
+        let b_chunks = b.chunks_exact(8);
+        let a_rem = a_chunks.remainder();
+        let b_rem = b_chunks.remainder();
+
+        for (ca, cb) in a_chunks.zip(b_chunks) {
+            let va = load(ca);
+            let vb = load(cb);
             dot_sum += va * vb;
             norm_a_sum += va * va;
             norm_b_sum += vb * vb;
@@ -57,10 +56,10 @@ impl DistanceKernels for SimdStrategy {
         let mut norm_a: f32 = norm_a_sum.to_array().iter().sum();
         let mut norm_b: f32 = norm_b_sum.to_array().iter().sum();
 
-        for i in (chunks * 8)..len {
-            dot += a[i] * b[i];
-            norm_a += a[i] * a[i];
-            norm_b += b[i] * b[i];
+        for (&x, &y) in a_rem.iter().zip(b_rem) {
+            dot += x * y;
+            norm_a += x * x;
+            norm_b += y * y;
         }
 
         let denominator = norm_a.sqrt() * norm_b.sqrt();
@@ -72,18 +71,20 @@ impl DistanceKernels for SimdStrategy {
     }
 
     fn dot(&self, a: &[f32], b: &[f32]) -> f32 {
-        let len = a.len();
         let mut sum = f32x8::splat(0.0);
 
-        let chunks = len / 8;
-        for i in 0..chunks {
-            let offset = i * 8;
-            sum += load(a, offset) * load(b, offset);
+        let a_chunks = a.chunks_exact(8);
+        let b_chunks = b.chunks_exact(8);
+        let a_rem = a_chunks.remainder();
+        let b_rem = b_chunks.remainder();
+
+        for (ca, cb) in a_chunks.zip(b_chunks) {
+            sum += load(ca) * load(cb);
         }
 
         let mut result: f32 = sum.to_array().iter().sum();
-        for i in (chunks * 8)..len {
-            result += a[i] * b[i];
+        for (&x, &y) in a_rem.iter().zip(b_rem) {
+            result += x * y;
         }
         result
     }
@@ -93,19 +94,21 @@ impl DistanceKernels for SimdStrategy {
     }
 
     fn euclidean_squared(&self, a: &[f32], b: &[f32]) -> f32 {
-        let len = a.len();
         let mut sum_sq = f32x8::splat(0.0);
 
-        let chunks = len / 8;
-        for i in 0..chunks {
-            let offset = i * 8;
-            let diff = load(a, offset) - load(b, offset);
+        let a_chunks = a.chunks_exact(8);
+        let b_chunks = b.chunks_exact(8);
+        let a_rem = a_chunks.remainder();
+        let b_rem = b_chunks.remainder();
+
+        for (ca, cb) in a_chunks.zip(b_chunks) {
+            let diff = load(ca) - load(cb);
             sum_sq += diff * diff;
         }
 
         let mut result: f32 = sum_sq.to_array().iter().sum();
-        for i in (chunks * 8)..len {
-            let diff = a[i] - b[i];
+        for (&x, &y) in a_rem.iter().zip(b_rem) {
+            let diff = x - y;
             result += diff * diff;
         }
         result

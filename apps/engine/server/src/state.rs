@@ -84,7 +84,7 @@ impl AppState {
         })
     }
 
-    pub fn get_existing_collection(&self, name: &str) -> Result<CollectionHandle> {
+    fn check_routable(&self, name: &str) -> Result<()> {
         if self.shutting_down.load(Ordering::Relaxed) {
             return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
         }
@@ -94,19 +94,16 @@ impl AppState {
             ))
             .into());
         }
+        Ok(())
+    }
+
+    pub fn get_existing_collection(&self, name: &str) -> Result<CollectionHandle> {
+        self.check_routable(name)?;
         self.collection_manager.get_existing(name)
     }
 
     pub fn get_or_create_collection(&self, name: &str) -> Result<CollectionHandle> {
-        if self.shutting_down.load(Ordering::Relaxed) {
-            return Err(ServerError::ServiceUnavailable("Server is shutting down".into()).into());
-        }
-        if let RouteDecision::Remote(node_id) = self.cluster_router.route_collection(name) {
-            return Err(ServerError::ServiceUnavailable(format!(
-                "collection '{name}' is assigned to remote node '{node_id}', but remote routing is not implemented"
-            ))
-            .into());
-        }
+        self.check_routable(name)?;
         self.collection_manager.get_or_create(name)
     }
 
@@ -154,22 +151,25 @@ impl AppState {
             )
             .into());
         }
-        if let Some(min_free) = self.disk_min_free_bytes {
-            if let Some(free) = self.disk_free_bytes()? {
-                if free < min_free {
-                    if self.disk_readonly_on_low_space {
-                        self.read_only.store(true, Ordering::Relaxed);
-                        return Err(ServerError::ServiceUnavailable(
-                            "Low disk space; write operations disabled".into(),
-                        )
-                        .into());
-                    } else {
-                        tracing::warn!(free_bytes = free, min_free = min_free, "disk_space_low");
-                    }
-                }
-            }
+
+        let Some(min_free) = self.disk_min_free_bytes else {
+            return Ok(());
+        };
+        let Some(free) = self.disk_free_bytes()? else {
+            return Ok(());
+        };
+        if free >= min_free {
+            return Ok(());
         }
-        Ok(())
+        if !self.disk_readonly_on_low_space {
+            tracing::warn!(free_bytes = free, min_free = min_free, "disk_space_low");
+            return Ok(());
+        }
+        self.read_only.store(true, Ordering::Relaxed);
+        Err(
+            ServerError::ServiceUnavailable("Low disk space; write operations disabled".into())
+                .into(),
+        )
     }
 
     pub fn enforce_cache_budget(&self) {

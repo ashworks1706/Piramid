@@ -70,17 +70,18 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         let count = collection_guard.count();
         let index_type = collection_guard.vector_index().index_type().to_string();
         let memory_usage_bytes = collection_guard.memory_usage_bytes()?;
-        let (insert_latency_ms, search_latency_ms, lock_read_ms, lock_write_ms) =
-            if let Some(tracker) = state.collection_manager.tracker(&collection_name) {
+        let (insert_latency_ms, search_latency_ms, lock_read_ms, lock_write_ms) = state
+            .collection_manager
+            .tracker(&collection_name)
+            .map(|tracker| {
                 (
                     tracker.avg_insert_latency_ms(),
                     tracker.avg_search_latency_ms(),
                     tracker.avg_lock_read_latency_ms(),
                     tracker.avg_lock_write_latency_ms(),
                 )
-            } else {
-                (None, None, None, None)
-            };
+            })
+            .unwrap_or_default();
 
         total_vectors += count;
         let (search_overfetch, hnsw_ef_search, ivf_nprobe) = match &collection_guard.config.index {

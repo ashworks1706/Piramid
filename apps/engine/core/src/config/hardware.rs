@@ -12,7 +12,7 @@ pub enum HardwareProfile {
     Memory32Gb,
 }
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub struct HardwareConfig {
     #[serde(default)]
     pub profile: HardwareProfile,
@@ -24,16 +24,4 @@ pub struct HardwareConfig {
     pub gpu_enabled: bool,
     #[serde(default)]
     pub gpu_memory_budget_bytes: Option<u64>,
-}
-
-impl Default for HardwareConfig {
-    fn default() -> Self {
-        Self {
-            profile: HardwareProfile::Auto,
-            cpu_threads: None,
-            memory_budget_bytes: None,
-            gpu_enabled: false,
-            gpu_memory_budget_bytes: None,
-        }
-    }
 }
