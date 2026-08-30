@@ -9,7 +9,7 @@ use piramid_core::error::Result;
 use piramid_core::metadata::Filter;
 use piramid_core::metadata::Metadata;
 
-pub use piramid_storage::vectors::{HashMapVectorReader, SlabVectorReader, VectorReader};
+pub use piramid_storage::vectors::{HashMapVectorReader, VectorReader};
 
 /// Read-only access to per-document metadata during a search.
 pub trait MetadataReader: Sync {

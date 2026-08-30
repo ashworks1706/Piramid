@@ -2,7 +2,6 @@
 
 ## Now (v0.3.0) — make the batch path reachable
 
-- [ ] add unit tests for `VectorSlab` — push, replace, ordinals, row bounds, gather
 - [ ] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
 - [ ] split `ExecutionMode`'s two axes once that bench exists. `ParallelBackend` runs a scalar
       inner loop, so "SIMD across all cores" — the fastest CPU configuration — cannot currently be
@@ -12,7 +11,10 @@
 
 ## Now (v0.3.0) — contiguous layout
 
-- [ ] migrate `cache::VectorStore` onto `VectorSlab`, make `SlabVectorReader` the default reader
+- [ ] make `cache::VectorStore` contiguous: one `Vec<f32>` at a fixed stride plus a
+      `Uuid → u32` ordinal map, implementing `VectorReader::as_slab`. Removal is the open design
+      question — a slab cannot cheaply delete a row, so it needs a tombstone or swap-remove story
+      settled alongside HNSW's. Write it with tests this time
 - [ ] re-run the compute bench: scattered vs contiguous candidates, same kernel
 - [ ] use `u32` ordinals instead of `Uuid` in HNSW adjacency lists (sidecar format bump + load path)
 

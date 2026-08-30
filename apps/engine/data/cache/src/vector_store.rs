@@ -9,8 +9,11 @@ use uuid::Uuid;
 ///
 /// Not a cache: the ANN indexes hold ids and resolve them here, so an evicted entry is a search
 /// failure, not a slower search. Bounding memory happens by evicting the [`MetadataCache`]
-/// (crate::MetadataCache), never this. The planned `VectorSlab` migration replaces the backing
-/// map, not this contract.
+/// (crate::MetadataCache), never this.
+///
+/// The backing map is one allocation per vector, which no prefetcher can stride and no device can
+/// upload in one copy. Making it contiguous is a v0.3.0 roadmap item; it changes this type's
+/// internals and its `VectorReader::as_slab`, not its contract.
 #[derive(Default)]
 pub struct VectorStore {
     vectors: HashMap<Uuid, Vec<f32>>,

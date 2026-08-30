@@ -27,11 +27,10 @@ pub use error::{ErrorContext, PiramidError, Result};
 pub use gpu::{Device, DeviceBuffer, GpuError, Stream};
 pub use index::{
     FlatConfig, FlatIndex, HashMapVectorReader, HnswConfig, HnswIndex, IndexConfig,
-    IndexSearchRequest, IndexStats, IndexType, IvfConfig, IvfIndex, MetadataReader,
-    SlabVectorReader, VectorIndex, VectorReader,
+    IndexSearchRequest, IndexStats, IndexType, IvfConfig, IvfIndex, MetadataReader, VectorIndex,
+    VectorReader,
 };
 pub use metadata::{metadata, Filter, FilterCondition, Metadata, MetadataValue};
 pub use quantization::QuantizedVector;
 pub use search::{Hit, SearchParams};
-pub use storage::vectors::VectorSlab;
 pub use storage::{CollectionMetadata, Document};

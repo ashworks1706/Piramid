@@ -4,8 +4,6 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-use crate::vectors::slab::VectorSlab;
-
 /// Read-only access to a collection's vectors.
 pub trait VectorReader: Sync {
     /// Vector for `id`, if present.
@@ -28,6 +26,10 @@ pub trait VectorReader: Sync {
     }
 
     /// The whole vector set as one contiguous row-major `(data, dim)` slice, if stored that way.
+    ///
+    /// The device-upload seam (ADR 0005): a reader that is already contiguous returns its buffer
+    /// and a batch kernel or `cudaMemcpy` takes it in one copy. Nothing implements it yet — the
+    /// contiguous store is a v0.3.0 roadmap item — so every reader falls back to `gather_into`.
     fn as_slab(&self) -> Option<(&[f32], usize)> {
         None
     }
@@ -72,43 +74,5 @@ impl VectorReader for HashMapVectorReader<'_> {
 
     fn len(&self) -> usize {
         self.vectors.len()
-    }
-}
-
-/// A [`VectorReader`] over a contiguous [`VectorSlab`].
-pub struct SlabVectorReader<'a> {
-    slab: &'a VectorSlab,
-}
-
-impl<'a> SlabVectorReader<'a> {
-    /// Borrow a slab as a reader.
-    pub fn new(slab: &'a VectorSlab) -> Self {
-        Self { slab }
-    }
-}
-
-impl VectorReader for SlabVectorReader<'_> {
-    fn get(&self, id: &Uuid) -> Option<&[f32]> {
-        self.slab.get(id)
-    }
-
-    fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = (Uuid, &'a [f32])> + 'a> {
-        Box::new(self.slab.iter())
-    }
-
-    fn len(&self) -> usize {
-        self.slab.len()
-    }
-
-    fn dim(&self) -> Option<usize> {
-        Some(self.slab.dim())
-    }
-
-    fn as_slab(&self) -> Option<(&[f32], usize)> {
-        Some((self.slab.data(), self.slab.dim()))
-    }
-
-    fn gather_into(&self, ids: &[Uuid], out: &mut [f32]) -> Option<()> {
-        self.slab.gather_into(ids, out)
     }
 }

@@ -82,7 +82,7 @@ flowchart TD
     Embeddings[embeddings<br/>openai · ollama]
     Search[search<br/>planning · filtering · ranking]
     Index[index<br/>flat · hnsw · ivf]
-    Storage[storage<br/>records · WAL · sidecars · mmap · slab]
+    Storage[storage<br/>records · WAL · sidecars · mmap · readers]
     Core[core<br/>error · config · metadata · validation · stats]
     Compute[compute<br/>distance kernels · dispatch · quantization]
     Gpu[gpu<br/>device · buffer · stream · module]
@@ -239,9 +239,10 @@ index. Cache-backed today, slab-backed or mmap-backed later.
 returns `None` rather than silently copying, because hiding that cost would make the CPU/device
 choice unmeasurable. `gather_into()` is the portable fallback. Both have defaults.
 
-`VectorSlab` is a contiguous `Vec<f32>` with a stride and a `Uuid → u32` ordinal map. It exists and
-isn't the default yet; migrating `cache::VectorStore` onto it is on the roadmap and can happen one call
-site at a time because `as_slab` is optional.
+A contiguous store — one `Vec<f32>` at a fixed stride, with a `Uuid → u32` ordinal map so hot
+structures hold a 4-byte handle instead of a 16-byte key — is what makes `as_slab` return `Some`.
+It does not exist yet: making `cache::VectorStore` contiguous is a v0.3.0 roadmap item, and
+because `as_slab` is optional it can land one reader at a time.
 
 ### inference::augment::RetrievalHook
 

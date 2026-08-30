@@ -51,7 +51,7 @@ apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
 apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
 apps/engine/hardware/gpu          device, buffer, stream, module, kernels
-apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorSlab
+apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorReader
 apps/engine/data/cache            VectorStore (resident), MetadataCache (bounded),
                                   CacheManager owning both
 apps/engine/data/collections      the Collection object, checkpoint, compact

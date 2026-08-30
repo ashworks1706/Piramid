@@ -12,7 +12,7 @@ pub use piramid_core::config::{AutoIndexConfig, IndexConfig, IndexKind};
 pub use selector::create_index;
 pub use traits::{
     HashMapVectorReader, IndexDetails, IndexSearchRequest, IndexStats, IndexType, MetadataReader,
-    SerializableIndex, SlabVectorReader, VectorIndex, VectorReader,
+    SerializableIndex, VectorIndex, VectorReader,
 };
 
 pub use flat::{FlatConfig, FlatIndex};
