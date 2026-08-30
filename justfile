@@ -23,7 +23,7 @@ env:
 # Install the pre-commit hook (runs the gate for touched crates)
 hooks:
     git config core.hooksPath .githooks
-    @echo "hooks installed: .githooks/pre-commit"
+    @echo "hooks installed: pre-commit, pre-push"
 
 # Everything a fresh clone needs
 bootstrap: env hooks setup
