@@ -34,7 +34,7 @@ https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
 ### How it's put together
 
-Eleven library crates under `apps/engine`, plus the binary that links them. A crate may depend on
+Twelve library crates under `apps/engine`, plus the binary that links them. A crate may depend on
 one below it in the list; the reverse fails CI.
 
 ```mermaid
@@ -43,6 +43,7 @@ flowchart TD
     Server[server<br/>http · services · state]
     Inference[inference<br/>forward pass · retrieval seam]
     Collections[collections]
+    Cache[cache<br/>vector store · metadata cache]
     Embeddings[embeddings]
     Search[search]
     Index[index<br/>flat · hnsw · ivf]
@@ -57,6 +58,8 @@ flowchart TD
     Server --> Embeddings
     Inference --> Gpu
     Collections --> Search
+    Collections --> Cache
+    Cache --> Storage
     Search --> Index
     Index --> Storage
     Index --> Compute
