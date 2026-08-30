@@ -74,7 +74,7 @@ impl Embedder for OllamaEmbedder {
             let error_text = response
                 .text()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
+                .unwrap_or_else(|error| format!("<body unreadable: {error}>"));
 
             return Err(EmbeddingError::ApiError(format!(
                 "{}: {}",

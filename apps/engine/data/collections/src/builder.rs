@@ -6,7 +6,7 @@ use super::checkpoint::{load_wal_meta, CheckpointManager};
 use super::collection::Collection;
 use super::CollectionOpenOptions;
 use crate::cache::CacheManager;
-use piramid_core::error::Result;
+use piramid_core::error::{Result, StorageError};
 use piramid_index::load_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
@@ -23,10 +23,16 @@ impl CollectionBuilder {
 
         Collection::init_rayon_pool(&config.parallelism);
 
+        // Naming it "unknown" would put a collection on disk under a name that matches nothing
+        // the caller asked for, and every later lookup by name would miss.
         let collection_name = std::path::Path::new(path)
             .file_stem()
-            .and_then(|s| s.to_str())
-            .unwrap_or("unknown")
+            .and_then(|stem| stem.to_str())
+            .ok_or_else(|| {
+                StorageError::InvalidVectorData(format!(
+                    "collection path '{path}' has no usable file stem to name the collection"
+                ))
+            })?
             .to_string();
 
         let index = load_index(path)?;
