@@ -21,8 +21,8 @@ jobs:
       deps: ${{ steps.filter.outputs.deps }}
       rust: ${{ steps.filter.outputs.rust }}
     steps:
-      - uses: actions/checkout@v4
-      - uses: dorny/paths-filter@v3
+      - uses: actions/checkout@v7
+      - uses: dorny/paths-filter@v4
         id: filter
         with:
           filters: |
@@ -43,7 +43,7 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.deps == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - uses: EmbarkStudios/cargo-deny-action@v2
         with:
           command: check advisories bans licenses sources
@@ -55,7 +55,7 @@ jobs:
     if: github.event_name == 'schedule' || needs.changes.outputs.rust == 'true'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v7
       - name: Check allow(unsafe_code) sites against the known list
         shell: bash
         run: |
@@ -84,5 +84,5 @@ jobs:
     runs-on: ubuntu-latest
     if: github.event_name == 'pull_request' && needs.changes.outputs.deps == 'true'
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/dependency-review-action@v4
+      - uses: actions/checkout@v7
+      - uses: actions/dependency-review-action@v5
