@@ -9,9 +9,11 @@ use piramid_core::metadata::metadata;
 use piramid_server::http::handlers::{collections, vectors};
 use piramid_server::http::ApiResult;
 use piramid_server::runtime::AppState;
-use piramid_server::services::types::{InsertRequest, InsertResultsResponse, ListVectorsQuery};
+use piramid_server::services::types::{
+    InsertRequest, ListVectorsQuery, SearchRequest, SearchTuning,
+};
 use piramid_storage::Document;
-use std::{collections::HashMap, fs, sync::Arc};
+use std::{fs, sync::Arc};
 
 fn cleanup_dir(path: &str) {
     let _ = fs::remove_dir_all(path);
@@ -130,22 +132,17 @@ async fn insert_endpoint_creates_collection_intentionally() {
         State(state.clone()),
         Path("docs".to_string()),
         Json(InsertRequest {
-            vector: Some(vec![1.0, 0.0, 0.0]),
-            vectors: None,
-            text: Some("created by insert".to_string()),
-            texts: None,
-            metadata: HashMap::new(),
-            metadata_list: Vec::new(),
+            vectors: vec![vec![1.0, 0.0, 0.0]],
+            texts: vec!["created by insert".to_string()],
+            metadata: Vec::new(),
             normalize: false,
         }),
     )
     .await
     .expect("insert should create collection");
 
-    match response.0 {
-        InsertResultsResponse::Single(single) => assert!(!single.id.is_empty()),
-        InsertResultsResponse::Multi(_) => panic!("expected single insert response"),
-    }
+    assert_eq!(response.0.count, 1);
+    assert!(!response.0.ids[0].is_empty());
 
     assert_eq!(state.collection_manager.len(), 1);
     assert!(std::path::Path::new(&format!("{data_dir}/docs.db")).exists());
@@ -180,4 +177,53 @@ async fn read_endpoint_loads_existing_collection_from_disk() {
     assert_eq!(state.collection_manager.len(), 1);
 
     cleanup_dir(data_dir);
+}
+
+#[tokio::test]
+async fn search_applies_a_metadata_filter_from_the_request() {
+    let data_dir = concat!(env!("CARGO_TARGET_TMPDIR"), "/collection_manager_filter");
+    let state = test_state(data_dir);
+
+    let _ = vectors::insert_vector(
+        State(state.clone()),
+        Path("docs".to_string()),
+        Json(InsertRequest {
+            vectors: vec![vec![1.0, 0.0], vec![0.9, 0.1], vec![0.8, 0.2]],
+            texts: vec!["a".into(), "b".into(), "c".into()],
+            metadata: vec![
+                [("lang".to_string(), serde_json::json!("rust"))].into(),
+                [("lang".to_string(), serde_json::json!("go"))].into(),
+                [("lang".to_string(), serde_json::json!("rust"))].into(),
+            ],
+            normalize: false,
+        }),
+    )
+    .await
+    .expect("insert should succeed");
+
+    let mut ops = std::collections::HashMap::new();
+    ops.insert("eq".to_string(), serde_json::json!("rust"));
+    let mut filter = std::collections::HashMap::new();
+    filter.insert("lang".to_string(), ops);
+
+    let response = vectors::search_vectors(
+        State(state.clone()),
+        Path("docs".to_string()),
+        axum::Extension(piramid_server::http::request_id::RequestId("test".into())),
+        Json(SearchRequest {
+            vectors: vec![vec![1.0, 0.0]],
+            k: 10,
+            metric: None,
+            filter: Some(filter),
+            tuning: SearchTuning::default(),
+        }),
+    )
+    .await
+    .expect("search should succeed");
+
+    let hits = &response.0.results[0];
+    assert_eq!(hits.len(), 2, "only the two rust documents should survive");
+    for hit in hits {
+        assert_eq!(hit.metadata["lang"], serde_json::json!("rust"));
+    }
 }

@@ -27,8 +27,6 @@
 - [ ] fix the 21 `unwrap`/`expect` sites outside tests, then `deny` `unwrap_used`/`expect_used`
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
 - [ ] decide what happens to `cluster`
-- [ ] make `SearchConfig::adaptive` and `SearchConfig::budget` do something, or delete them.
-      `min_ef`, `max_ef`, `min_nprobe`, `max_nprobe`, `recall_target` are validated and never read
 - [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects
       both today
 

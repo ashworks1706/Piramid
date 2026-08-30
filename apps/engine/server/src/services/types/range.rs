@@ -1,23 +1,20 @@
 use serde::Deserialize;
+use std::collections::HashMap;
 
-fn default_k() -> usize {
-    10
-}
+use super::search::{default_k, SearchTuning};
 
+/// Search restricted to hits scoring at least `min_score`.
 #[derive(Deserialize)]
 pub struct RangeSearchRequest {
-    pub vector: Vec<f32>,
+    pub vectors: Vec<Vec<f32>>,
     pub min_score: f32,
     #[serde(default)]
     pub metric: Option<String>,
     #[serde(default = "default_k")]
     pub k: usize,
+    /// Metadata predicate, as `{"field": {"op": value}}`.
     #[serde(default)]
-    pub ef: Option<usize>,
-    #[serde(default)]
-    pub nprobe: Option<usize>,
-    #[serde(default)]
-    pub overfetch: Option<usize>,
-    #[serde(default)]
-    pub preset: Option<String>,
+    pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
+    #[serde(flatten)]
+    pub tuning: SearchTuning,
 }

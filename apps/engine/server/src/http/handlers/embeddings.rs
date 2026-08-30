@@ -13,7 +13,7 @@ pub async fn embed_text(
     State(state): State<SharedState>,
     Path(collection): Path<String>,
     Json(req): Json<EmbedRequest>,
-) -> Result<Json<EmbedResultsResponse>> {
+) -> Result<Json<EmbedResponse>> {
     Ok(Json(embedding::embed_text(&state, collection, req).await?))
 }
 

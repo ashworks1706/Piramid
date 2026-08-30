@@ -120,7 +120,7 @@ The checkpoint is triggered by two independent conditions: every `checkpoint_fre
 
 ![WAL rotation timeline -- a horizontal timeline showing WAL entries accumulating, a checkpoint marker where all in-memory state flushes to .db files, then the log rotating to a fresh file with the sequence continuing](https://miro.medium.com/1*_BVw40vMZQNUZNdz-MwlRg.png)
 
-The cost is real: for large HNSW graphs, serializing the vector index is expensive in both time and I/O. This is why the default interval is 1000 operations rather than something lower. The fast preset raises it to 10000; high-durability mode drops it to 100 and also flips `sync_on_write: true`. These presets map roughly to the LSM-tree levels-of-durability philosophy, where you're explicitly trading write throughput against recovery latency and data loss window.
+The cost is real: for large HNSW graphs, serializing the vector index is expensive in both time and I/O. This is why the default interval is 1000 operations rather than something lower. `checkpoint_frequency` and `sync_on_write` are the two knobs, set directly rather than through named durability levels: raising the frequency and enabling `fsync` trades write throughput for a shorter recovery and a smaller data-loss window, which is the same dial an LSM tree exposes.
 
 
 ### Compaction

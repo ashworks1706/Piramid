@@ -14,7 +14,7 @@ pub async fn insert_vector(
     State(state): State<SharedState>,
     Path(collection): Path<String>,
     Json(req): Json<InsertRequest>,
-) -> Result<Json<InsertResultsResponse>> {
+) -> Result<Json<InsertResponse>> {
     Ok(Json(vector::insert_vector(&state, collection, req)?))
 }
 
@@ -36,7 +36,7 @@ pub async fn list_vectors(
 pub async fn delete_vector(
     State(state): State<SharedState>,
     Path((collection, id)): Path<(String, String)>,
-) -> Result<Json<DeleteResultsResponse>> {
+) -> Result<Json<DeleteResponse>> {
     Ok(Json(vector::delete_vector(&state, collection, id)?))
 }
 
@@ -44,7 +44,7 @@ pub async fn delete_vectors(
     State(state): State<SharedState>,
     Path(collection): Path<String>,
     Json(req): Json<DeleteVectorsRequest>,
-) -> Result<Json<DeleteResultsResponse>> {
+) -> Result<Json<DeleteResponse>> {
     Ok(Json(vector::delete_vectors(&state, collection, req)?))
 }
 
@@ -53,7 +53,7 @@ pub async fn search_vectors(
     Path(collection): Path<String>,
     Extension(request_id): Extension<RequestId>,
     Json(req): Json<SearchRequest>,
-) -> Result<Json<SearchResultsResponse>> {
+) -> Result<Json<SearchResponse>> {
     Ok(Json(vector::search_vectors(
         &state,
         collection,

@@ -5,24 +5,33 @@ pub fn default_k() -> usize {
     10
 }
 
+/// Recall/speed knobs a request may override, shared by every search shape.
+#[derive(Deserialize, Clone, Default)]
+pub struct SearchTuning {
+    /// HNSW candidate-list width.
+    #[serde(default)]
+    pub ef: Option<usize>,
+    /// IVF partitions to scan.
+    #[serde(default)]
+    pub nprobe: Option<usize>,
+    /// Multiplier applied to `k` when a filter is present.
+    #[serde(default)]
+    pub overfetch: Option<usize>,
+}
+
+/// Search a collection with one or more query vectors.
 #[derive(Deserialize)]
 pub struct SearchRequest {
-    #[serde(default)]
-    pub vector: Option<Vec<f32>>,
-    #[serde(default)]
-    pub vectors: Option<Vec<Vec<f32>>>,
+    pub vectors: Vec<Vec<f32>>,
     #[serde(default = "default_k")]
     pub k: usize,
     #[serde(default)]
     pub metric: Option<String>,
+    /// Metadata predicate, as `{"field": {"op": value}}`.
     #[serde(default)]
-    pub ef: Option<usize>,
-    #[serde(default)]
-    pub nprobe: Option<usize>,
-    #[serde(default)]
-    pub overfetch: Option<usize>,
-    #[serde(default)]
-    pub preset: Option<String>,
+    pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
+    #[serde(flatten)]
+    pub tuning: SearchTuning,
 }
 
 #[derive(Serialize)]
@@ -33,23 +42,9 @@ pub struct HitResponse {
     pub metadata: HashMap<String, serde_json::Value>,
 }
 
+/// One result list per query vector, in request order.
 #[derive(Serialize)]
 pub struct SearchResponse {
-    pub results: Vec<HitResponse>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
-}
-
-#[derive(Serialize)]
-pub struct MultiSearchResponse {
     pub results: Vec<Vec<HitResponse>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
-}
-
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum SearchResultsResponse {
-    Single(SearchResponse),
-    Multi(MultiSearchResponse),
+    pub latency_ms: f32,
 }

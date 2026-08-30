@@ -1,12 +1,13 @@
-use std::collections::HashMap;
 use std::time::Instant;
 
 use crate::runtime::SharedState;
-use crate::services::convert::json_to_metadata;
-use crate::services::convert::{apply_search_overrides, hit_to_response, parse_metric};
+use crate::services::convert::{
+    apply_search_overrides, hit_to_response, json_to_metadata, parse_filter, parse_metric,
+};
 use crate::services::types::*;
 use crate::services::EMBEDDING_NOT_CONFIGURED;
 use piramid_core::error::{Result, ServerError};
+use piramid_core::metadata::Metadata;
 use piramid_core::stats::{record_lock_read, record_lock_write};
 use piramid_storage::Document;
 
@@ -28,15 +29,29 @@ fn ensure_available(state: &SharedState) -> Result<()> {
     name = "embed",
     target = "piramid::embeddings",
     skip_all,
-    fields(collection = %collection, texts = tracing::field::Empty)
+    fields(collection = %collection, texts = req.texts.len())
 )]
 pub async fn embed_text(
     state: &SharedState,
     collection: String,
     req: EmbedRequest,
-) -> Result<EmbedResultsResponse> {
+) -> Result<EmbedResponse> {
     ensure_available(state)?;
     state.ensure_write_allowed()?;
+
+    let EmbedRequest { texts, metadata } = req;
+    if texts.is_empty() {
+        return Err(ServerError::InvalidRequest("texts must not be empty".to_string()).into());
+    }
+    // A short list would silently leave the tail of the batch unlabelled.
+    if !metadata.is_empty() && metadata.len() != texts.len() {
+        return Err(ServerError::InvalidRequest(format!(
+            "metadata length mismatch: {} texts, {} metadata entries",
+            texts.len(),
+            metadata.len()
+        ))
+        .into());
+    }
 
     let collection_handle = state.get_or_create_collection(&collection)?;
     let embedder = state
@@ -46,109 +61,49 @@ pub async fn embed_text(
             EMBEDDING_NOT_CONFIGURED.to_string(),
         ))?;
 
-    tracing::Span::current().record("texts", req.texts.as_ref().map(Vec::len).unwrap_or(1));
+    tracing::info!(
+        target: "piramid::inference",
+        collection=%collection,
+        batch=texts.len(),
+        "embed_request"
+    );
 
-    match (req.text.clone(), req.texts.clone()) {
-        (Some(text), None) => {
-            tracing::info!(
-                target: "piramid::inference",
-                collection=%collection,
-                "embed_single_request"
-            );
-            let start = Instant::now();
-            let response = embedder.embed(&text).await?;
-            let embed_duration = start.elapsed();
-
-            let lock_start = Instant::now();
-            let mut collection_guard = collection_handle.write();
-            record_lock_write(
-                state.collection_manager.tracker(&collection).as_deref(),
-                lock_start,
-            );
-
-            let entry = Document::with_metadata(
-                response.embedding.clone(),
-                text,
-                json_to_metadata(req.metadata),
-            );
-            let id = collection_guard.insert(entry)?;
-            state.enforce_cache_budget();
-            state
-                .embed_metrics
-                .record(1, 1, response.tokens.unwrap_or(0) as u64, embed_duration);
-
-            Ok(EmbedResultsResponse::Single(EmbedResponse {
-                id: id.to_string(),
-                embedding: response.embedding,
-                tokens: response.tokens,
-            }))
+    let mut metadata = metadata.into_iter();
+    let mut embeddings = Vec::with_capacity(texts.len());
+    let mut entries = Vec::with_capacity(texts.len());
+    let mut total_tokens: u32 = 0;
+    let start = Instant::now();
+    for text in texts {
+        let response = embedder.embed(&text).await?;
+        embeddings.push(response.embedding.clone());
+        if let Some(tokens) = response.tokens {
+            total_tokens = total_tokens.saturating_add(tokens);
         }
-        (None, Some(texts)) => {
-            if texts.is_empty() {
-                return Err(
-                    ServerError::InvalidRequest("texts cannot be empty".to_string()).into(),
-                );
-            }
-            tracing::info!(
-                target: "piramid::inference",
-                collection=%collection,
-                batch=texts.len(),
-                "embed_batch_request"
-            );
-
-            let mut ids = Vec::with_capacity(texts.len());
-            let mut embeddings = Vec::with_capacity(texts.len());
-            let mut total_tokens: u32 = 0;
-            let mut entries = Vec::with_capacity(texts.len());
-            let start = Instant::now();
-            for (idx, text) in texts.iter().enumerate() {
-                let response = embedder.embed(text).await?;
-                embeddings.push(response.embedding.clone());
-                if let Some(tokens) = response.tokens {
-                    total_tokens = total_tokens.saturating_add(tokens);
-                }
-                let metadata = if idx < req.metadata_list.len() {
-                    json_to_metadata(req.metadata_list[idx].clone())
-                } else {
-                    json_to_metadata(HashMap::new())
-                };
-                entries.push(Document::with_metadata(
-                    response.embedding,
-                    text.clone(),
-                    metadata,
-                ));
-            }
-
-            let lock_start = Instant::now();
-            let mut collection_guard = collection_handle.write();
-            record_lock_write(
-                state.collection_manager.tracker(&collection).as_deref(),
-                lock_start,
-            );
-
-            let insert_ids = collection_guard.insert_batch(entries)?;
-            ids.extend(insert_ids.into_iter().map(|id| id.to_string()));
-            state.enforce_cache_budget();
-            state
-                .embed_metrics
-                .record(1, ids.len() as u64, total_tokens as u64, start.elapsed());
-
-            Ok(EmbedResultsResponse::Multi(MultiEmbedResponse {
-                ids,
-                embeddings,
-                total_tokens: if total_tokens > 0 {
-                    Some(total_tokens)
-                } else {
-                    None
-                },
-            }))
-        }
-        (Some(_), Some(_)) => Err(ServerError::InvalidRequest(
-            "Provide either text or texts, not both".to_string(),
-        )
-        .into()),
-        (None, None) => Err(ServerError::InvalidRequest("No text provided".to_string()).into()),
+        let metadata = match metadata.next() {
+            Some(map) => json_to_metadata(map)?,
+            None => Metadata::new(),
+        };
+        entries.push(Document::with_metadata(response.embedding, text, metadata));
     }
+
+    let lock_start = Instant::now();
+    let mut collection_guard = collection_handle.write();
+    record_lock_write(
+        state.collection_manager.tracker(&collection).as_deref(),
+        lock_start,
+    );
+
+    let ids = collection_guard.insert_batch(entries)?;
+    state.enforce_cache_budget();
+    state
+        .embed_metrics
+        .record(1, ids.len() as u64, total_tokens as u64, start.elapsed());
+
+    Ok(EmbedResponse {
+        ids: ids.into_iter().map(|id| id.to_string()).collect(),
+        embeddings,
+        total_tokens: (total_tokens > 0).then_some(total_tokens),
+    })
 }
 
 /// Embed a query string, then search with the resulting vector.
@@ -187,17 +142,12 @@ pub async fn search_by_text(
         .record(1, 1, response.tokens.unwrap_or(0) as u64, embed_duration);
 
     let metric = parse_metric(req.metric)?;
+    let filter = parse_filter(req.filter)?;
     let base_search = {
         let collection_guard = collection_handle.read();
         collection_guard.config().search
     };
-    let effective_search = apply_search_overrides(
-        base_search,
-        req.ef,
-        req.nprobe,
-        req.overfetch,
-        req.preset.clone(),
-    )?;
+    let effective_search = apply_search_overrides(base_search, &req.tuning)?;
 
     let lock_start = Instant::now();
     let collection_guard = collection_handle.read();
@@ -213,8 +163,8 @@ pub async fn search_by_text(
         metric,
         piramid_search::SearchParams {
             mode: collection_guard.config().execution,
-            filter: None,
-            filter_overfetch_override: req.overfetch,
+            filter: filter.as_ref(),
+            filter_overfetch_override: req.tuning.overfetch,
             search_config_override: Some(effective_search),
         },
     )?;
@@ -233,7 +183,7 @@ pub async fn search_by_text(
     }
 
     Ok(SearchResponse {
-        results: results.into_iter().map(hit_to_response).collect(),
-        latency_ms: Some(duration.as_millis() as f32),
+        results: vec![results.into_iter().map(hit_to_response).collect()],
+        latency_ms: duration.as_millis() as f32,
     })
 }

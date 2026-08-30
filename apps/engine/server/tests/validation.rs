@@ -38,14 +38,40 @@ fn validate_batch_sizes() {
 }
 
 #[test]
-fn invalid_metric_and_search_preset_are_rejected() {
+fn invalid_metric_is_rejected() {
     assert!(piramid_server::services::convert::parse_metric(Some("cosinee".into())).is_err());
-    assert!(piramid_server::services::convert::apply_search_overrides(
-        piramid_core::config::SearchConfig::default(),
-        None,
-        None,
-        None,
-        Some("balanced".into()),
-    )
-    .is_err());
+    assert!(piramid_server::services::convert::parse_metric(Some("dot_product".into())).is_err());
+    assert!(piramid_server::services::convert::parse_metric(Some("dot".into())).is_ok());
+}
+
+#[test]
+fn zero_valued_tuning_knobs_are_rejected() {
+    use piramid_server::services::types::SearchTuning;
+    let base = piramid_core::config::SearchConfig::default();
+    for tuning in [
+        SearchTuning {
+            ef: Some(0),
+            ..Default::default()
+        },
+        SearchTuning {
+            nprobe: Some(0),
+            ..Default::default()
+        },
+        SearchTuning {
+            overfetch: Some(0),
+            ..Default::default()
+        },
+    ] {
+        assert!(piramid_server::services::convert::apply_search_overrides(base, &tuning).is_err());
+    }
+}
+
+#[test]
+fn unknown_filter_operators_are_rejected() {
+    use std::collections::HashMap;
+    let mut ops = HashMap::new();
+    ops.insert("between".to_string(), serde_json::json!(3));
+    let mut raw = HashMap::new();
+    raw.insert("year".to_string(), ops);
+    assert!(piramid_server::services::convert::parse_filter(Some(raw)).is_err());
 }

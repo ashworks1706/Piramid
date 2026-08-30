@@ -78,3 +78,9 @@ pub struct RebuildIndexStatusResponse {
     #[serde(skip_serializing_if = "Option::is_none")]
     pub error: Option<String>,
 }
+
+/// Result of deleting a collection.
+#[derive(Serialize)]
+pub struct DeleteCollectionResponse {
+    pub deleted: bool,
+}

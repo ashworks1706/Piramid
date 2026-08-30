@@ -74,7 +74,10 @@ pub fn get_collection(state: &SharedState, collection: String) -> Result<Collect
     Ok(collection_info(collection, &collection_guard))
 }
 
-pub fn delete_collection(state: &SharedState, collection: String) -> Result<DeleteResponse> {
+pub fn delete_collection(
+    state: &SharedState,
+    collection: String,
+) -> Result<DeleteCollectionResponse> {
     ensure_available(state)?;
 
     let existed = state.collection_manager.remove(&collection).is_some();
@@ -100,10 +103,7 @@ pub fn delete_collection(state: &SharedState, collection: String) -> Result<Dele
         }
     }
 
-    Ok(DeleteResponse {
-        deleted: existed,
-        latency_ms: None,
-    })
+    Ok(DeleteCollectionResponse { deleted: existed })
 }
 
 pub fn collection_count(state: &SharedState, collection: String) -> Result<CountResponse> {

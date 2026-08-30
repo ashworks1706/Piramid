@@ -69,26 +69,6 @@ impl AppConfig {
         if self.search.filter_overfetch == 0 {
             return Err("SEARCH filter_overfetch must be >= 1".into());
         }
-        if let Some(recall) = self.search.budget.recall_target {
-            if !(0.0..=1.0).contains(&recall) {
-                return Err("SEARCH budget recall_target must be between 0.0 and 1.0".into());
-            }
-        }
-        if self.search.adaptive.min_ef == 0
-            || self.search.adaptive.max_ef < self.search.adaptive.min_ef
-        {
-            return Err("SEARCH adaptive ef range is invalid".into());
-        }
-        if self.search.adaptive.min_nprobe == 0
-            || self.search.adaptive.max_nprobe < self.search.adaptive.min_nprobe
-        {
-            return Err("SEARCH adaptive nprobe range is invalid".into());
-        }
-        if self.search.adaptive.min_filter_overfetch == 0
-            || self.search.adaptive.max_filter_overfetch < self.search.adaptive.min_filter_overfetch
-        {
-            return Err("SEARCH adaptive filter_overfetch range is invalid".into());
-        }
         if self.memory.use_mmap && self.memory.initial_mmap_size == 0 {
             return Err("MEMORY initial_mmap_size must be > 0 when mmap is enabled".into());
         }
@@ -261,22 +241,8 @@ impl AppConfig {
                 .ok_or_else(|| format!("Invalid EXECUTION_MODE '{val}'"))?;
         }
 
-        if let Ok(val) = std::env::var("SEARCH_FILTER_OVERFETCH")
-            .or_else(|_| std::env::var("SEARCH_FILTER_EXPANSION"))
-        {
-            let factor = parse_env::<usize>("SEARCH_FILTER_OVERFETCH", &val)?;
-            self.search.filter_overfetch = factor.max(1);
-        }
-        if let Ok(val) = std::env::var("SEARCH_LATENCY_BUDGET_MS") {
-            self.search.budget.latency_budget_ms =
-                Some(parse_env::<u64>("SEARCH_LATENCY_BUDGET_MS", &val)?);
-        }
-        if let Ok(val) = std::env::var("SEARCH_RECALL_TARGET") {
-            self.search.budget.recall_target =
-                Some(parse_env::<f32>("SEARCH_RECALL_TARGET", &val)?);
-        }
-        if let Ok(val) = std::env::var("SEARCH_ADAPTIVE_ENABLED") {
-            self.search.adaptive.enabled = parse_bool_env("SEARCH_ADAPTIVE_ENABLED", &val)?;
+        if let Ok(val) = std::env::var("SEARCH_FILTER_OVERFETCH") {
+            self.search.filter_overfetch = parse_env::<usize>("SEARCH_FILTER_OVERFETCH", &val)?;
         }
 
         if let Ok(val) = std::env::var("QUANTIZATION_STAGE") {

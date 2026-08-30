@@ -17,7 +17,6 @@ mod quantization;
 mod search;
 mod search_mode;
 mod storage;
-mod tuning;
 mod wal;
 
 pub use app::AppConfig;
@@ -37,5 +36,4 @@ pub use quantization::{QuantizationConfig, QuantizationLevel, QuantizationStage}
 pub use search::SearchConfig;
 pub use search_mode::{RangeSearchParams, SearchMode};
 pub use storage::StorageConfig;
-pub use tuning::{AdaptiveTuningConfig, QueryBudgetConfig};
 pub use wal::WalConfig;

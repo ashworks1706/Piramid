@@ -1,42 +1,26 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::search::default_k;
+use super::search::{default_k, SearchTuning};
 
+/// Embed one or more texts and store them.
 #[derive(Deserialize)]
 pub struct EmbedRequest {
+    pub texts: Vec<String>,
+    /// One map per text. Empty means no metadata on any of them; otherwise it must be the same
+    /// length as `texts`.
     #[serde(default)]
-    pub text: Option<String>,
-    #[serde(default)]
-    pub texts: Option<Vec<String>>,
-    #[serde(default)]
-    pub metadata: HashMap<String, serde_json::Value>,
-    #[serde(default)]
-    pub metadata_list: Vec<HashMap<String, serde_json::Value>>,
+    pub metadata: Vec<HashMap<String, serde_json::Value>>,
 }
 
 #[derive(Serialize)]
 pub struct EmbedResponse {
-    pub id: String,
-    pub embedding: Vec<f32>,
-    pub tokens: Option<u32>,
-}
-
-#[derive(Serialize)]
-pub struct MultiEmbedResponse {
     pub ids: Vec<String>,
     pub embeddings: Vec<Vec<f32>>,
-    #[serde(skip_serializing_if = "Option::is_none")]
     pub total_tokens: Option<u32>,
 }
 
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum EmbedResultsResponse {
-    Single(EmbedResponse),
-    Multi(MultiEmbedResponse),
-}
-
+/// Embed `query` and search with the result.
 #[derive(Deserialize)]
 pub struct TextSearchRequest {
     pub query: String,
@@ -44,12 +28,9 @@ pub struct TextSearchRequest {
     pub k: usize,
     #[serde(default)]
     pub metric: Option<String>,
+    /// Metadata predicate, as `{"field": {"op": value}}`.
     #[serde(default)]
-    pub ef: Option<usize>,
-    #[serde(default)]
-    pub nprobe: Option<usize>,
-    #[serde(default)]
-    pub overfetch: Option<usize>,
-    #[serde(default)]
-    pub preset: Option<String>,
+    pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
+    #[serde(flatten)]
+    pub tuning: SearchTuning,
 }

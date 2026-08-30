@@ -31,7 +31,7 @@ pub async fn get_collection(
 pub async fn delete_collection(
     State(state): State<SharedState>,
     Path(collection): Path<String>,
-) -> Result<Json<DeleteResponse>> {
+) -> Result<Json<DeleteCollectionResponse>> {
     Ok(Json(collection::delete_collection(&state, collection)?))
 }
 

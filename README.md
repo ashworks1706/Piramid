@@ -105,20 +105,28 @@ curl -X POST http://localhost:6333/api/collections \
   -H "Content-Type: application/json" \
   -d '{"name": "docs"}'
 
-# Store a vector
+# Store vectors. Every write and query takes lists, one document per position.
 curl -X POST http://localhost:6333/api/collections/docs/vectors \
   -H "Content-Type: application/json" \
-  -d '{"vector": [0.1, 0.2, 0.3, 0.4], "text": "Hello world", "metadata": {"category": "greeting"}}'
+  -d '{"vectors": [[0.1, 0.2, 0.3, 0.4]], "texts": ["Hello world"],
+       "metadata": [{"category": "greeting"}]}'
 
 # Embed and store text (needs EMBEDDING_PROVIDER set)
 curl -X POST http://localhost:6333/api/collections/docs/embed \
   -H "Content-Type: application/json" \
-  -d '{"texts": ["hello", "bonjour"], "metadata_list": [{"lang": "en"}, {"lang": "fr"}]}'
+  -d '{"texts": ["hello", "bonjour"], "metadata": [{"lang": "en"}, {"lang": "fr"}]}'
 
-# Search
+# Search. One result list comes back per query vector, in request order.
 curl -X POST http://localhost:6333/api/collections/docs/search \
   -H "Content-Type: application/json" \
-  -d '{"vector": [0.1, 0.2, 0.3, 0.4], "k": 5}'
+  -d '{"vectors": [[0.1, 0.2, 0.3, 0.4]], "k": 5}'
+
+# Search with a metadata filter: {"field": {"op": value}},
+# where op is eq, ne, gt, gte, lt, lte, or in.
+curl -X POST http://localhost:6333/api/collections/docs/search \
+  -H "Content-Type: application/json" \
+  -d '{"vectors": [[0.1, 0.2, 0.3, 0.4]], "k": 5,
+       "filter": {"category": {"eq": "greeting"}}}'
 ```
 
 Operational endpoints: `/api/health`, `/api/readyz`, `/api/version`, `/api/metrics` for the JSON

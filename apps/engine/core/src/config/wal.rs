@@ -42,24 +42,4 @@ impl WalConfig {
             checkpoint_interval_secs: None,
         }
     }
-
-    pub fn high_durability() -> Self {
-        WalConfig {
-            enabled: true,
-            checkpoint_frequency: 100,
-            max_log_size: 50 * 1024 * 1024,
-            sync_on_write: true,
-            checkpoint_interval_secs: Some(1),
-        }
-    }
-
-    pub fn fast() -> Self {
-        WalConfig {
-            enabled: true,
-            checkpoint_frequency: 10000,
-            max_log_size: 500 * 1024 * 1024,
-            sync_on_write: false,
-            checkpoint_interval_secs: None,
-        }
-    }
 }

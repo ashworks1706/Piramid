@@ -1,4 +1,3 @@
-use std::collections::HashMap;
 use std::time::Instant;
 
 use uuid::Uuid;
@@ -6,81 +5,71 @@ use uuid::Uuid;
 use crate::runtime::SharedState;
 use crate::services::convert::json_to_metadata;
 use crate::services::types::{
-    DeleteResponse, DeleteResultsResponse, DeleteVectorsRequest, InsertRequest, InsertResponse,
-    InsertResultsResponse, MultiDeleteResponse, MultiInsertResponse, UpsertRequest, UpsertResponse,
+    DeleteResponse, DeleteVectorsRequest, InsertRequest, InsertResponse, UpsertRequest,
+    UpsertResponse,
 };
 use piramid_core::error::{Result, ServerError};
+use piramid_core::metadata::Metadata;
 use piramid_core::stats::record_lock_write;
 use piramid_core::validation;
 use piramid_storage::Document;
 
 use super::{ensure_available, MAX_BATCH_SIZE};
 
-fn build_single_entry(mut req: InsertRequest) -> Result<Document> {
-    let text = req.text.clone().ok_or_else(|| {
-        ServerError::InvalidRequest("text is required for single insert".to_string())
-    })?;
-    validation::validate_text(&text)?;
-    let vector = req.vector.take().ok_or_else(|| {
-        ServerError::InvalidRequest("vector is required for single insert".to_string())
-    })?;
-    validation::validate_vector(&vector)?;
-    let vector = if req.normalize {
-        validation::normalize_vector(&vector)
-    } else {
-        vector
-    };
-    Ok(Document::with_metadata(
-        vector,
-        text,
-        json_to_metadata(req.metadata),
-    ))
-}
+/// Turn a request into documents, rejecting any length disagreement between its lists.
+fn build_entries(req: InsertRequest) -> Result<Vec<Document>> {
+    let InsertRequest {
+        vectors,
+        texts,
+        metadata,
+        normalize,
+    } = req;
 
-fn build_batch_entries(mut req: InsertRequest) -> Result<Vec<Document>> {
-    let vectors = req.vectors.take().ok_or_else(|| {
-        ServerError::InvalidRequest("vectors are required for batch insert".to_string())
-    })?;
-    let texts = req.texts.clone().ok_or_else(|| {
-        ServerError::InvalidRequest("texts are required for batch insert".to_string())
-    })?;
     validation::validate_batch_size(vectors.len(), MAX_BATCH_SIZE, "Insert")?;
-    if vectors.len() != texts.len() {
-        return Err(
-            ServerError::InvalidRequest("vectors and texts length mismatch".to_string()).into(),
-        );
+    if vectors.is_empty() {
+        return Err(ServerError::InvalidRequest("vectors must not be empty".to_string()).into());
     }
+    if vectors.len() != texts.len() {
+        return Err(ServerError::InvalidRequest(format!(
+            "vectors and texts length mismatch: {} vectors, {} texts",
+            vectors.len(),
+            texts.len()
+        ))
+        .into());
+    }
+    // A short list would silently leave the tail of the batch unlabelled.
+    if !metadata.is_empty() && metadata.len() != vectors.len() {
+        return Err(ServerError::InvalidRequest(format!(
+            "metadata length mismatch: {} vectors, {} metadata entries",
+            vectors.len(),
+            metadata.len()
+        ))
+        .into());
+    }
+
     validation::validate_vectors(&vectors)?;
     for text in &texts {
         validation::validate_text(text)?;
     }
 
-    let vectors = if req.normalize {
-        vectors
-            .iter()
-            .map(|vector| validation::normalize_vector(vector))
-            .collect()
-    } else {
-        vectors
-    };
-
+    let mut metadata = metadata.into_iter();
     let mut entries = Vec::with_capacity(vectors.len());
-    for (idx, vector) in vectors.into_iter().enumerate() {
-        let metadata = if idx < req.metadata_list.len() {
-            json_to_metadata(req.metadata_list[idx].clone())
+    for (vector, text) in vectors.into_iter().zip(texts) {
+        let vector = if normalize {
+            validation::normalize_vector(&vector)
         } else {
-            json_to_metadata(HashMap::new())
+            vector
         };
-        entries.push(Document::with_metadata(
-            vector,
-            texts[idx].clone(),
-            metadata,
-        ));
+        let metadata = match metadata.next() {
+            Some(map) => json_to_metadata(map)?,
+            None => Metadata::new(),
+        };
+        entries.push(Document::with_metadata(vector, text, metadata));
     }
     Ok(entries)
 }
 
-/// Insert one or more vectors.
+/// Insert documents.
 ///
 /// A write touches the WAL, the record store, the cache, and the index, so a slow one is
 /// ambiguous without a span to hang the sub-timings off.
@@ -93,20 +82,14 @@ fn build_batch_entries(mut req: InsertRequest) -> Result<Vec<Document>> {
 pub fn insert_vector(
     state: &SharedState,
     collection: String,
-    mut req: InsertRequest,
-) -> Result<InsertResultsResponse> {
+    req: InsertRequest,
+) -> Result<InsertResponse> {
     ensure_available(state)?;
     state.ensure_write_allowed()?;
     validation::validate_collection_name(&collection)?;
 
+    let entries = build_entries(req)?;
     let collection_handle = state.get_or_create_collection(&collection)?;
-    tracing::info!(
-        target: "piramid::writes",
-        collection=%collection,
-        single=req.vector.is_some(),
-        batch=req.vectors.as_ref().map(|vectors| vectors.len()),
-        "insert_request"
-    );
 
     let lock_start = Instant::now();
     let mut collection_guard = collection_handle.write();
@@ -115,64 +98,28 @@ pub fn insert_vector(
         lock_start,
     );
 
-    let response = match (req.vector.take(), req.vectors.take()) {
-        (Some(vector), None) => {
-            req.vector = Some(vector);
-            let entry = build_single_entry(req)?;
-            let start = Instant::now();
-            let id = collection_guard.insert(entry)?;
-            let duration = start.elapsed();
+    let start = Instant::now();
+    let ids = collection_guard.insert_batch(entries)?;
+    let duration = start.elapsed();
 
-            if let Some(tracker) = state.collection_manager.tracker(&collection) {
-                tracker.record_insert(duration);
-            }
-            state.enforce_cache_budget();
+    if let Some(tracker) = state.collection_manager.tracker(&collection) {
+        tracker.record_insert(duration);
+    }
+    state.enforce_cache_budget();
+    tracing::Span::current().record("inserted", ids.len());
 
-            tracing::Span::current().record("inserted", 1);
-            InsertResultsResponse::Single(InsertResponse {
-                id: id.to_string(),
-                latency_ms: Some(duration.as_millis() as f32),
-            })
-        }
-        (None, Some(vectors)) => {
-            req.vectors = Some(vectors);
-            let count = req.texts.as_ref().map(|texts| texts.len()).unwrap_or(0);
-            let entries = build_batch_entries(req)?;
-            let start = Instant::now();
-            let ids = collection_guard.insert_batch(entries)?;
-            let duration = start.elapsed();
-
-            if let Some(tracker) = state.collection_manager.tracker(&collection) {
-                tracker.record_insert(duration);
-            }
-            state.enforce_cache_budget();
-
-            tracing::Span::current().record("inserted", ids.len());
-            InsertResultsResponse::Multi(MultiInsertResponse {
-                ids: ids.into_iter().map(|id| id.to_string()).collect(),
-                count,
-                latency_ms: Some(duration.as_millis() as f32),
-            })
-        }
-        (Some(_), Some(_)) => {
-            return Err(ServerError::InvalidRequest(
-                "Provide either vector or vectors, not both".to_string(),
-            )
-            .into())
-        }
-        (None, None) => {
-            return Err(ServerError::InvalidRequest("No vectors provided".to_string()).into())
-        }
-    };
-
-    Ok(response)
+    Ok(InsertResponse {
+        count: ids.len(),
+        ids: ids.into_iter().map(|id| id.to_string()).collect(),
+        latency_ms: duration.as_millis() as f32,
+    })
 }
 
 pub fn delete_vector(
     state: &SharedState,
     collection: String,
     id: String,
-) -> Result<DeleteResultsResponse> {
+) -> Result<DeleteResponse> {
     ensure_available(state)?;
     state.ensure_write_allowed()?;
 
@@ -195,10 +142,10 @@ pub fn delete_vector(
         tracker.record_delete(duration);
     }
 
-    Ok(DeleteResultsResponse::Single(DeleteResponse {
-        deleted,
-        latency_ms: Some(duration.as_millis() as f32),
-    }))
+    Ok(DeleteResponse {
+        deleted_count: usize::from(deleted),
+        latency_ms: duration.as_millis() as f32,
+    })
 }
 
 /// Delete several vectors by id.
@@ -212,7 +159,7 @@ pub fn delete_vectors(
     state: &SharedState,
     collection: String,
     req: DeleteVectorsRequest,
-) -> Result<DeleteResultsResponse> {
+) -> Result<DeleteResponse> {
     ensure_available(state)?;
     state.ensure_write_allowed()?;
     validation::validate_collection_name(&collection)?;
@@ -241,10 +188,10 @@ pub fn delete_vectors(
         tracker.record_delete(duration);
     }
 
-    Ok(DeleteResultsResponse::Multi(MultiDeleteResponse {
+    Ok(DeleteResponse {
         deleted_count,
-        latency_ms: Some(duration.as_millis() as f32),
-    }))
+        latency_ms: duration.as_millis() as f32,
+    })
 }
 
 /// Insert a vector, replacing any existing one with the same id.
@@ -283,7 +230,7 @@ pub fn upsert_vector(
         Uuid::new_v4()
     };
     let exists = collection_guard.get(&id)?.is_some();
-    let mut entry = Document::with_metadata(req.vector, req.text, json_to_metadata(req.metadata));
+    let mut entry = Document::with_metadata(req.vector, req.text, json_to_metadata(req.metadata)?);
     entry.id = id;
 
     let start = Instant::now();
@@ -309,6 +256,6 @@ pub fn upsert_vector(
     Ok(UpsertResponse {
         id: id.to_string(),
         created: !exists,
-        latency_ms: Some(duration.as_millis() as f32),
+        latency_ms: duration.as_millis() as f32,
     })
 }

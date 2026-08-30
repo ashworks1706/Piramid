@@ -53,13 +53,7 @@ Range, equality, not-equal, and set membership are all supported. This all happe
 
 ### SearchConfig: the recall/latency dial
 
-Three named presets control how thoroughly the index is explored per query:
-
-| Preset | `ef` (HNSW) | `nprobe` (IVF) | Use case |
-|--------|-------------|----------------|----------|
-| `fast` | 50 | 1 | Batch pipelines, latency over recall |
-| `balanced` | default | default | General interactive RAG |
-| `high` | 400 | 20 | Compliance retrieval, precision-critical |
+Two knobs control how thoroughly the index is explored per query: `ef` for HNSW and `nprobe` for IVF. Both are set per collection and overridable per request. There are no named presets -- a preset is just a pair of numbers with a label on it, and the label makes it harder to see what you actually asked for.
 
 `ef` is the most important knob for HNSW. It sets the beam width for the layer-0 search: larger means the algorithm explores more of the graph before committing to a result set, which finds better neighbours but costs more CPU. A useful rule of thumb: at $ef = M \cdot k$ (for $M = 16$, $k = 10$: $ef = 160$) you typically see Recall@10 above 95%. Pushing to $ef = 400$ usually hits 99%+. Cost scales roughly linearly with $ef$.
 

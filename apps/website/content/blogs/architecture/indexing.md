@@ -420,10 +420,7 @@ With the default `filter_overfetch = 10` and `k = 5`, the index fetches 50 candi
 
 > **When overfetch isn't enough:** for very selective filters (< 1% of vectors), even large overfetch values fail because the ANN graph simply can't surface enough candidates from a small eligible set in a single traversal. The right solution is a purpose-built filtered index (sometimes called "filtered HNSW" or "attribute-aware HNSW") that maintains separate entry points per filter category.
 
-The three `SearchConfig` presets are:
-- `fast()`: `ef = 50`, `nprobe = 1`: for batch pipelines where high throughput matters more than last-mile recall
-- `balanced()`: defaults (ef = config value, nprobe = config value), appropriate for most interactive RAG
-- `high()`: `ef = 400`, `nprobe = 20`, for compliance retrieval or precision-critical tasks
+`SearchConfig` carries `ef`, `nprobe`, and `filter_overfetch`. Each is `None` by default, meaning the index falls back to its own configured value; a request that sets one overrides it for that query only.
 
 ### Insert, update, and remove paths
 
@@ -431,8 +428,8 @@ All three index types implement the same `VectorIndex` trait:
 
 ```rust
 pub trait VectorIndex: Send + Sync {
-    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &HashMap<Uuid, Vec<f32>>);
-    fn search(&self, ...) -> Vec<Uuid>;
+    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()>;
+    fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>>;
     fn remove(&mut self, id: &Uuid);
     fn stats(&self) -> IndexStats;
     fn index_type(&self) -> IndexType;

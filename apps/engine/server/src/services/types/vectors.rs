@@ -1,46 +1,27 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-use super::common::DeleteResponse;
-
+/// Insert one or more documents.
+///
+/// Always a list, even for one document. A singular shape alongside this one meant two request
+/// bodies, two response bodies and two validation paths for the same operation.
 #[derive(Deserialize)]
 pub struct InsertRequest {
+    pub vectors: Vec<Vec<f32>>,
+    pub texts: Vec<String>,
+    /// One map per vector. Empty means no metadata on any of them; otherwise it must be the same
+    /// length as `vectors`.
     #[serde(default)]
-    pub vector: Option<Vec<f32>>,
-    #[serde(default)]
-    pub vectors: Option<Vec<Vec<f32>>>,
-    #[serde(default)]
-    pub text: Option<String>,
-    #[serde(default)]
-    pub texts: Option<Vec<String>>,
-    #[serde(default)]
-    pub metadata: HashMap<String, serde_json::Value>,
-    #[serde(default)]
-    pub metadata_list: Vec<HashMap<String, serde_json::Value>>,
+    pub metadata: Vec<HashMap<String, serde_json::Value>>,
     #[serde(default)]
     pub normalize: bool,
 }
 
 #[derive(Serialize)]
 pub struct InsertResponse {
-    pub id: String,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
-}
-
-#[derive(Serialize)]
-pub struct MultiInsertResponse {
     pub ids: Vec<String>,
     pub count: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
-}
-
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum InsertResultsResponse {
-    Single(InsertResponse),
-    Multi(MultiInsertResponse),
+    pub latency_ms: f32,
 }
 
 #[derive(Serialize)]
@@ -69,17 +50,9 @@ pub struct DeleteVectorsRequest {
 }
 
 #[derive(Serialize)]
-pub struct MultiDeleteResponse {
+pub struct DeleteResponse {
     pub deleted_count: usize,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
-}
-
-#[derive(Serialize)]
-#[serde(untagged)]
-pub enum DeleteResultsResponse {
-    Single(DeleteResponse),
-    Multi(MultiDeleteResponse),
+    pub latency_ms: f32,
 }
 
 #[derive(Deserialize)]
@@ -97,6 +70,5 @@ pub struct UpsertRequest {
 pub struct UpsertResponse {
     pub id: String,
     pub created: bool,
-    #[serde(skip_serializing_if = "Option::is_none")]
-    pub latency_ms: Option<f32>,
+    pub latency_ms: f32,
 }

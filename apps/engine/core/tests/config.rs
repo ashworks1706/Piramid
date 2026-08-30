@@ -11,8 +11,6 @@ fn app_config_serializes_expanded_research_knobs() {
 
     assert!(yaml.contains("hardware:"));
     assert!(yaml.contains("logging:"));
-    assert!(yaml.contains("adaptive:"));
-    assert!(yaml.contains("budget:"));
     assert!(yaml.contains("preserve_raw_vectors: true"));
 }
 
@@ -47,8 +45,7 @@ limits: {}
     assert_eq!(cfg.logging.level, LogLevel::Info);
     assert_eq!(cfg.quantization.stage, QuantizationStage::Disabled);
     assert!(cfg.quantization.preserve_raw_vectors);
-    assert!(!cfg.search.adaptive.enabled);
-    assert_eq!(cfg.search.budget.latency_budget_ms, None);
+    assert_eq!(cfg.search.filter_overfetch, 10);
     cfg.validate().unwrap();
 }
 
@@ -90,9 +87,11 @@ fn auto_index_thresholds_are_configurable() {
 }
 
 #[test]
-fn invalid_research_config_fails_validation() {
+fn unimplemented_quantization_levels_fail_validation() {
     let mut cfg = AppConfig::default();
-    cfg.search.budget.recall_target = Some(1.5);
+    cfg.quantization.level = QuantizationLevel::Int4;
+    assert!(cfg.validate().is_err());
 
+    cfg.quantization.level = QuantizationLevel::Float16;
     assert!(cfg.validate().is_err());
 }
