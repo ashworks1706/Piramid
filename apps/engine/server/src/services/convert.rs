@@ -15,9 +15,9 @@ pub fn parse_metric(metric: Option<String>) -> Result<Metric> {
     match metric.as_deref() {
         None | Some("cosine") => Ok(Metric::Cosine),
         Some("euclidean") => Ok(Metric::Euclidean),
-        Some("dot") | Some("dot_product") => Ok(Metric::DotProduct),
+        Some("dot") => Ok(Metric::DotProduct),
         Some(other) => Err(ServerError::InvalidRequest(format!(
-            "Unknown metric '{other}'. Expected cosine, euclidean, dot, or dot_product"
+            "Unknown metric '{other}'. Expected cosine, euclidean, or dot"
         ))
         .into()),
     }

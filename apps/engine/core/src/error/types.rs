@@ -44,6 +44,9 @@ pub enum PiramidError {
     #[error("Embedding error: {0}")]
     Embedding(#[from] super::embedding::EmbeddingError),
 
+    #[error("Compute error: {0}")]
+    Compute(#[from] piramid_compute::ComputeError),
+
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
 
@@ -68,6 +71,7 @@ impl PiramidError {
             Self::Index(e) => e.is_recoverable(),
             Self::Server(e) => e.is_recoverable(),
             Self::Embedding(e) => e.is_recoverable(),
+            Self::Compute(_) => false,
             Self::Io(_) => false,
             Self::Serialization(_) => false,
             Self::Json(_) => false,
@@ -83,6 +87,7 @@ impl PiramidError {
         match self {
             Self::Server(e) => e.kind(),
             Self::Embedding(_) => ErrorKind::Upstream,
+            Self::Compute(_) => ErrorKind::Unavailable,
             Self::Storage(_) | Self::Index(_) | Self::Io(_) => ErrorKind::Internal,
             Self::Serialization(_) | Self::Json(_) | Self::Other(_) => ErrorKind::Internal,
         }

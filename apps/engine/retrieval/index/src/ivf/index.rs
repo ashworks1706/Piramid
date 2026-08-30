@@ -10,6 +10,7 @@ use uuid::Uuid;
 
 use super::config::IvfConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
+use piramid_compute::{backends::for_mode, DistanceKernels};
 use piramid_core::error::{IndexError, Result};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -39,10 +40,11 @@ impl IvfIndex {
     ///
     /// Offline work: centroids are rebuilt periodically, not on every insert. Runs until the
     /// centroids stop moving or `max_iterations` is reached.
-    pub fn build_clusters(&mut self, vectors: &dyn VectorReader) {
+    pub fn build_clusters(&mut self, vectors: &dyn VectorReader) -> Result<()> {
         if vectors.is_empty() {
-            return;
+            return Ok(());
         }
+        let kernels = for_mode(self.config.mode)?;
 
         let vector_list: Vec<(Uuid, Vec<f32>)> = vectors
             .iter()
@@ -64,7 +66,7 @@ impl IvfIndex {
             let mut clusters: Vec<Vec<(Uuid, Vec<f32>)>> = vec![Vec::new(); num_clusters];
 
             for (id, vec) in &vector_list {
-                let cluster_id = self.find_nearest_centroid(vec);
+                let cluster_id = self.find_nearest_centroid(vec, kernels)?;
                 clusters[cluster_id].push((*id, vec.clone()));
             }
 
@@ -76,11 +78,10 @@ impl IvfIndex {
 
                 let new_centroid = self.compute_centroid(cluster);
 
-                let distance = self.config.metric.calculate(
-                    &self.centroids[i],
-                    &new_centroid,
-                    self.config.mode,
-                );
+                let distance =
+                    self.config
+                        .metric
+                        .calculate(&self.centroids[i], &new_centroid, kernels);
                 if distance < 0.99 {
                     converged = false;
                 }
@@ -98,26 +99,27 @@ impl IvfIndex {
         self.pending_vectors.clear();
 
         for (id, vec) in &vector_list {
-            let cluster_id = self.find_nearest_centroid(vec);
+            let cluster_id = self.find_nearest_centroid(vec, kernels)?;
             self.inverted_lists[cluster_id].push(*id);
             self.vector_to_cluster.insert(*id, cluster_id);
         }
+        Ok(())
     }
 
-    fn find_nearest_centroid(&self, vector: &[f32]) -> usize {
+    /// Index of the centroid nearest `vector`. Errors when there are no centroids: cluster 0 is
+    /// not a safe stand-in, the caller would push into an empty inverted list.
+    fn find_nearest_centroid(
+        &self,
+        vector: &[f32],
+        kernels: &dyn DistanceKernels,
+    ) -> Result<usize> {
         self.centroids
             .iter()
             .enumerate()
-            .map(|(i, centroid)| {
-                let score = self
-                    .config
-                    .metric
-                    .calculate(vector, centroid, self.config.mode);
-                (i, score)
-            })
+            .map(|(i, centroid)| (i, self.config.metric.calculate(vector, centroid, kernels)))
             .max_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(std::cmp::Ordering::Equal))
             .map(|(i, _)| i)
-            .unwrap_or(0)
+            .ok_or_else(|| IndexError::NotInitialized.into())
     }
 
     fn compute_centroid(&self, cluster: &[(Uuid, Vec<f32>)]) -> Vec<f32> {
@@ -143,9 +145,9 @@ impl IvfIndex {
 }
 
 impl VectorIndex for IvfIndex {
-    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) {
+    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
         if self.vector_to_cluster.contains_key(&id) || self.pending_vectors.contains(&id) {
-            return;
+            return Ok(());
         }
 
         // Online insert: assign to the nearest existing centroid rather than retraining.
@@ -153,18 +155,22 @@ impl VectorIndex for IvfIndex {
             self.pending_vectors.insert(id);
 
             if vectors.len() >= self.config.num_clusters {
-                self.build_clusters(vectors);
+                self.build_clusters(vectors)?;
             }
-            return;
+            return Ok(());
         }
 
-        let cluster_id = self.find_nearest_centroid(vector);
+        let kernels = for_mode(self.config.mode)?;
+        let cluster_id = self.find_nearest_centroid(vector, kernels)?;
 
-        if cluster_id >= self.inverted_lists.len() {
-            return;
-        }
-        self.inverted_lists[cluster_id].push(id);
+        let list = self.inverted_lists.get_mut(cluster_id).ok_or_else(|| {
+            IndexError::SearchFailed(format!(
+                "IVF centroid {cluster_id} has no inverted list; the index needs a rebuild"
+            ))
+        })?;
+        list.push(id);
         self.vector_to_cluster.insert(id, cluster_id);
+        Ok(())
     }
 
     fn search(&self, request: crate::IndexSearchRequest<'_>) -> Result<Vec<Uuid>> {
@@ -178,18 +184,13 @@ impl VectorIndex for IvfIndex {
         if self.centroids.is_empty() {
             return Err(IndexError::NotInitialized.into());
         }
+        let kernels = for_mode(self.config.mode)?;
 
         let mut centroid_distances: Vec<(usize, f32)> = self
             .centroids
             .iter()
             .enumerate()
-            .map(|(i, centroid)| {
-                let score = self
-                    .config
-                    .metric
-                    .calculate(query, centroid, self.config.mode);
-                (i, score)
-            })
+            .map(|(i, centroid)| (i, self.config.metric.calculate(query, centroid, kernels)))
             .collect();
 
         centroid_distances
@@ -209,10 +210,7 @@ impl VectorIndex for IvfIndex {
                             "IVF index references missing vector {id}"
                         ))
                     })?;
-                    let score = self
-                        .config
-                        .metric
-                        .calculate(query, vector, self.config.mode);
+                    let score = self.config.metric.calculate(query, vector, kernels);
                     candidates.push((*id, score));
                 }
             }

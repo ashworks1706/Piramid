@@ -8,7 +8,6 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct CollectionMetadata {
-    #[serde(default = "default_schema_version")]
     pub schema_version: u32,
     pub name: String,
     pub created_at: u64, // Unix timestamp (seconds)
@@ -18,10 +17,6 @@ pub struct CollectionMetadata {
 }
 
 pub const SCHEMA_VERSION: u32 = 1;
-
-fn default_schema_version() -> u32 {
-    SCHEMA_VERSION
-}
 
 impl CollectionMetadata {
     pub fn new(name: String) -> Self {

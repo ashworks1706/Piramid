@@ -2,7 +2,6 @@ use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
 use piramid_core::metadata::Metadata;
-use piramid_core::Result;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -32,11 +31,8 @@ impl Document {
         }
     }
 
-    pub fn get_vector(&self) -> Vec<f32> {
-        self.vector.clone()
-    }
-
-    pub fn try_get_vector(&self) -> Result<Vec<f32>> {
-        Ok(self.get_vector())
+    /// The stored vector.
+    pub fn vector(&self) -> &[f32] {
+        &self.vector
     }
 }

@@ -41,7 +41,7 @@ fn basic_store_and_retrieve() {
 
     let retrieved = storage.get(&id).unwrap().unwrap();
     assert_eq!(retrieved.text, "test");
-    assert_eq!(retrieved.get_vector(), vec![1.0, 2.0, 3.0]);
+    assert_eq!(retrieved.vector(), vec![1.0, 2.0, 3.0]);
 
     drop(storage);
     cleanup_test_files(&files);
@@ -88,12 +88,12 @@ fn configured_quantization_does_not_quantize_stored_documents() {
             .insert(Document::new(vector.clone(), "raw vector".into()))
             .unwrap();
 
-        assert_eq!(storage.get(&id).unwrap().unwrap().get_vector(), vector);
+        assert_eq!(storage.get(&id).unwrap().unwrap().vector(), vector);
         id
     };
 
     let storage = Collection::open(test_path).unwrap();
-    assert_eq!(storage.get(&id).unwrap().unwrap().get_vector(), vector);
+    assert_eq!(storage.get(&id).unwrap().unwrap().vector(), vector);
 
     drop(storage);
     cleanup_test_files(&files);
@@ -256,7 +256,7 @@ fn no_mmap_insert_grows_file_without_panicking() {
 
     let retrieved = storage.get(&id).unwrap().unwrap();
     assert_eq!(retrieved.text, "large no-mmap document");
-    assert_eq!(retrieved.get_vector().len(), vector.len());
+    assert_eq!(retrieved.vector().len(), vector.len());
 
     drop(storage);
     cleanup_test_files(&files);
@@ -295,7 +295,7 @@ fn updates_write_one_wal_entry_each() {
         .unwrap();
     storage.update_vector(&id, vec![3.0, 2.0, 1.0]).unwrap();
     assert_eq!(
-        storage.get(&id).unwrap().unwrap().get_vector(),
+        storage.get(&id).unwrap().unwrap().vector(),
         vec![3.0, 2.0, 1.0]
     );
 
@@ -366,7 +366,7 @@ fn update_vector_persists_new_raw_vector_after_reopen() {
 
     let storage = Collection::open(test_path).unwrap();
     assert_eq!(
-        storage.get(&id).unwrap().unwrap().get_vector(),
+        storage.get(&id).unwrap().unwrap().vector(),
         vec![3.0, 2.0, 1.0]
     );
 

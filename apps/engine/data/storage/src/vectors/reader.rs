@@ -11,16 +11,6 @@ use uuid::Uuid;
 use crate::vectors::slab::VectorSlab;
 
 /// Read-only access to a collection's vectors.
-///
-/// # Contiguity
-///
-/// [`VectorReader::as_slab`] is the fast path: a reader whose backing store is already contiguous
-/// returns it, and callers can hand the slice straight to a batch kernel or a device upload. A
-/// reader that cannot returns `None`, and callers fall back to [`VectorReader::gather_into`].
-///
-/// Both have default implementations, so existing readers satisfy the trait unchanged and can be
-/// migrated one at a time.
-///
 /// Readers are `Sync` so batch search can fan queries across threads over one shared view.
 pub trait VectorReader: Sync {
     /// Vector for `id`, if present.

@@ -8,6 +8,7 @@ use uuid::Uuid;
 
 use super::config::FlatConfig;
 use crate::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
+use piramid_compute::backends::for_mode;
 use piramid_core::error::{IndexError, Result};
 
 #[derive(Clone, Serialize, Deserialize)]
@@ -25,11 +26,12 @@ impl FlatIndex {
     }
 }
 impl VectorIndex for FlatIndex {
-    fn insert(&mut self, id: Uuid, _vector: &[f32], _vectors: &dyn VectorReader) {
+    fn insert(&mut self, id: Uuid, _vector: &[f32], _vectors: &dyn VectorReader) -> Result<()> {
         // Only the id list; there is no structure to maintain.
         if !self.vector_ids.contains(&id) {
             self.vector_ids.push(id);
         }
+        Ok(())
     }
 
     // Scans every vector. Filters are ignored here and applied by the caller after ranking —
@@ -38,12 +40,13 @@ impl VectorIndex for FlatIndex {
         let crate::IndexSearchRequest {
             query, k, vectors, ..
         } = request;
+        let kernels = for_mode(self.config.mode)?;
         let mut distances = Vec::with_capacity(self.vector_ids.len());
         for id in &self.vector_ids {
             let vec = vectors.get(id).ok_or_else(|| {
                 IndexError::SearchFailed(format!("Flat index references missing vector {id}"))
             })?;
-            let score = self.config.metric.calculate(query, vec, self.config.mode);
+            let score = self.config.metric.calculate(query, vec, kernels);
             distances.push((*id, score));
         }
 

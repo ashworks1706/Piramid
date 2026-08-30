@@ -84,8 +84,9 @@ pub trait VectorIndex: Send + Sync {
     /// Add `vector` under `id`.
     ///
     /// `vectors` gives access to already-indexed vectors, which graph indexes need to compute
-    /// distances while linking the new node.
-    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader);
+    /// distances while linking the new node. Errors if the configured compute backend is not
+    /// available on this machine.
+    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()>;
 
     /// Return up to `request.k` neighbor ids, nearest first.
     fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>>;

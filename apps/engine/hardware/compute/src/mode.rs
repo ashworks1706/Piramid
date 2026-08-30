@@ -16,9 +16,7 @@ pub enum ExecutionMode {
     Auto,
     /// Portable scalar reference implementation.
     Scalar,
-    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`). `Jit` is an accepted alias, kept
-    /// so index sidecars persisted before the rename still deserialize.
-    #[serde(alias = "Jit")]
+    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`).
     Simd,
     /// Rayon-parallel CPU path, for vectors large enough to amortize the fan-out.
     Parallel,
@@ -92,8 +90,7 @@ impl ExecutionMode {
         match name {
             "auto" => Some(ExecutionMode::Auto),
             "scalar" => Some(ExecutionMode::Scalar),
-            // `jit` retained as an accepted spelling; it now selects the SIMD backend.
-            "simd" | "jit" => Some(ExecutionMode::Simd),
+            "simd" => Some(ExecutionMode::Simd),
             "parallel" => Some(ExecutionMode::Parallel),
             "binary" => Some(ExecutionMode::Binary),
             "gpu" => Some(ExecutionMode::Gpu),

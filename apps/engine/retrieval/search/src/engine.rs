@@ -6,7 +6,7 @@
 //! `collections/`.
 
 use crate::{utils::sort_and_truncate, Hit};
-use piramid_compute::{ExecutionMode, Metric};
+use piramid_compute::{backends::for_mode, ExecutionMode, Metric};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_core::metadata::Filter;
@@ -80,6 +80,7 @@ pub fn search(
         k
     };
 
+    let kernels = for_mode(params.mode)?;
     let neighbor_ids = target.index.search(
         IndexSearchRequest::new(
             query,
@@ -96,8 +97,8 @@ pub fn search(
         let entry = resolve(&id)?.ok_or_else(|| {
             IndexError::SearchFailed(format!("index returned missing document {id}"))
         })?;
-        let vec = entry.try_get_vector()?;
-        let score = metric.calculate(query, &vec, params.mode);
+        let vec = entry.vector().to_vec();
+        let score = metric.calculate(query, &vec, kernels);
         results.push(Hit {
             id,
             score,

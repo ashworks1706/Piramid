@@ -5,7 +5,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::mode::ExecutionMode;
+use crate::kernels::DistanceKernels;
 use crate::pairwise::{cosine_similarity, dot_product, euclidean_distance};
 
 /// How similarity between two vectors is measured.
@@ -26,11 +26,13 @@ pub enum Metric {
 
 impl Metric {
     /// Score `a` against `b` such that a higher result always means more similar.
-    pub fn calculate(&self, a: &[f32], b: &[f32], mode: ExecutionMode) -> f32 {
+    ///
+    /// `kernels` comes from [`crate::backends::for_mode`], resolved once by the caller.
+    pub fn calculate(&self, a: &[f32], b: &[f32], kernels: &dyn DistanceKernels) -> f32 {
         match self {
-            Metric::Cosine => cosine_similarity(a, b, mode),
-            Metric::Euclidean => 1.0 / (1.0 + euclidean_distance(a, b, mode)),
-            Metric::DotProduct => dot_product(a, b, mode),
+            Metric::Cosine => cosine_similarity(a, b, kernels),
+            Metric::Euclidean => 1.0 / (1.0 + euclidean_distance(a, b, kernels)),
+            Metric::DotProduct => dot_product(a, b, kernels),
         }
     }
 
@@ -39,7 +41,7 @@ impl Metric {
         match self {
             Metric::Cosine => "cosine",
             Metric::Euclidean => "euclidean",
-            Metric::DotProduct => "dot_product",
+            Metric::DotProduct => "dot",
         }
     }
 }

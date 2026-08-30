@@ -12,7 +12,7 @@ pub fn update_metadata(storage: &mut Collection, id: &Uuid, metadata: Metadata) 
     if let Some(entry) = get(storage, id)? {
         let mut wal_entry = WalEntry::Update {
             id: *id,
-            vector: entry.try_get_vector()?,
+            vector: entry.vector().to_vec(),
             text: entry.text.clone(),
             metadata: metadata.clone(),
             seq: 0,
@@ -63,7 +63,7 @@ pub fn update_vector(storage: &mut Collection, id: &Uuid, vector: Vec<f32>) -> R
         storage.cache.put_vector(*id, vector.clone());
         storage.cache.put_metadata(*id, entry.metadata.clone());
         storage.vector_index.remove(id);
-        storage.vector_index.insert(*id, &vector, &storage.cache);
+        storage.vector_index.insert(*id, &vector, &storage.cache)?;
         storage.metadata.update_vector_count(storage.index.len());
         storage.track_operation()?;
         Ok(true)

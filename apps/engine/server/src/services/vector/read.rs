@@ -30,7 +30,7 @@ pub fn get_vector(state: &SharedState, collection: String, id: String) -> Result
         .ok_or(ServerError::NotFound(VECTOR_NOT_FOUND.to_string()))?;
     Ok(VectorResponse {
         id: entry.id.to_string(),
-        vector: entry.try_get_vector()?,
+        vector: entry.vector().to_vec(),
         text: entry.text,
         metadata: metadata_to_json(&entry.metadata),
     })
@@ -59,7 +59,7 @@ pub fn list_vectors(
         .map(|entry| {
             Ok(VectorResponse {
                 id: entry.id.to_string(),
-                vector: entry.try_get_vector()?,
+                vector: entry.vector().to_vec(),
                 text: entry.text,
                 metadata: metadata_to_json(&entry.metadata),
             })

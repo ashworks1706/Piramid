@@ -1,4 +1,4 @@
-use piramid_compute::Metric;
+use piramid_compute::{backends::for_mode, DistanceKernels, Metric};
 use serde::{Deserialize, Serialize};
 use std::cmp::Ordering;
 use std::collections::{BinaryHeap, HashMap, HashSet};
@@ -26,6 +26,8 @@ struct SearchContext<'a> {
     vectors: &'a dyn VectorReader,
     filter: Option<&'a piramid_core::metadata::Filter>,
     metadatas: &'a dyn MetadataReader,
+    /// Resolved once per operation; traversal computes thousands of distances against it.
+    kernels: &'a dyn DistanceKernels,
 }
 impl PartialEq for SearchCandidate {
     fn eq(&self, other: &Self) -> bool {
@@ -91,12 +93,14 @@ impl HnswIndex {
     /// Insert `id`, linking it into each layer it occupies.
     ///
     /// `vectors` supplies the already-indexed vectors needed to compute distances while linking.
-    pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) {
+    pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
+        let kernels = for_mode(self.config.mode)?;
         let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
         let search_context = SearchContext {
             vectors,
             filter: None,
             metadatas: &empty_meta,
+            kernels,
         };
         let layer = self.random_layer();
 
@@ -109,7 +113,7 @@ impl HnswIndex {
                 tombstone: false,
             };
             self.nodes.insert(id, node);
-            return;
+            return Ok(());
         }
 
         // Greedy descent from the current entry point to find where to link.
@@ -138,7 +142,7 @@ impl HnswIndex {
             } else {
                 self.config.m
             };
-            let neighbors = self.select_neighbors(&current_entry, m, vectors, vector);
+            let neighbors = self.select_neighbors(&current_entry, m, vectors, vector, kernels);
 
             // Edges are undirected, so each link is written in both directions.
             for &neighbor_id in &neighbors {
@@ -161,6 +165,7 @@ impl HnswIndex {
                                 m,
                                 vectors,
                                 &neighbor_vec,
+                                kernels,
                             );
 
                             if let Some(neighbor) = self.nodes.get_mut(&neighbor_id) {
@@ -185,6 +190,7 @@ impl HnswIndex {
             self.max_level = layer as isize;
             self.start_node = Some(id);
         }
+        Ok(())
     }
 
     /// Find the `k` nearest neighbours of `query`.
@@ -203,6 +209,7 @@ impl HnswIndex {
         if self.start_node.is_none() {
             return Ok(Vec::new());
         }
+        let kernels = for_mode(self.config.mode)?;
 
         let ep = self.start_node.unwrap();
         if vectors.get(&ep).is_none() {
@@ -217,6 +224,7 @@ impl HnswIndex {
             vectors,
             filter,
             metadatas,
+            kernels,
         };
 
         for lc in (1..=self.max_level as usize).rev() {
@@ -255,7 +263,7 @@ impl HnswIndex {
                         }
                     }
                 }
-                let dist = self.distance(query, ep_vector);
+                let dist = self.distance(query, ep_vector, context.kernels);
                 candidates.push(SearchCandidate {
                     id: ep,
                     distance: dist,
@@ -290,7 +298,7 @@ impl HnswIndex {
                                         }
                                     }
                                 }
-                                let dist = self.distance(query, neighbor_vector);
+                                let dist = self.distance(query, neighbor_vector, context.kernels);
                                 let neighbor_dead = self.is_tombstone(&neighbor_id);
 
                                 if dist < furthest_distance || nearest.len() < num_closest {
@@ -340,6 +348,7 @@ impl HnswIndex {
         m: usize,
         vectors: &dyn VectorReader,
         query: &[f32],
+        kernels: &dyn DistanceKernels,
     ) -> Vec<Uuid> {
         if candidates.len() <= m {
             return candidates.to_vec();
@@ -352,7 +361,7 @@ impl HnswIndex {
                     return None;
                 }
                 vectors.get(&id).map(|vec| {
-                    let dist = self.distance(query, vec);
+                    let dist = self.distance(query, vec, kernels);
                     (id, dist)
                 })
             })
@@ -374,13 +383,12 @@ impl HnswIndex {
     }
 
     /// Distance under the configured metric, normalized so smaller is always nearer.
-    fn distance(&self, a: &[f32], b: &[f32]) -> f32 {
-        // Cosine and dot product return similarity (higher is nearer), so they are inverted;
-        // Euclidean is already a distance.
+    fn distance(&self, a: &[f32], b: &[f32], kernels: &dyn DistanceKernels) -> f32 {
+        let score = self.config.metric.calculate(a, b, kernels);
         match self.config.metric {
-            Metric::Cosine => 1.0 - self.config.metric.calculate(a, b, self.config.mode),
-            Metric::DotProduct => 1.0 - self.config.metric.calculate(a, b, self.config.mode),
-            Metric::Euclidean => self.config.metric.calculate(a, b, self.config.mode),
+            // Similarity metrics score higher for nearer; invert them.
+            Metric::Cosine | Metric::DotProduct => 1.0 - score,
+            Metric::Euclidean => score,
         }
     }
 

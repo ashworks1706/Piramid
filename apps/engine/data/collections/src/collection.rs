@@ -144,13 +144,13 @@ impl Collection {
 
         for (id, pointer) in &self.index {
             let entry = self.record_store.read_document(pointer)?;
-            vectors.insert(*id, entry.try_get_vector()?);
+            vectors.insert(*id, entry.vector().to_vec());
         }
 
         let mut new_index = piramid_index::create_index(&self.config.index, self.index.len());
         let reader = HashMapVectorReader::new(&vectors);
         for (id, vec) in &vectors {
-            new_index.insert(*id, vec, &reader);
+            new_index.insert(*id, vec, &reader)?;
         }
 
         self.vector_index = new_index;

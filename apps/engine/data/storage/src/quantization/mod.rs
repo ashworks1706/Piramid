@@ -7,17 +7,11 @@ use serde::{Deserialize, Serialize};
 use piramid_core::config::QuantizationConfig;
 use piramid_core::error::{Result, StorageError};
 
-/// Which encoding a stored vector uses. Defaults to `Scalar` so older sidecars still load.
+/// Which encoding a stored vector uses.
 #[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
 pub enum QuantizationKind {
     Scalar,
     Pq,
-}
-
-impl QuantizationKind {
-    fn scalar() -> Self {
-        QuantizationKind::Scalar
-    }
 }
 
 /// One min/max pair for the whole vector.
@@ -149,7 +143,7 @@ impl ProductQuantizedVector {
         }
     }
 
-    pub fn try_to_f32(&self) -> Result<Vec<f32>> {
+    pub fn to_f32(&self) -> Result<Vec<f32>> {
         if self.codes.is_empty() || self.subquantizers == 0 {
             if self.dim == 0 {
                 return Ok(Vec::new());
@@ -201,54 +195,37 @@ impl ProductQuantizedVector {
         Ok(values)
     }
 
-    pub fn to_f32(&self) -> Vec<f32> {
-        self.try_to_f32()
-            .expect("invalid product-quantized vector encoding")
-    }
-
     pub fn dim(&self) -> usize {
         self.dim
     }
 }
 
 /// A stored vector in whichever encoding was configured when it was written.
-///
-/// The `pq` and `kind` fields carry serde defaults so sidecars written before they existed still
-/// deserialize.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct QuantizedVector {
     pub values: Vec<i8>,
     pub min: f32,
     pub max: f32,
-    #[serde(default)]
     pub pq: Option<ProductQuantizedVector>,
-    #[serde(default = "QuantizationKind::scalar")]
     pub kind: QuantizationKind,
 }
 
 impl QuantizedVector {
-    pub fn from_f32(vector: &[f32]) -> Self {
-        Self::from_scalar(vector)
-    }
-
     /// Quantize `vector` according to `cfg`.
     ///
-    /// Levels with no implementation yet (`Int4`, `Float16`) fall back to scalar quantization and
-    /// log once at `warn`. `AppConfig::validate` rejects those levels at startup, so this path is
-    /// reachable only if a collection was configured out of band — degrading is better than
-    /// killing the process mid-write.
-    pub fn from_f32_with_config(vector: &[f32], cfg: &QuantizationConfig) -> Self {
+    /// `Int4` and `Float16` have no encoder, so they are an error here rather than a silent
+    /// downgrade to scalar: a vector stored in a format nobody asked for is worse than a
+    /// failed write.
+    pub fn from_f32(vector: &[f32], cfg: &QuantizationConfig) -> Result<Self> {
         use piramid_core::config::QuantizationLevel;
         match cfg.level {
-            QuantizationLevel::None | QuantizationLevel::Int8 => Self::from_scalar(vector),
-            QuantizationLevel::Pq { subquantizers } => Self::from_pq(vector, subquantizers),
+            QuantizationLevel::None | QuantizationLevel::Int8 => Ok(Self::from_scalar(vector)),
+            QuantizationLevel::Pq { subquantizers } => Ok(Self::from_pq(vector, subquantizers)),
             unsupported @ (QuantizationLevel::Int4 | QuantizationLevel::Float16) => {
-                tracing::warn!(
-                    target: "piramid::quantization",
-                    level = ?unsupported,
-                    "quantization level is not implemented; falling back to scalar"
-                );
-                Self::from_scalar(vector)
+                Err(StorageError::InvalidVectorData(format!(
+                    "quantization level {unsupported:?} has no encoder"
+                ))
+                .into())
             }
         }
     }
@@ -275,7 +252,7 @@ impl QuantizedVector {
         }
     }
 
-    pub fn try_to_f32(&self) -> Result<Vec<f32>> {
+    pub fn to_f32(&self) -> Result<Vec<f32>> {
         match self.kind {
             QuantizationKind::Scalar => Ok(ScalarQuantizedVector {
                 values: self.values.clone(),
@@ -289,24 +266,16 @@ impl QuantizedVector {
                         "vector is marked as PQ but has no PQ payload".into(),
                     )
                 })?;
-                pq.try_to_f32()
+                pq.to_f32()
             }
         }
     }
 
-    pub fn to_f32(&self) -> Vec<f32> {
-        self.try_to_f32()
-            .expect("invalid quantized vector encoding")
-    }
-
-    pub fn dim(&self) -> usize {
+    /// Width of the vector this encodes, or `None` if the encoding is inconsistent.
+    pub fn dim(&self) -> Option<usize> {
         match self.kind {
-            QuantizationKind::Scalar => self.values.len(),
-            QuantizationKind::Pq => self
-                .pq
-                .as_ref()
-                .map(|pq| pq.dim())
-                .unwrap_or(self.values.len()),
+            QuantizationKind::Scalar => Some(self.values.len()),
+            QuantizationKind::Pq => self.pq.as_ref().map(|pq| pq.dim()),
         }
     }
 }

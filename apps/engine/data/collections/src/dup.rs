@@ -5,7 +5,7 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 use super::collection::Collection;
-use piramid_compute::Metric;
+use piramid_compute::{backends::for_mode, Metric};
 use piramid_core::error::Result;
 use piramid_index::IndexSearchRequest;
 
@@ -29,7 +29,7 @@ pub fn find_duplicates(
     let vectors = collection.vectors_view();
     let metadatas = collection.metadata_view();
     let ids: Vec<Uuid> = vectors.keys().cloned().collect();
-    let mode = collection.config.execution;
+    let kernels = for_mode(collection.config.execution)?;
     let mut search_cfg = collection.config.search;
     if let Some(ef) = ef_override {
         search_cfg.ef = Some(ef);
@@ -71,7 +71,7 @@ pub fn find_duplicates(
                 continue;
             }
             if let (Some(va), Some(vb)) = (vectors.get(&a), vectors.get(&b)) {
-                let score = metric.calculate(va, vb, mode);
+                let score = metric.calculate(va, vb, kernels);
                 if score >= threshold {
                     pairs.push(DuplicateHit {
                         id_a: a,

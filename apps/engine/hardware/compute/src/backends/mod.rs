@@ -41,67 +41,38 @@ pub fn all() -> Vec<&'static dyn DistanceKernels> {
     backends
 }
 
-/// Look up the backend serving `mode` (resolving `Auto` first), without checking availability.
-/// Errors with [`ComputeError::BackendUnavailable`](crate::error::ComputeError::BackendUnavailable)
-/// if the mode names a backend not compiled into this build.
+/// The backend serving `mode`, resolving `Auto` first.
+///
+/// Errors if the mode names a backend this build does not contain or this machine cannot run.
+/// There is no fallback: a caller that asked for a specific backend and silently got a different
+/// one has no way to know its numbers came from somewhere else.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
-    match mode.resolve() {
-        ExecutionMode::Scalar => Ok(&SCALAR),
-        ExecutionMode::Simd => Ok(&SIMD),
-        ExecutionMode::Parallel => Ok(&PARALLEL),
-        ExecutionMode::Binary => Ok(&BINARY),
+    let backend: &'static dyn DistanceKernels = match mode.resolve() {
+        ExecutionMode::Scalar | ExecutionMode::Auto => &SCALAR,
+        ExecutionMode::Simd => &SIMD,
+        ExecutionMode::Parallel => &PARALLEL,
+        ExecutionMode::Binary => &BINARY,
         ExecutionMode::Gpu => {
             #[cfg(feature = "gpu-cuda")]
             {
-                Ok(&CUDA)
+                &CUDA
             }
             #[cfg(not(feature = "gpu-cuda"))]
             {
-                Err(crate::error::ComputeError::BackendUnavailable {
+                return Err(crate::error::ComputeError::BackendUnavailable {
                     backend: "gpu",
                     reason: "built without the `gpu-cuda` feature".to_string(),
-                })
+                });
             }
         }
-        // `resolve` maps Auto onto a concrete mode before this match.
-        ExecutionMode::Auto => Ok(&SCALAR),
-    }
-}
+    };
 
-/// Look up a backend guaranteed to run on this machine, falling back to the best available CPU
-/// backend (logged at `warn`) when the requested one is missing or unavailable. Use this on paths
-/// that must produce a number; use [`for_mode`] where unavailability should surface as an error.
-pub fn resolve_available(mode: ExecutionMode) -> &'static dyn DistanceKernels {
-    match for_mode(mode) {
-        Ok(backend) if backend.is_available() => backend,
-        Ok(backend) => {
-            let fallback = cpu_default();
-            tracing::warn!(
-                target: "piramid::compute",
-                requested = backend.name(),
-                fallback = fallback.name(),
-                "requested compute backend is unavailable; falling back"
-            );
-            fallback
-        }
-        Err(error) => {
-            let fallback = cpu_default();
-            tracing::warn!(
-                target: "piramid::compute",
-                %error,
-                fallback = fallback.name(),
-                "compute backend lookup failed; falling back"
-            );
-            fallback
-        }
-    }
-}
-
-/// Best CPU backend for this target, used as the universal fallback.
-fn cpu_default() -> &'static dyn DistanceKernels {
-    if SIMD.is_available() {
-        &SIMD
+    if backend.is_available() {
+        Ok(backend)
     } else {
-        &SCALAR
+        Err(crate::error::ComputeError::BackendUnavailable {
+            backend: backend.name(),
+            reason: "not available on this machine".to_string(),
+        })
     }
 }

@@ -18,11 +18,11 @@ fn flat_index_searches() {
     vectors.insert(id2, v2.clone());
     let reader = HashMapVectorReader::new(&vectors);
 
-    idx.insert(id1, &v1, &reader);
+    idx.insert(id1, &v1, &reader).unwrap();
     let bootstrap_stats = idx.stats();
     assert_eq!(bootstrap_stats.total_vectors, 1);
 
-    idx.insert(id2, &v2, &reader);
+    idx.insert(id2, &v2, &reader).unwrap();
     let ready_stats = idx.stats();
     assert_eq!(ready_stats.total_vectors, 2);
 
@@ -48,7 +48,7 @@ fn hnsw_tombstone_tracks() {
     let vec = vec![1.0, 2.0, 3.0];
     vectors.insert(id, vec.clone());
     let reader = HashMapVectorReader::new(&vectors);
-    idx.insert(id, &vec, &reader);
+    idx.insert(id, &vec, &reader).unwrap();
 
     let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
     let results = idx.search(&vec, 1, 50, &reader, None, &empty_meta).unwrap();
@@ -76,14 +76,14 @@ fn ivf_search_basic() {
     vectors.insert(id1, v1.clone());
     {
         let reader = HashMapVectorReader::new(&vectors);
-        idx.insert(id1, &v1, &reader);
+        idx.insert(id1, &v1, &reader).unwrap();
     }
     let bootstrap_stats = idx.stats();
     assert_eq!(bootstrap_stats.total_vectors, 1);
 
     vectors.insert(id2, v2.clone());
     let reader = HashMapVectorReader::new(&vectors);
-    idx.insert(id2, &v2, &reader);
+    idx.insert(id2, &v2, &reader).unwrap();
     let ready_stats = idx.stats();
     assert_eq!(ready_stats.total_vectors, 2);
 
@@ -113,7 +113,7 @@ fn ivf_search_fails_before_clusters_are_ready() {
     let vec = vec![1.0, 0.0, 0.0];
     vectors.insert(id, vec.clone());
     let reader = HashMapVectorReader::new(&vectors);
-    idx.insert(id, &vec, &reader);
+    idx.insert(id, &vec, &reader).unwrap();
     assert_eq!(idx.stats().total_vectors, 1);
 
     let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
@@ -147,15 +147,15 @@ fn ivf_duplicate_insert_uses_id_map_without_duplicate_membership() {
     vectors.insert(id1, v1.clone());
     {
         let reader = HashMapVectorReader::new(&vectors);
-        idx.insert(id1, &v1, &reader);
-        idx.insert(id1, &v1, &reader);
+        idx.insert(id1, &v1, &reader).unwrap();
+        idx.insert(id1, &v1, &reader).unwrap();
     }
     assert_eq!(idx.stats().total_vectors, 1);
 
     vectors.insert(id2, v2.clone());
     let reader = HashMapVectorReader::new(&vectors);
-    idx.insert(id2, &v2, &reader);
-    idx.insert(id2, &v2, &reader);
+    idx.insert(id2, &v2, &reader).unwrap();
+    idx.insert(id2, &v2, &reader).unwrap();
 
     let stats = idx.stats();
     assert_eq!(stats.total_vectors, 2);

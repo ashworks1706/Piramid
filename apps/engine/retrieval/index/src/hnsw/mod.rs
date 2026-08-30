@@ -13,8 +13,8 @@ use uuid::Uuid;
 // `HnswIndex` has its own inherent `search` taking an explicit `ef`. This impl adapts the
 // generic trait call to it, resolving `ef` from the per-query config or the index default.
 impl VectorIndex for HnswIndex {
-    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) {
-        self.insert(id, vector, vectors);
+    fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
+        self.insert(id, vector, vectors)
     }
 
     fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>> {

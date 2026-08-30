@@ -10,7 +10,7 @@ use piramid_storage::wal::WalEntry;
 
 pub fn insert_internal(storage: &mut Collection, entry: Document) -> Result<Uuid> {
     let id = entry.id;
-    let raw_vec = entry.get_vector();
+    let raw_vec = entry.vector().to_vec();
     let bytes = RecordStore::encode_document(&entry)?;
 
     limits::enforce_single(storage, bytes.len())?;
@@ -25,7 +25,7 @@ pub fn insert_internal(storage: &mut Collection, entry: Document) -> Result<Uuid
 
     storage.cache.put_vector(id, raw_vec.clone());
     storage.cache.put_metadata(id, entry.metadata.clone());
-    storage.vector_index.insert(id, &raw_vec, &storage.cache);
+    storage.vector_index.insert(id, &raw_vec, &storage.cache)?;
 
     storage.metadata.update_vector_count(storage.index.len());
 
@@ -44,7 +44,7 @@ pub fn delete_internal(storage: &mut Collection, id: &Uuid) {
 }
 
 pub fn insert(storage: &mut Collection, entry: Document) -> Result<Uuid> {
-    let vector = entry.get_vector();
+    let vector = entry.vector().to_vec();
     let mut wal_entry = WalEntry::Insert {
         id: entry.id,
         vector,
@@ -63,7 +63,7 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
     let mut ids = Vec::with_capacity(entries.len());
 
     for entry in &entries {
-        let vector = entry.get_vector();
+        let vector = entry.vector().to_vec();
         let mut wal_entry = WalEntry::Insert {
             id: entry.id,
             vector,
@@ -77,7 +77,7 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
     let mut serialized: Vec<(Uuid, Vec<u8>)> = Vec::with_capacity(entries.len());
     let mut raw_vectors: Vec<(Uuid, Vec<f32>, Metadata)> = Vec::with_capacity(entries.len());
     for entry in &mut entries {
-        let raw_vec = entry.get_vector();
+        let raw_vec = entry.vector().to_vec();
         let metadata = entry.metadata.clone();
         let bytes = RecordStore::encode_document(entry)?;
         serialized.push((entry.id, bytes));
@@ -102,7 +102,7 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
         }
         storage.cache.put_metadata(id, metadata);
         storage.cache.put_vector(id, vec_f32.clone());
-        storage.vector_index.insert(id, &vec_f32, &storage.cache);
+        storage.vector_index.insert(id, &vec_f32, &storage.cache)?;
     }
     storage.metadata.update_vector_count(storage.index.len());
 
@@ -116,7 +116,7 @@ pub fn upsert(storage: &mut Collection, entry: Document) -> Result<Uuid> {
     let existing = storage.index.contains_key(&id);
     if existing {
         limits::enforce_single(storage, bytes.len())?;
-        let vector = entry.get_vector();
+        let vector = entry.vector().to_vec();
         let mut wal_entry = WalEntry::Update {
             id,
             vector,

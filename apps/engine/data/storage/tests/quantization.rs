@@ -1,10 +1,14 @@
+use piramid_core::config::QuantizationConfig;
 use piramid_storage::quantization::{ProductQuantizedVector, QuantizationKind, QuantizedVector};
+
+fn int8(vector: &[f32]) -> QuantizedVector {
+    QuantizedVector::from_f32(vector, &QuantizationConfig::int8()).unwrap()
+}
 
 #[test]
 fn quantization_roundtrip() {
     let original = vec![0.0, 0.5, 1.0, 1.5, 2.0];
-    let quantized = QuantizedVector::from_f32(&original);
-    let dequantized = quantized.to_f32();
+    let dequantized = int8(&original).to_f32().unwrap();
 
     for (o, d) in original.iter().zip(dequantized.iter()) {
         let error = (o - d).abs();
@@ -15,8 +19,7 @@ fn quantization_roundtrip() {
 #[test]
 fn quantization_constant_vector() {
     let original = vec![1.0, 1.0, 1.0, 1.0];
-    let quantized = QuantizedVector::from_f32(&original);
-    let dequantized = quantized.to_f32();
+    let dequantized = int8(&original).to_f32().unwrap();
     for (o, d) in original.iter().zip(dequantized.iter()) {
         assert!((o - d).abs() < 0.001);
     }
@@ -25,8 +28,7 @@ fn quantization_constant_vector() {
 #[test]
 fn quantization_negative_values() {
     let original = vec![-1.0, -0.5, 0.0, 0.5, 1.0];
-    let quantized = QuantizedVector::from_f32(&original);
-    let dequantized = quantized.to_f32();
+    let dequantized = int8(&original).to_f32().unwrap();
     for (o, d) in original.iter().zip(dequantized.iter()) {
         let error = (o - d).abs();
         assert!(error < 0.01, "Error too large: {} vs {}", o, d);
@@ -36,12 +38,16 @@ fn quantization_negative_values() {
 #[test]
 fn quantization_pq_roundtrip() {
     let original: Vec<f32> = (0..32).map(|i| i as f32 * 0.1).collect();
-    let pq = QuantizedVector::from_f32_with_config(
-        &original,
-        &piramid_core::config::QuantizationConfig::pq(4),
-    );
-    let restored = pq.to_f32();
+    let pq = QuantizedVector::from_f32(&original, &QuantizationConfig::pq(4)).unwrap();
+    let restored = pq.to_f32().unwrap();
     assert_eq!(restored.len(), original.len());
+}
+
+#[test]
+fn unimplemented_level_is_an_error_not_a_downgrade() {
+    let mut cfg = QuantizationConfig::int8();
+    cfg.level = piramid_core::config::QuantizationLevel::Int4;
+    assert!(QuantizedVector::from_f32(&[1.0, 2.0], &cfg).is_err());
 }
 
 #[test]
@@ -60,5 +66,5 @@ fn corrupt_pq_encoding_fails_decode() {
         kind: QuantizationKind::Pq,
     };
 
-    assert!(corrupt.try_to_f32().is_err());
+    assert!(corrupt.to_f32().is_err());
 }

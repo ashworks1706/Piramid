@@ -17,7 +17,7 @@ fn hnsw_insert_search_bench(c: &mut Criterion) {
         let vec = vec![i as f32, (i * 2) as f32, (i * 3) as f32];
         vectors.insert(id, vec.clone());
         let reader = HashMapVectorReader::new(&vectors);
-        index.insert(id, &vec, &reader);
+        index.insert(id, &vec, &reader).unwrap();
     }
 
     let query = vec![10.0, 20.0, 30.0];

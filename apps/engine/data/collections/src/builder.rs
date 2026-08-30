@@ -170,12 +170,12 @@ impl CollectionBuilder {
         let mut vectors: HashMap<Uuid, Vec<f32>> = HashMap::new();
         for (id, idx_entry) in index {
             let entry = record_store.read_document(idx_entry)?;
-            vectors.insert(*id, entry.try_get_vector()?);
+            vectors.insert(*id, entry.vector().to_vec());
         }
 
         let reader = HashMapVectorReader::new(&vectors);
         for (id, vector) in &vectors {
-            vector_index.insert(*id, vector, &reader);
+            vector_index.insert(*id, vector, &reader)?;
         }
         Ok(())
     }

@@ -69,14 +69,6 @@ enum Commands {
         #[arg(long)]
         data_dir: Option<PathBuf>,
     },
-
-    /// Deprecated alias for `show config`
-    #[command(hide = true)]
-    ShowConfig {
-        /// Optional config file to load (overrides CONFIG_FILE)
-        #[arg(long)]
-        config: Option<PathBuf>,
-    },
 }
 
 #[derive(Subcommand)]
@@ -137,15 +129,6 @@ fn main() {
         Some(Commands::Show { command }) => {
             if let Err(e) = handle_show_command(command) {
                 eprintln!("Failed to show information: {e}");
-                std::process::exit(1);
-            }
-        }
-        Some(Commands::ShowConfig { config }) => {
-            if let Err(e) = show_config(ShowConfigArgs {
-                config,
-                format: OutputFormat::Yaml,
-            }) {
-                eprintln!("Failed to show config: {e}");
                 std::process::exit(1);
             }
         }
