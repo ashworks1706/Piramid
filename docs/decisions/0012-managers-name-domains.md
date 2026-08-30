@@ -29,6 +29,10 @@ it would replace, and `AppState` stays `AppState` because it genuinely is shared
   KV cache, batch queue, the retrieval hook) are scaffolded ahead of their code, per the house
   rule, so drivers get written against a surface instead of growing their own.
 
+A manager's code lives in its domain's `manager.rs` — never in `lib.rs`, which stays a
+re-exporting table of contents per the existing convention. The import path is the crate root
+either way; the file location is for readers.
+
 **Not done.** No manager for stateless modules — `compute`'s kernels, `validation`,
 `services::convert`. A struct with no fields is a place people hang state, and for `compute`
 specifically that is how the leaf property would erode. No generic cache abstraction over
