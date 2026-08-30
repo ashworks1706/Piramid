@@ -51,7 +51,7 @@ thiserror = "1.0"
 # async + http
 tokio = { version = "1", features = ["full"] }
 axum = "0.8"
-tower-http = { version = "0.6", features = ["cors", "fs", "limit", "set-header", "trace"] }
+tower-http = { version = "0.6", features = ["cors", "limit", "set-header", "trace"] }
 reqwest = { version = "0.12", default-features = false, features = ["json", "rustls-tls"] }
 async-trait = "0.1"
 

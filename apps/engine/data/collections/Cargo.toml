@@ -10,6 +10,7 @@ homepage.workspace = true
 rust-version.workspace = true
 
 [dependencies]
+tracing.workspace = true
 piramid-core.workspace = true
 piramid-compute.workspace = true
 piramid-storage.workspace = true

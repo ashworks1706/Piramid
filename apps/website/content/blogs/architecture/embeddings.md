@@ -160,13 +160,13 @@ One thing worth knowing about `text-embedding-3-small` vs `text-embedding-3-larg
 
 #### Local HTTP and TEI
 
-The local provider speaks to any OpenAI-compatible or TEI-style HTTP endpoint. [TEI (Hugging Face text embeddings server)](https://github.com/huggingface/text-embeddings-inference) is Hugging Face's high-throughput embedding server; it exposes the same `/embeddings` JSON contract as the OpenAI API, making it a drop-in replacement. [Ollama](https://ollama.com/), TEI, and other locally-hosted embedding runtimes all work as long as they implement that protocol.
+There is no separate "local" provider. The `openai` provider is named for the wire format, not the vendor: point `base_url` at any server speaking it and leave `api_key` unset. A dedicated local provider would have been the same request with the `Authorization` header removed -- two code paths for one protocol.[TEI (Hugging Face text embeddings server)](https://github.com/huggingface/text-embeddings-inference) is Hugging Face's high-throughput embedding server; it exposes the same `/embeddings` JSON contract as the OpenAI API, making it a drop-in replacement. TEI, vLLM, llama.cpp and other locally-hosted embedding runtimes all work as long as they implement that protocol. [Ollama](https://ollama.com/) has its own format and is its own provider.
 
 A typical local setup for TEI running a 768-dimensional model:
 
 ```yaml
 embeddings:
-  provider: local
+  provider: openai
   model: BAAI/bge-base-en-v1.5
   base_url: http://localhost:8080/v1/embeddings
   timeout: 10
@@ -181,10 +181,10 @@ If you're already running a local model for generation, you almost certainly wan
 
 ```yaml
 embeddings:
-  provider: openai          # openai | local
+  provider: openai          # openai | ollama
   model: text-embedding-3-small
-  base_url: ~               # required for local; overrides default for openai
-  api_key: ~                # read from OPENAI_API_KEY env var if absent
+  base_url: ~               # point at any server speaking the OpenAI format
+  api_key: ~                # from OPENAI_API_KEY; omit for a local server
   timeout: 30               # seconds; requests hang forever if absent
 ```
 

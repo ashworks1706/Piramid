@@ -90,9 +90,7 @@ fn provider_from_str_roundtrip() {
         "ollama".parse::<EmbeddingProvider>(),
         Ok(EmbeddingProvider::Ollama)
     );
-    assert_eq!(
-        "local".parse::<EmbeddingProvider>(),
-        Ok(EmbeddingProvider::Local)
-    );
     assert!("unknown".parse::<EmbeddingProvider>().is_err());
+    // Case is not normalized: one spelling per provider.
+    assert!("OpenAI".parse::<EmbeddingProvider>().is_err());
 }

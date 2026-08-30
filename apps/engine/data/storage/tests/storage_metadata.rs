@@ -7,9 +7,14 @@ fn metadata_new_and_dimensions() {
     let mut meta = CollectionMetadata::new("test".into());
     assert_eq!(meta.name, "test");
     assert_eq!(meta.dimensions, None);
-    meta.set_dimensions(512);
+    meta.set_dimensions(512).unwrap();
     assert_eq!(meta.dimensions, Some(512));
-    meta.set_dimensions(1024);
+    meta.set_dimensions(512).unwrap();
+
+    assert!(
+        meta.set_dimensions(1024).is_err(),
+        "a disagreeing width is a corrupt manifest, not a no-op"
+    );
     assert_eq!(meta.dimensions, Some(512));
 }
 

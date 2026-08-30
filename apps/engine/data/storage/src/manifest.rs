@@ -3,6 +3,7 @@
 //! Named `manifest` so it isn't confused with `piramid_core::metadata::Metadata`, which is the
 //! key-value payload on a single document.
 
+use piramid_core::error::{Result, StorageError};
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -48,9 +49,22 @@ impl CollectionMetadata {
             .as_secs();
     }
 
-    pub fn set_dimensions(&mut self, dimensions: usize) {
-        if self.dimensions.is_none() {
-            self.dimensions = Some(dimensions);
+    /// Record the collection's vector width the first time a vector is stored.
+    ///
+    /// Errors on disagreement rather than ignoring the new value, which would leave the manifest
+    /// describing a width the data does not have.
+    pub fn set_dimensions(&mut self, dimensions: usize) -> Result<()> {
+        match self.dimensions {
+            None => {
+                self.dimensions = Some(dimensions);
+                Ok(())
+            }
+            Some(existing) if existing == dimensions => Ok(()),
+            Some(existing) => Err(StorageError::InvalidDimension {
+                expected: existing,
+                actual: dimensions,
+            }
+            .into()),
         }
     }
 

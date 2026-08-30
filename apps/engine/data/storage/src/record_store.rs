@@ -92,16 +92,9 @@ impl RecordStore {
         self.append_cursor
     }
 
-    pub fn mapped_len(&self) -> usize {
-        self.mmap
-            .as_ref()
-            .map(|mmap| mmap.len())
-            .unwrap_or_else(|| {
-                self.data_file
-                    .metadata()
-                    .map(|meta| meta.len() as usize)
-                    .unwrap_or(0)
-            })
+    pub fn mapped_len(&self) -> Result<usize> {
+        let len = crate::persistence::mapped_or_file_len(self.mmap.as_deref(), &self.data_file)?;
+        Ok(len as usize)
     }
 
     pub fn warm_page_cache(&self) {

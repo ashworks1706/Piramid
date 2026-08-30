@@ -36,7 +36,7 @@ async fn cache_hits_and_eviction() {
     let mock = MockEmbedder {
         call_count: call_count.clone(),
     };
-    let cached = CachedEmbedder::new(mock, 2);
+    let cached = CachedEmbedder::new(mock, std::num::NonZeroUsize::new(2).unwrap());
 
     cached.embed("hello").await.unwrap();
     assert_eq!(call_count.load(Ordering::SeqCst), 1);

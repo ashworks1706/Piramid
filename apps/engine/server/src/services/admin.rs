@@ -69,7 +69,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         );
         let count = collection_guard.count();
         let index_type = collection_guard.vector_index().index_type().to_string();
-        let memory_usage_bytes = collection_guard.memory_usage_bytes();
+        let memory_usage_bytes = collection_guard.memory_usage_bytes()?;
         let (insert_latency_ms, search_latency_ms, lock_read_ms, lock_write_ms) =
             if let Some(tracker) = state.collection_manager.tracker(&collection_name) {
                 (

@@ -30,11 +30,7 @@ pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorI
                     m: *m,
                     m_max: *m_max,
                     ef_construction: *ef_construction,
-                    ef_search: if *ef_search == 0 {
-                        *ef_construction
-                    } else {
-                        *ef_search
-                    },
+                    ef_search: *ef_search,
                     ml: *ml,
                     metric: *metric,
                     mode: *mode,

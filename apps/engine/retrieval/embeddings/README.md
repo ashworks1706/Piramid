@@ -1,6 +1,6 @@
 # piramid-embeddings
 
-Embedding providers: OpenAI, Ollama, local.
+Embedding providers: the OpenAI wire format (including local servers that speak it) and Ollama.
 
 Provider selection, caching, and retries behind one `Embedder` trait.
 

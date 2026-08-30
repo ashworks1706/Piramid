@@ -57,10 +57,7 @@ pub fn grow_mmap_if_needed(
     file: &File,
     required_size: u64,
 ) -> Result<()> {
-    let current_size = mmap
-        .as_ref()
-        .map(|mmap| mmap.len() as u64)
-        .unwrap_or_else(|| file.metadata().map(|meta| meta.len()).unwrap_or(0));
+    let current_size = mapped_or_file_len(mmap.as_deref(), file)?;
     if required_size > current_size {
         let new_size = required_size.saturating_mul(2);
         if mmap.is_some() {
@@ -73,4 +70,15 @@ pub fn grow_mmap_if_needed(
     }
     // Already large enough; nothing to do.
     Ok(())
+}
+
+/// Bytes currently addressable: the mapping's length, or the file's when there is no mapping.
+///
+/// An unreadable file is an error rather than a zero, which would read as "empty" and send every
+/// caller down the grow path.
+pub fn mapped_or_file_len(mmap: Option<&[u8]>, file: &File) -> Result<u64> {
+    match mmap {
+        Some(mmap) => Ok(mmap.len() as u64),
+        None => Ok(file.metadata()?.len()),
+    }
 }

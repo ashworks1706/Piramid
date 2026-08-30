@@ -7,40 +7,18 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::cache::CachedEmbedder;
 use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResponse, EmbeddingResult};
 
 const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
-const DEFAULT_CACHE_SIZE: usize = 10000;
 
-struct OllamaEmbedderInner {
+pub struct OllamaEmbedder {
     client: Client,
     model: String,
     base_url: String,
 }
 
-pub struct OllamaEmbedder {
-    cached: CachedEmbedder<OllamaEmbedderInner>,
-}
-
 impl OllamaEmbedder {
     pub fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
-        let inner = OllamaEmbedderInner::new(config)?;
-        Ok(Self {
-            cached: CachedEmbedder::new(inner, DEFAULT_CACHE_SIZE),
-        })
-    }
-
-    pub fn with_cache_size(config: &EmbeddingConfig, cache_size: usize) -> EmbeddingResult<Self> {
-        let inner = OllamaEmbedderInner::new(config)?;
-        Ok(Self {
-            cached: CachedEmbedder::new(inner, cache_size),
-        })
-    }
-}
-
-impl OllamaEmbedderInner {
-    fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let base_url = config
             .base_url
             .clone()
@@ -73,7 +51,7 @@ impl OllamaEmbedderInner {
 }
 
 #[async_trait]
-impl Embedder for OllamaEmbedderInner {
+impl Embedder for OllamaEmbedder {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
         let request = OllamaEmbeddingRequest {
             model: self.model.clone(),
@@ -126,25 +104,6 @@ impl Embedder for OllamaEmbedderInner {
 
     fn dimensions(&self) -> Option<usize> {
         self.get_dimensions()
-    }
-}
-
-#[async_trait]
-impl Embedder for OllamaEmbedder {
-    async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
-        self.cached.embed(text).await
-    }
-
-    fn provider_name(&self) -> &str {
-        self.cached.provider_name()
-    }
-
-    fn model_name(&self) -> &str {
-        self.cached.model_name()
-    }
-
-    fn dimensions(&self) -> Option<usize> {
-        self.cached.dimensions()
     }
 }
 

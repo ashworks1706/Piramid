@@ -1,19 +1,24 @@
 //! Provider selection: turn an `EmbeddingConfig` into an `Embedder`.
 
+use std::num::NonZeroUsize;
 use std::str::FromStr;
 use std::sync::Arc;
 
-use super::local::LocalEmbedder;
 use super::ollama::OllamaEmbedder;
 use super::openai::OpenAIEmbedder;
+use crate::cache::CachedEmbedder;
 use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResult};
+
+/// Entries kept per embedder. One number, applied here, rather than a constant per provider and
+/// a `with_cache_size` constructor nothing called.
+const CACHE_CAPACITY: usize = 10_000;
 
 /// Providers this build can construct.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum EmbeddingProvider {
+    /// Anything speaking the OpenAI embeddings format, including a local server.
     OpenAI,
     Ollama,
-    Local,
 }
 
 impl EmbeddingProvider {
@@ -21,7 +26,6 @@ impl EmbeddingProvider {
         match self {
             Self::OpenAI => "openai",
             Self::Ollama => "ollama",
-            Self::Local => "local",
         }
     }
 }
@@ -30,33 +34,30 @@ impl FromStr for EmbeddingProvider {
     type Err = ();
 
     fn from_str(s: &str) -> Result<Self, Self::Err> {
-        match s.to_lowercase().as_str() {
+        match s {
             "openai" => Ok(Self::OpenAI),
             "ollama" => Ok(Self::Ollama),
-            "local" => Ok(Self::Local),
             _ => Err(()),
         }
     }
 }
 
-/// Build the embedder named by `config`, wrapped in whatever caching the provider does.
+/// Build the embedder named by `config`, wrapped in the response cache.
 pub fn create_embedder(config: &EmbeddingConfig) -> EmbeddingResult<Arc<dyn Embedder>> {
     let provider = config.provider.parse::<EmbeddingProvider>().map_err(|_| {
-        EmbeddingError::ConfigError(format!("Unknown provider: {}", config.provider))
+        EmbeddingError::ConfigError(format!(
+            "Unknown provider '{}'. Expected openai or ollama",
+            config.provider
+        ))
     })?;
 
-    match provider {
+    let capacity = NonZeroUsize::new(CACHE_CAPACITY).expect("CACHE_CAPACITY is a nonzero literal");
+    Ok(match provider {
         EmbeddingProvider::OpenAI => {
-            let embedder = OpenAIEmbedder::new(config)?;
-            Ok(Arc::new(embedder))
+            Arc::new(CachedEmbedder::new(OpenAIEmbedder::new(config)?, capacity))
         }
         EmbeddingProvider::Ollama => {
-            let embedder = OllamaEmbedder::new(config)?;
-            Ok(Arc::new(embedder))
+            Arc::new(CachedEmbedder::new(OllamaEmbedder::new(config)?, capacity))
         }
-        EmbeddingProvider::Local => {
-            let embedder = LocalEmbedder::new(config)?;
-            Ok(Arc::new(embedder))
-        }
-    }
+    })
 }

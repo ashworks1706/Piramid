@@ -63,15 +63,14 @@ impl Collection {
         self.index.len()
     }
 
-    pub fn memory_usage_bytes(&self) -> usize {
-        // Approximate: mmap + offset index + caches + ANN structure.
-        let mmap_size = self.record_store.mapped_len();
+    /// Approximate resident size: mmap + offset index + caches + ANN structure.
+    pub fn memory_usage_bytes(&self) -> Result<usize> {
         let index_size = self.index.capacity() * std::mem::size_of::<(Uuid, EntryPointer)>();
 
-        mmap_size
+        Ok(self.record_store.mapped_len()?
             + index_size
             + self.cache.memory_usage_bytes()
-            + self.vector_index.stats().memory_usage_bytes
+            + self.vector_index.stats().memory_usage_bytes)
     }
 
     pub fn vector_index(&self) -> &dyn VectorIndex {
@@ -95,12 +94,27 @@ impl Collection {
     }
 
     /// Fault frequently used files into the page cache to reduce cold-start latency.
+    ///
+    /// Best-effort by definition — the collection is already open and correct without it — but a
+    /// failure is logged rather than dropped, because an unreadable sidecar here is the first
+    /// symptom of one that will fail a later checkpoint.
     pub fn warm_page_cache(&self) {
         self.record_store.warm_page_cache();
         let base = self.path.clone();
-        let _ = warm_file(&format!("{}.vecindex.db", base));
-        let _ = warm_file(&format!("{}.index.db", base));
-        let _ = warm_file(&get_wal_path(&base));
+        for path in [
+            format!("{}.vecindex.db", base),
+            format!("{}.index.db", base),
+            get_wal_path(&base),
+        ] {
+            if let Err(error) = warm_file(&path) {
+                tracing::warn!(
+                    target: "piramid::collections",
+                    %path,
+                    %error,
+                    "could not warm page cache for file"
+                );
+            }
+        }
     }
 
     pub fn vectors_view(&self) -> &HashMap<Uuid, Vec<f32>> {

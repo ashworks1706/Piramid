@@ -75,7 +75,10 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
     let app = load_app_config()?;
 
     let port = parse_env_or_default("PORT", 6333u16)?;
-    let data_dir = env::var("DATA_DIR").unwrap_or_else(|_| default_data_dir());
+    let data_dir = match env::var("DATA_DIR") {
+        Ok(dir) => dir,
+        Err(_) => default_data_dir()?,
+    };
     let slow_query_default = app.logging.slow_query_ms.unwrap_or(500) as u128;
     let slow_query_ms = parse_env_or_default("SLOW_QUERY_MS", slow_query_default)?;
 
@@ -91,17 +94,28 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
         Err(_) => true,
     };
 
-    let embedding = embedding_provider.map(|provider| {
-        let model = embedding_model.unwrap_or_else(|| default_embedding_model(&provider));
-        EmbeddingConfig {
-            provider,
-            model,
-            api_key: embedding_api_key,
-            base_url: embedding_base_url,
-            options: serde_json::json!({}),
-            timeout: embedding_timeout,
+    let embedding = match embedding_provider {
+        Some(provider) => {
+            let model = match embedding_model.or_else(|| default_embedding_model(&provider)) {
+                Some(model) => model,
+                None => {
+                    return Err(ConfigError::Env {
+                        name: "EMBEDDING_MODEL".to_string(),
+                        reason: format!("no default model for provider '{provider}'; set it"),
+                    })
+                }
+            };
+            Some(EmbeddingConfig {
+                provider,
+                model,
+                api_key: embedding_api_key,
+                base_url: embedding_base_url,
+                options: serde_json::json!({}),
+                timeout: embedding_timeout,
+            })
         }
-    });
+        None => None,
+    };
 
     Ok(RuntimeConfig {
         app,
@@ -115,10 +129,14 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
 }
 
 /// Default model for a provider that did not name one.
-fn default_embedding_model(provider: &str) -> String {
+///
+/// An unknown provider gets no default: handing it an OpenAI model name would send a request
+/// nobody asked for. `create_embedder` rejects the provider a moment later anyway.
+fn default_embedding_model(provider: &str) -> Option<String> {
     match provider {
-        "ollama" => "nomic-embed-text".to_string(),
-        _ => "text-embedding-3-small".to_string(),
+        "openai" => Some("text-embedding-3-small".to_string()),
+        "ollama" => Some("nomic-embed-text".to_string()),
+        _ => None,
     }
 }
 
@@ -149,14 +167,18 @@ fn load_from_file() -> Result<Option<AppConfig>, ConfigError> {
     }
 }
 
-/// Default data directory: `~/.piramid`, or `./.piramid` when no home is set.
-pub fn default_data_dir() -> String {
-    let home = env::var("HOME")
-        .or_else(|_| env::var("USERPROFILE"))
-        .unwrap_or_else(|_| ".".to_string());
+/// Default data directory: `~/.piramid`.
+///
+/// Errors rather than falling back to the working directory, which would put a database wherever
+/// the process happened to be started from and quietly lose it on the next run.
+pub fn default_data_dir() -> Result<String, ConfigError> {
+    let home = env::var("HOME").map_err(|_| ConfigError::Env {
+        name: "DATA_DIR".to_string(),
+        reason: "not set, and HOME is unset so ~/.piramid cannot be resolved".to_string(),
+    })?;
     let mut path = PathBuf::from(home);
     path.push(".piramid");
-    path.to_string_lossy().to_string()
+    Ok(path.to_string_lossy().to_string())
 }
 
 fn parse_env_or_default<T>(name: &str, default: T) -> Result<T, ConfigError>
@@ -186,12 +208,12 @@ where
 }
 
 fn parse_bool_env(name: &str, value: &str) -> Result<bool, ConfigError> {
-    match value.to_lowercase().as_str() {
-        "1" | "true" | "yes" | "on" => Ok(true),
-        "0" | "false" | "no" | "off" => Ok(false),
+    match value {
+        "true" => Ok(true),
+        "false" => Ok(false),
         _ => Err(ConfigError::Env {
             name: name.to_string(),
-            reason: format!("expected a boolean, got '{value}'"),
+            reason: format!("expected 'true' or 'false', got '{value}'"),
         }),
     }
 }

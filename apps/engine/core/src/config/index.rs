@@ -82,7 +82,6 @@ pub enum IndexConfig {
         m: usize,
         m_max: usize,
         ef_construction: usize,
-        #[serde(default)]
         ef_search: usize,
         ml: f32,
         metric: Metric,

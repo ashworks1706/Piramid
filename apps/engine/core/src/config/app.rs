@@ -72,9 +72,7 @@ impl AppConfig {
         if self.memory.use_mmap && self.memory.initial_mmap_size == 0 {
             return Err("MEMORY initial_mmap_size must be > 0 when mmap is enabled".into());
         }
-        if let IndexConfig::Auto { auto, .. } = &self.index {
-            validate_auto_index(auto)?;
-        }
+        validate_index(&self.index)?;
         if self.quantization.level == crate::config::QuantizationLevel::None
             && self.quantization.stage != QuantizationStage::Disabled
         {
@@ -360,10 +358,64 @@ where
 }
 
 fn parse_bool_env(name: &str, value: &str) -> Result<bool, String> {
-    match value.to_lowercase().as_str() {
-        "1" | "true" | "yes" | "on" => Ok(true),
-        "0" | "false" | "no" | "off" => Ok(false),
-        _ => Err(format!("Invalid {name} value '{value}'")),
+    match value {
+        "true" => Ok(true),
+        "false" => Ok(false),
+        _ => Err(format!("{name}: expected 'true' or 'false', got '{value}'")),
+    }
+}
+
+/// Check the parameters of whichever index variant is configured.
+///
+/// The explicit variants used to go unchecked, and `create_index` substituted `ef_construction`
+/// for a zero `ef_search` rather than saying so.
+fn validate_index(index: &IndexConfig) -> Result<(), String> {
+    match index {
+        IndexConfig::Auto { auto, .. } => validate_auto_index(auto),
+        IndexConfig::Flat { .. } => Ok(()),
+        IndexConfig::Hnsw {
+            m,
+            m_max,
+            ef_construction,
+            ef_search,
+            ml,
+            ..
+        } => {
+            if *m == 0 || *m_max == 0 {
+                return Err("INDEX hnsw m and m_max must be > 0".into());
+            }
+            if *m_max < *m {
+                return Err("INDEX hnsw m_max must be >= m".into());
+            }
+            if *ef_construction == 0 || *ef_search == 0 {
+                return Err("INDEX hnsw ef_construction and ef_search must be > 0".into());
+            }
+            // NaN fails this too, which is the point: it would poison every layer draw.
+            if !(*ml).is_finite() || *ml <= 0.0 {
+                return Err("INDEX hnsw ml must be a finite number > 0".into());
+            }
+            Ok(())
+        }
+        IndexConfig::Ivf {
+            num_clusters,
+            num_probes,
+            max_iterations,
+            ..
+        } => {
+            if *num_clusters == 0 {
+                return Err("INDEX ivf num_clusters must be > 0".into());
+            }
+            if *num_probes == 0 {
+                return Err("INDEX ivf num_probes must be > 0".into());
+            }
+            if *num_probes > *num_clusters {
+                return Err("INDEX ivf num_probes must be <= num_clusters".into());
+            }
+            if *max_iterations == 0 {
+                return Err("INDEX ivf max_iterations must be > 0".into());
+            }
+            Ok(())
+        }
     }
 }
 

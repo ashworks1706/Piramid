@@ -6,7 +6,6 @@ use axum::{
     Router,
 };
 use tower_http::cors::{Any, CorsLayer};
-use tower_http::services::{ServeDir, ServeFile};
 use tower_http::set_header::SetResponseHeaderLayer;
 
 use super::handlers;
@@ -97,19 +96,17 @@ fn api_router(state: SharedState) -> Router<SharedState> {
         .with_state(state)
 }
 
-/// Build the router: API routes under `/api`, the Prometheus endpoint, middleware, and the
-/// static dashboard fallback.
+/// Build the router: API routes under `/api`, the Prometheus endpoint, and middleware.
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 
-    let api = api_router(state.clone());
-
+    // One mount point. `/api/v1` was a second name for the same routes that nothing referenced,
+    // and a version prefix that never changes is not versioning.
     Router::<SharedState>::new()
-        .nest("/api", api.clone())
-        .nest("/api/v1", api)
+        .nest("/api", api_router(state.clone()))
         // Prometheus scrapes `/metrics` by convention, outside the API prefix.
         .route("/metrics", get(handlers::prometheus_metrics))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB for batch operations
@@ -127,9 +124,5 @@ pub fn create_router(state: SharedState) -> Router {
             axum::http::header::HeaderName::from_static("x-frame-options"),
             HeaderValue::from_static("DENY"),
         ))
-        // Static dashboard, if one has been built into ./dashboard.
-        .fallback_service(
-            ServeDir::new("dashboard").not_found_service(ServeFile::new("dashboard/index.html")),
-        )
         .with_state(state)
 }

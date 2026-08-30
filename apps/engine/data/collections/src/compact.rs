@@ -36,7 +36,7 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
         let vector = doc.vector().to_vec();
         let bytes = RecordStore::encode_document(&doc)?;
         let pointer = temp_store.append(&bytes)?;
-        new_metadata.set_dimensions(vector.len());
+        new_metadata.set_dimensions(vector.len())?;
         new_index.insert(id, pointer);
         new_vectors.insert(id, vector.clone());
         let reader = HashMapVectorReader::new(&new_vectors);

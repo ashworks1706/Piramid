@@ -9,6 +9,9 @@ use piramid_compute::{backends::for_mode, Metric};
 use piramid_core::error::Result;
 use piramid_index::IndexSearchRequest;
 
+/// Neighbours examined per document when the caller does not say.
+const DEFAULT_NEIGHBOR_K: usize = 49;
+
 #[derive(Debug)]
 pub struct DuplicateHit {
     pub id_a: Uuid,
@@ -37,10 +40,9 @@ pub fn find_duplicates(
     if let Some(nprobe) = nprobe_override {
         search_cfg.nprobe = Some(nprobe);
     }
-    let k_default = 50usize.saturating_sub(1);
+    // One source for the neighbour count, clamped to what the collection can actually supply.
     let neighbor_k = k_override
-        .or_else(|| limit.map(|l| l.saturating_mul(2).max(10)))
-        .unwrap_or(k_default)
+        .unwrap_or(DEFAULT_NEIGHBOR_K)
         .min(ids.len().saturating_sub(1))
         .max(1);
 

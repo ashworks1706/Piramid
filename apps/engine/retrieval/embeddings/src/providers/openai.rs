@@ -1,58 +1,31 @@
-//! OpenAI provider.
+//! The OpenAI embeddings wire format.
 //!
-//! Known-good models: `text-embedding-3-small` (1536), `text-embedding-3-large` (3072), and
-//! `text-embedding-ada-002` (1536, legacy).
+//! Named for the protocol, not the vendor: any server speaking it — llama.cpp, vLLM, LM Studio,
+//! a gateway — is this provider with `EMBEDDING_BASE_URL` pointed at it. The API key is optional
+//! for exactly that reason.
+//!
+//! Known-good models: `text-embedding-3-small` (1536) and `text-embedding-3-large` (3072).
 
 use async_trait::async_trait;
 use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::cache::CachedEmbedder;
 use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResponse, EmbeddingResult};
 
 const DEFAULT_OPENAI_API_URL: &str = "https://api.openai.com/v1/embeddings";
-const DEFAULT_CACHE_SIZE: usize = 10000;
 
-struct OpenAIEmbedderInner {
+pub struct OpenAIEmbedder {
     client: Client,
-    api_key: String,
+    api_key: Option<String>,
     model: String,
     base_url: String,
 }
 
-pub struct OpenAIEmbedder {
-    cached: CachedEmbedder<OpenAIEmbedderInner>,
-}
-
 impl OpenAIEmbedder {
+    // The key reaches config from OPENAI_API_KEY in the loader. Reading the variable again here
+    // would mean two answers to "where did this key come from".
     pub fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
-        let inner = OpenAIEmbedderInner::new(config)?;
-        Ok(Self {
-            cached: CachedEmbedder::new(inner, DEFAULT_CACHE_SIZE),
-        })
-    }
-
-    pub fn with_cache_size(config: &EmbeddingConfig, cache_size: usize) -> EmbeddingResult<Self> {
-        let inner = OpenAIEmbedderInner::new(config)?;
-        Ok(Self {
-            cached: CachedEmbedder::new(inner, cache_size),
-        })
-    }
-}
-
-impl OpenAIEmbedderInner {
-    fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
-        let api_key = config
-            .api_key
-            .clone()
-            .or_else(|| std::env::var("OPENAI_API_KEY").ok())
-            .ok_or_else(|| {
-                EmbeddingError::ConfigError(
-                    "OpenAI API key not provided in config or OPENAI_API_KEY env var".to_string(),
-                )
-            })?;
-
         let base_url = config
             .base_url
             .clone()
@@ -69,24 +42,15 @@ impl OpenAIEmbedderInner {
 
         Ok(Self {
             client,
-            api_key,
+            api_key: config.api_key.clone(),
             model: config.model.clone(),
             base_url,
         })
     }
-
-    fn get_dimensions(&self) -> Option<usize> {
-        match self.model.as_str() {
-            "text-embedding-3-small" => Some(1536),
-            "text-embedding-3-large" => Some(3072),
-            "text-embedding-ada-002" => Some(1536),
-            _ => None,
-        }
-    }
 }
 
 #[async_trait]
-impl Embedder for OpenAIEmbedderInner {
+impl Embedder for OpenAIEmbedder {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
         let request = OpenAIEmbeddingRequest {
             model: self.model.clone(),
@@ -94,12 +58,16 @@ impl Embedder for OpenAIEmbedderInner {
             encoding_format: Some("float".to_string()),
         };
 
-        let response = self
+        let mut post = self
             .client
             .post(&self.base_url)
-            .header("Authorization", format!("Bearer {}", self.api_key))
             .header("Content-Type", "application/json")
-            .json(&request)
+            .json(&request);
+        if let Some(key) = &self.api_key {
+            post = post.header("Authorization", format!("Bearer {key}"));
+        }
+
+        let response = post
             .send()
             .await
             .map_err(|e| EmbeddingError::RequestFailed(e.to_string()))?;
@@ -109,7 +77,7 @@ impl Embedder for OpenAIEmbedderInner {
             let error_text = response
                 .text()
                 .await
-                .unwrap_or_else(|_| "Unknown error".to_string());
+                .unwrap_or_else(|error| format!("<body unreadable: {error}>"));
 
             return Err(match status.as_u16() {
                 401 => EmbeddingError::AuthenticationFailed(error_text),
@@ -143,26 +111,11 @@ impl Embedder for OpenAIEmbedderInner {
     }
 
     fn dimensions(&self) -> Option<usize> {
-        self.get_dimensions()
-    }
-}
-
-#[async_trait]
-impl Embedder for OpenAIEmbedder {
-    async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
-        self.cached.embed(text).await
-    }
-
-    fn provider_name(&self) -> &str {
-        self.cached.provider_name()
-    }
-
-    fn model_name(&self) -> &str {
-        self.cached.model_name()
-    }
-
-    fn dimensions(&self) -> Option<usize> {
-        self.cached.dimensions()
+        match self.model.as_str() {
+            "text-embedding-3-small" => Some(1536),
+            "text-embedding-3-large" => Some(3072),
+            _ => None,
+        }
     }
 }
 
@@ -181,16 +134,12 @@ struct OpenAIEmbeddingResponse {
     usage: Usage,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct EmbeddingData {
     embedding: Vec<f32>,
-    index: usize,
 }
 
-#[allow(dead_code)]
 #[derive(Debug, Deserialize)]
 struct Usage {
-    prompt_tokens: u32,
     total_tokens: u32,
 }

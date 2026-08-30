@@ -37,7 +37,10 @@ impl Wal {
         Ok(wal)
     }
 
-    /// Disabled WAL (noop) with a sequence counter for compatibility.
+    /// A WAL that writes nothing, for `wal.enabled: false`.
+    ///
+    /// It keeps the sequence counter so callers do not branch on whether logging is on; the
+    /// tradeoff is explicit in config, which is where the durability choice belongs.
     pub fn disabled(path: PathBuf, next_seq: u64) -> Result<Self> {
         Ok(Wal {
             file: None,
@@ -139,7 +142,8 @@ impl Wal {
         Ok(())
     }
 
-    /// Write the version header if the file is new. An existing file is assumed to have one.
+    /// Write the version header if the file is empty. A non-empty file already has one — `replay`
+    /// checks it and refuses a log whose version disagrees.
     fn ensure_header(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());

@@ -1,4 +1,7 @@
 //! An `Embedder` wrapper that caches by text, evicting least-recently-used entries.
+//!
+//! Applied once by [`create_embedder`](crate::providers::create_embedder), so a provider is only
+//! the HTTP call it makes.
 
 use async_trait::async_trait;
 use lru::LruCache;
@@ -13,25 +16,11 @@ pub struct CachedEmbedder<E: Embedder> {
 }
 
 impl<E: Embedder> CachedEmbedder<E> {
-    pub fn new(embedder: E, capacity: usize) -> Self {
-        let capacity = NonZeroUsize::new(capacity).unwrap_or(NonZeroUsize::new(10000).unwrap());
+    pub fn new(embedder: E, capacity: NonZeroUsize) -> Self {
         Self {
             inner: embedder,
             cache: Mutex::new(LruCache::new(capacity)),
         }
-    }
-
-    pub fn cache_stats(&self) -> CacheStats {
-        let cache = self.cache.lock().unwrap();
-        CacheStats {
-            size: cache.len(),
-            capacity: cache.cap().get(),
-        }
-    }
-
-    pub fn clear_cache(&self) {
-        let mut cache = self.cache.lock().unwrap();
-        cache.clear();
     }
 }
 
@@ -39,7 +28,7 @@ impl<E: Embedder> CachedEmbedder<E> {
 impl<E: Embedder> Embedder for CachedEmbedder<E> {
     async fn embed(&self, text: &str) -> EmbeddingResult<EmbeddingResponse> {
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().expect("embedding cache mutex poisoned");
             if let Some(embedding) = cache.get(text) {
                 return Ok(EmbeddingResponse {
                     embedding: embedding.clone(),
@@ -52,7 +41,7 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
         let response = self.inner.embed(text).await?;
 
         {
-            let mut cache = self.cache.lock().unwrap();
+            let mut cache = self.cache.lock().expect("embedding cache mutex poisoned");
             cache.put(text.to_string(), response.embedding.clone());
         }
 
@@ -69,22 +58,5 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
 
     fn dimensions(&self) -> Option<usize> {
         self.inner.dimensions()
-    }
-}
-
-/// Hit and miss counts for a [`CachedEmbedder`].
-#[derive(Debug, Clone)]
-pub struct CacheStats {
-    pub size: usize,
-    pub capacity: usize,
-}
-
-impl CacheStats {
-    pub fn hit_rate_estimate(&self) -> f32 {
-        if self.capacity == 0 {
-            0.0
-        } else {
-            self.size as f32 / self.capacity as f32
-        }
     }
 }

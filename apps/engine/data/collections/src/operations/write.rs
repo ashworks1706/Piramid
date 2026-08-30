@@ -17,7 +17,7 @@ pub fn insert_internal(storage: &mut Collection, entry: Document) -> Result<Uuid
     let index_entry = storage.record_store.append(&bytes)?;
     storage.index.insert(id, index_entry.clone());
 
-    storage.metadata.set_dimensions(raw_vec.len());
+    storage.metadata.set_dimensions(raw_vec.len())?;
 
     if let Some(expected_dim) = storage.metadata.dimensions {
         piramid_core::validation::validate_dimensions(&raw_vec, expected_dim)?;
@@ -96,7 +96,7 @@ pub fn insert_batch(storage: &mut Collection, mut entries: Vec<Document>) -> Res
     storage.track_operation()?;
 
     for (id, vec_f32, metadata) in raw_vectors {
-        storage.metadata.set_dimensions(vec_f32.len());
+        storage.metadata.set_dimensions(vec_f32.len())?;
         if let Some(expected_dim) = storage.metadata.dimensions {
             piramid_core::validation::validate_dimensions(&vec_f32, expected_dim)?;
         }

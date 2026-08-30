@@ -52,7 +52,7 @@ pub fn update_vector(storage: &mut Collection, id: &Uuid, vector: Vec<f32>) -> R
         if let Some(expected_dim) = storage.metadata.dimensions {
             piramid_core::validation::validate_dimensions(&vector, expected_dim)?;
         } else {
-            storage.metadata.set_dimensions(vector.len());
+            storage.metadata.set_dimensions(vector.len())?;
         }
 
         let bytes = RecordStore::encode_document(&entry)?;
