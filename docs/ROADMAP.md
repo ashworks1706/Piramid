@@ -87,8 +87,6 @@
 ## Out of scope
 
 - a managed cloud service
-- pretraining models from scratch
-- competing with Qdrant on vector-database breadth
 - non-NVIDIA GPU backends until the CUDA path is real
 - a second deployable process — [ADR 0001](decisions/0001-single-binary.md)
 - vendor telemetry integrations — [ADR 0011](decisions/0011-open-standards-only.md)
