@@ -1,6 +1,9 @@
-# Piramid tasks. `just` lists them; `just <recipe>`.
-# Everything first-party is under apps/: engine (the library crates, grouped by subsystem —
-# foundation, hardware, retrieval, inference, service), cli (the binary), website, sdk.
+# Contributor tasks for working on this repo. `just` lists them; `just <recipe>`.
+#
+# This is not the shipped CLI. `just` builds, tests and lints the workspace and is never needed to
+# run Piramid; `piramid` is the binary users install and knows nothing about any of this.
+# Everything first-party is under apps/: engine (the library crates, grouped as core,
+# observability, hardware, data, retrieval, inference, server), cli, website, sdk.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 

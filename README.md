@@ -81,19 +81,14 @@ piramid serve --data-dir ./data
 Listens on `0.0.0.0:6333`. Data goes to `~/.piramid` unless `DATA_DIR` says otherwise. Every
 setting is listed in [`.env.example`](.env.example).
 
-With Docker:
+Or with Docker:
 
 ```bash
-just up
+docker run -p 6333:6333 -v piramid-data:/data ghcr.io/ashworks1706/piramid:main
 ```
 
-From source:
-
-```bash
-just bootstrap   # .env, git hooks, dependencies
-just check       # fmt, clippy, tests, layering
-just serve
-```
+`piramid --help` lists the rest: `init` writes a config file, `show config` and `show metrics`
+print resolved state, and `support-bundle` collects diagnostics for a bug report.
 
 ## Usage
 
@@ -143,10 +138,22 @@ whichever way that goes.
 [docs/ROADMAP.md](docs/ROADMAP.md) has the plan, including a list of what is currently missing or
 broken.
 
-## Contributing
+## Working on Piramid
 
-`just doctor` checks your setup and `just check` is the gate. [AGENTS.md](AGENTS.md) covers the
-layout, the dependency rule, and the conventions.
+Contributor tooling is separate from the shipped binary. `just` drives the repo — building,
+testing, linting, running the site — and is never needed to *use* Piramid. `piramid` is the binary
+users install, and it has no idea `just` exists.
+
+```bash
+just bootstrap   # .env, git hooks, dependencies
+just doctor      # check your tooling
+just check       # the gate: fmt, clippy, tests, layering
+just serve       # run the server from source
+just web         # the site on :3000
+```
+
+[AGENTS.md](AGENTS.md) covers the layout, the dependency rule, and the conventions.
+[docs/SETUP.md](docs/SETUP.md) has the full list.
 
 ## License
 

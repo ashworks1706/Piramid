@@ -6,7 +6,12 @@ propose an edit to the doc instead.
 
 ## Commands
 
-`just` is the entrypoint. Run `just` on its own to list recipes. Install from https://just.systems.
+`just` is the entrypoint for working on the repo. Run `just` on its own to list recipes. Install
+from https://just.systems.
+
+It is contributor tooling, not the product. Nothing shipped depends on it: the Dockerfiles call
+cargo directly, and the published `piramid` binary knows nothing about it. When writing docs aimed
+at someone *using* Piramid, show `piramid ...` or `docker ...`, never `just ...`.
 
 ```
 just doctor | env | hooks | bootstrap   first run
