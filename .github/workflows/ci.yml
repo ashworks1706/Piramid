@@ -1,0 +1,169 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUSTFLAGS: -D warnings
+
+jobs:
+  # What the diff touches decides what runs. A blog post should not run the Rust
+  # matrix, and a kernel change should not run eslint.
+  changes:
+    name: Changes
+    runs-on: ubuntu-latest
+    outputs:
+      rust: ${{ steps.filter.outputs.rust }}
+      docker: ${{ steps.filter.outputs.docker }}
+      website: ${{ steps.filter.outputs.website }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dorny/paths-filter@v3
+        id: filter
+        with:
+          filters: |
+            rust:
+              - 'apps/engine/**'
+              - 'apps/cli/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'justfile'
+              - 'scripts/**'
+              - '.github/workflows/ci.yml'
+            docker:
+              - 'apps/engine/**'
+              - 'apps/cli/**'
+              - 'Cargo.toml'
+              - 'Cargo.lock'
+              - 'deploy/docker/**'
+              - '.dockerignore'
+              - '.github/workflows/ci.yml'
+            website:
+              - 'apps/website/**'
+              - '.github/workflows/ci.yml'
+
+  # The same recipe developers run locally.
+  rust:
+    name: Rust
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+      - uses: Swatinem/rust-cache@v2
+      - uses: extractions/setup-just@v3
+      - run: just check-rust
+
+  # Additive default-off features only break in combinations nobody builds locally.
+  # cargo check, so no GPU runner is needed.
+  features:
+    name: Features (${{ matrix.name }})
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: gpu-cuda
+            flags: --features gpu-cuda
+          - name: inference-candle
+            flags: --features inference-candle
+          - name: otel
+            flags: --features otel
+          - name: all
+            flags: --all-features
+          - name: no-default
+            flags: --no-default-features
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.name }}
+      - run: cargo check --workspace --all-targets ${{ matrix.flags }}
+
+  # The declared MSRV has to actually build.
+  msrv:
+    name: MSRV
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - id: msrv
+        run: echo "version=$(grep -m1 '^rust-version' Cargo.toml | sed 's/.*"\(.*\)".*/\1/')" >> "$GITHUB_OUTPUT"
+      - uses: dtolnay/rust-toolchain@master
+        with:
+          toolchain: ${{ steps.msrv.outputs.version }}
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo check --workspace --all-targets
+
+  # Broken intra-doc links are invisible until someone reads the docs.
+  docs:
+    name: Docs
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo doc --workspace --no-deps --all-features
+        env:
+          RUSTDOCFLAGS: -D warnings
+
+  # Catches a missing include or an unversioned path dependency before release day.
+  package:
+    name: Package
+    needs: changes
+    if: needs.changes.outputs.rust == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - run: cargo package --workspace --no-verify --allow-dirty
+
+  # Build the image on PRs, so it doesn't only break on the release that needs it.
+  docker:
+    name: Docker
+    needs: changes
+    if: needs.changes.outputs.docker == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/build-push-action@v6
+        with:
+          context: .
+          file: deploy/docker/piramid.Dockerfile
+          push: false
+          cache-from: type=gha,scope=cpu
+          cache-to: type=gha,mode=max,scope=cpu
+
+  website:
+    name: Website
+    needs: changes
+    if: needs.changes.outputs.website == 'true'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: apps/website/package-lock.json
+      - run: cd apps/website && npm ci
+      - run: cd apps/website && npm run lint

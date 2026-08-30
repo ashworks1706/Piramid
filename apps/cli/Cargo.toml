@@ -1,0 +1,67 @@
+[package]
+name = "piramid"
+description = "Inference engine for retrieval systems: one binary for vector storage, search, and retrieval-fused inference."
+readme = "../../README.md"
+keywords = ["vector-database", "rag", "embeddings", "search", "inference"]
+categories = ["database-implementations", "command-line-utilities"]
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+default-run = "piramid"
+
+[lib]
+name = "piramid"
+path = "src/lib.rs"
+
+[[bin]]
+name = "piramid"
+path = "src/main.rs"
+
+[features]
+default = []
+gpu-cuda = ["piramid-compute/gpu-cuda", "piramid-gpu/gpu-cuda"]
+inference-candle = ["piramid-inference/inference-candle"]
+# Export traces over OTLP to any collector (Axiom, Tempo, Honeycomb, Jaeger).
+otel = ["piramid-observability/otel"]
+
+[dependencies]
+piramid-core.workspace = true
+piramid-compute.workspace = true
+piramid-gpu.workspace = true
+piramid-storage.workspace = true
+piramid-index.workspace = true
+piramid-search.workspace = true
+piramid-collections.workspace = true
+piramid-embeddings.workspace = true
+piramid-inference.workspace = true
+piramid-observability.workspace = true
+piramid-server.workspace = true
+axum.workspace = true
+clap.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+serde_yaml.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Restates the workspace lints (Cargo forbids partial overrides) with one change: the CLI is the
+# one place that talks to a terminal, so `println!`/`eprintln!` are allowed here.
+[lints.rust]
+unsafe_code = "deny"
+unused_must_use = "deny"
+missing_docs = "allow"
+
+[lints.clippy]
+all = { level = "warn", priority = -1 }
+panic = "deny"
+todo = "deny"
+unimplemented = "deny"
+dbg_macro = "deny"
+print_stdout = "allow"
+print_stderr = "allow"
+unwrap_used = "allow"
+expect_used = "allow"

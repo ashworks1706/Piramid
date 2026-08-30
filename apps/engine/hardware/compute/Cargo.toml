@@ -1,0 +1,26 @@
+[package]
+name = "piramid-compute"
+description = "Distance and similarity kernels with CPU/GPU backend dispatch."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+serde.workspace = true
+wide.workspace = true
+rayon.workspace = true
+num_cpus.workspace = true
+tracing.workspace = true
+
+[dev-dependencies]
+
+[features]
+default = []
+gpu-cuda = []
+
+[lints]
+workspace = true

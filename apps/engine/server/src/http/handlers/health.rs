@@ -1,0 +1,39 @@
+use axum::{extract::State, http::StatusCode, response::Json};
+
+use crate::http::ApiResult as Result;
+use crate::runtime::SharedState;
+use crate::services::admin;
+use crate::services::types::{HealthResponse, MetricsResponse};
+
+pub async fn health() -> Json<HealthResponse> {
+    Json(admin::health())
+}
+
+pub async fn health_embeddings(State(state): State<SharedState>) -> StatusCode {
+    if admin::embeddings_available(&state) {
+        StatusCode::OK
+    } else {
+        StatusCode::SERVICE_UNAVAILABLE
+    }
+}
+
+pub async fn metrics(State(state): State<SharedState>) -> Result<Json<MetricsResponse>> {
+    Ok(Json(admin::metrics(&state)?))
+}
+
+/// Prometheus scrape endpoint.
+///
+/// Served at `/metrics`, outside the `/api` prefix, so a scrape config does not need to know the
+/// API layout. `/api/metrics` still returns the richer JSON view.
+pub async fn prometheus_metrics(
+    State(state): State<SharedState>,
+) -> Result<([(axum::http::header::HeaderName, &'static str); 1], String)> {
+    let snapshot = admin::metrics(&state)?;
+    Ok((
+        [(
+            axum::http::header::CONTENT_TYPE,
+            crate::http::prometheus::SCRAPE_CONTENT_TYPE,
+        )],
+        crate::http::prometheus::render(&snapshot),
+    ))
+}

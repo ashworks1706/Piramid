@@ -2,115 +2,38 @@ name: Release
 
 on:
   push:
-    branches: [ releases ]
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
-      version:
-        description: "Release version without v prefix. Leave empty to use Cargo.toml."
-        required: false
+      tag:
+        description: "Existing tag to build binaries for, e.g. v0.2.0"
+        required: true
         type: string
-
-env:
-  CARGO_TERM_COLOR: always
-  REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
-  IMAGE_DESCRIPTION: All-in-one binary for distributed model inference, retrieval, and vector search.
 
 concurrency:
   group: release-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  CARGO_TERM_COLOR: always
+  REGISTRY: ghcr.io
+
+# crates.io publishing is release-plz's job; it knows the workspace publish order.
+# This builds the tag's artifacts: binaries, images, SBOMs, and the GitHub release.
+
 jobs:
-  prepare:
-    name: Prepare Release
+  resolve:
+    name: Resolve tag
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
     outputs:
-      version: ${{ steps.version.outputs.version }}
-      tag: ${{ steps.version.outputs.tag }}
-      description: ${{ env.IMAGE_DESCRIPTION }}
-
+      tag: ${{ steps.tag.outputs.tag }}
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
+      - id: tag
+        run: echo "tag=${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}" >> "$GITHUB_OUTPUT"
 
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-        with:
-          components: rustfmt, clippy
-
-      - name: Install cargo-nextest
-        run: cargo install --locked cargo-nextest
-
-      - name: Resolve release version
-        id: version
-        shell: bash
-        env:
-          REQUESTED_VERSION: ${{ github.event_name == 'workflow_dispatch' && inputs.version || '' }}
-        run: |
-          set -euo pipefail
-          requested="$REQUESTED_VERSION"
-          current="$(sed -n 's/^version = "\(.*\)"/\1/p' Cargo.toml | head -n 1)"
-          version="${requested:-$current}"
-
-          if ! [[ "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.-]+)?$ ]]; then
-            echo "Invalid semver version: $version" >&2
-            exit 1
-          fi
-
-          if [ "$version" != "$current" ]; then
-            sed -i "0,/^version = \".*\"/s//version = \"$version\"/" Cargo.toml
-            cargo metadata --format-version 1 >/dev/null
-          fi
-
-          tag="v$version"
-          if git rev-parse "$tag" >/dev/null 2>&1; then
-            echo "Tag $tag already exists locally." >&2
-            exit 1
-          fi
-          if git ls-remote --exit-code --tags origin "refs/tags/$tag" >/dev/null 2>&1; then
-            echo "Tag $tag already exists on origin." >&2
-            exit 1
-          fi
-
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-          echo "tag=$tag" >> "$GITHUB_OUTPUT"
-
-      - name: Commit version bump when requested
-        if: ${{ github.event_name == 'workflow_dispatch' && inputs.version != '' }}
-        shell: bash
-        run: |
-          set -euo pipefail
-          if ! git diff --quiet -- Cargo.toml Cargo.lock; then
-            git config user.name "github-actions[bot]"
-            git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-            git add Cargo.toml Cargo.lock
-            git commit -m "release ${{ steps.version.outputs.tag }}"
-            git push origin HEAD:releases
-          fi
-
-      - name: Run release checks
-        run: ./scripts/check.sh
-
-      - name: Verify crate package
-        run: cargo package --locked
-
-      - name: Create release tag
-        shell: bash
-        run: |
-          set -euo pipefail
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git tag -a "${{ steps.version.outputs.tag }}" -m "Release ${{ steps.version.outputs.tag }}"
-          git push origin "${{ steps.version.outputs.tag }}"
-
-  build-binaries:
-    name: Build Release Binary
-    needs: prepare
+  binaries:
+    name: Binary (${{ matrix.asset }})
+    needs: resolve
     runs-on: ${{ matrix.os }}
     permissions:
       contents: read
@@ -122,42 +45,36 @@ jobs:
         include:
           - os: ubuntu-latest
             target: x86_64-unknown-linux-gnu
-            artifact_name: piramid
-            asset_name: piramid-linux-amd64
-            archive_ext: tar.gz
+            asset: piramid-linux-amd64
+            archive: tar.gz
           - os: ubuntu-latest
             target: aarch64-unknown-linux-gnu
-            artifact_name: piramid
-            asset_name: piramid-linux-arm64
-            archive_ext: tar.gz
+            asset: piramid-linux-arm64
+            archive: tar.gz
           - os: macos-latest
             target: x86_64-apple-darwin
-            artifact_name: piramid
-            asset_name: piramid-macos-amd64
-            archive_ext: tar.gz
+            asset: piramid-macos-amd64
+            archive: tar.gz
           - os: macos-latest
             target: aarch64-apple-darwin
-            artifact_name: piramid
-            asset_name: piramid-macos-arm64
-            archive_ext: tar.gz
+            asset: piramid-macos-arm64
+            archive: tar.gz
           - os: windows-latest
             target: x86_64-pc-windows-msvc
-            artifact_name: piramid.exe
-            asset_name: piramid-windows-amd64.exe
-            archive_ext: zip
-
+            asset: piramid-windows-amd64
+            archive: zip
     steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
+          ref: ${{ needs.resolve.outputs.tag }}
+      - uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
+      - uses: Swatinem/rust-cache@v2
+        with:
+          key: ${{ matrix.target }}
 
-      - name: Install cross-compilation tools
+      - name: Install cross linker
         if: matrix.target == 'aarch64-unknown-linux-gnu'
         run: |
           sudo apt-get update
@@ -166,182 +83,130 @@ jobs:
       - name: Build
         env:
           CARGO_TARGET_AARCH64_UNKNOWN_LINUX_GNU_LINKER: ${{ matrix.target == 'aarch64-unknown-linux-gnu' && 'aarch64-linux-gnu-gcc' || '' }}
-        run: cargo build --release --locked --target ${{ matrix.target }}
+        run: cargo build --release --locked --target ${{ matrix.target }} --bin piramid
 
-      - name: Strip binary
-        if: matrix.os != 'windows-latest'
-        shell: bash
-        run: |
-          if [ "${{ matrix.target }}" = "aarch64-unknown-linux-gnu" ]; then
-            aarch64-linux-gnu-strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-          else
-            strip target/${{ matrix.target }}/release/${{ matrix.artifact_name }}
-          fi
-
-      - name: Create tarball
+      # release profile already strips; this covers cross builds.
+      - name: Package (unix)
         if: matrix.os != 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          tar czf ../../../${{ matrix.asset_name }}.tar.gz ${{ matrix.artifact_name }}
+          tar czf "$GITHUB_WORKSPACE/${{ matrix.asset }}.tar.gz" piramid
 
-      - name: Create zip
+      - name: Package (windows)
         if: matrix.os == 'windows-latest'
         run: |
           cd target/${{ matrix.target }}/release
-          7z a ../../../${{ matrix.asset_name }}.zip ${{ matrix.artifact_name }}
+          7z a "$env:GITHUB_WORKSPACE\${{ matrix.asset }}.zip" piramid.exe
 
-      - name: Upload binary artifact
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
-          name: ${{ matrix.asset_name }}
-          path: ./${{ matrix.asset_name }}.${{ matrix.archive_ext }}
+          name: ${{ matrix.asset }}
+          path: ${{ matrix.asset }}.${{ matrix.archive }}
           if-no-files-found: error
 
-      - name: Attest binary artifact provenance
-        uses: actions/attest-build-provenance@v3
+      - uses: actions/attest-build-provenance@v3
         with:
-          subject-path: ./${{ matrix.asset_name }}.${{ matrix.archive_ext }}
+          subject-path: ${{ matrix.asset }}.${{ matrix.archive }}
 
-  publish-crate:
-    name: Publish Crate
-    needs: [prepare, build-binaries]
-    runs-on: ubuntu-latest
-    environment: crates-io
-    permissions:
-      contents: read
-      id-token: write
-    steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
-        with:
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@stable
-
-      - name: Authenticate to crates.io with OIDC
-        uses: rust-lang/crates-io-auth-action@v1
-
-      - name: Publish to crates.io
-        run: cargo publish --locked
-
-  publish-docker:
-    name: Publish Docker Image
-    needs: [prepare, build-binaries]
+  images:
+    name: Image (${{ matrix.name }})
+    needs: resolve
     runs-on: ubuntu-latest
     permissions:
       contents: read
       packages: write
       attestations: write
       id-token: write
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - name: cpu
+            dockerfile: deploy/docker/piramid.Dockerfile
+            suffix: ""
+            platforms: linux/amd64,linux/arm64
+          - name: cuda
+            dockerfile: deploy/docker/piramid-cuda.Dockerfile
+            suffix: "-cuda"
+            platforms: linux/amd64
     steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
-
-      - name: Log in to GitHub Container Registry
-        uses: docker/login-action@v3
+          ref: ${{ needs.resolve.outputs.tag }}
+      - uses: docker/setup-qemu-action@v3
+      - uses: docker/setup-buildx-action@v3
+      - uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Extract Docker metadata
-        id: meta
+      - id: meta
         uses: docker/metadata-action@v5
         with:
-          images: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          images: ${{ env.REGISTRY }}/${{ github.repository }}${{ matrix.suffix }}
           tags: |
-            type=raw,value=${{ needs.prepare.outputs.tag }}
-            type=raw,value=${{ needs.prepare.outputs.version }}
+            type=raw,value=${{ needs.resolve.outputs.tag }}
+            type=semver,pattern={{version}},value=${{ needs.resolve.outputs.tag }}
             type=raw,value=latest
-            type=sha,prefix=sha-
           labels: |
             org.opencontainers.image.title=Piramid
-            org.opencontainers.image.description=${{ needs.prepare.outputs.description }}
-            org.opencontainers.image.vendor=ashworks1706
+            org.opencontainers.image.description=Inference engine for retrieval systems.
             org.opencontainers.image.licenses=Apache-2.0
-
-      - name: Build and push Docker image
-        id: build
-        uses: docker/build-push-action@v5
+      - id: build
+        uses: docker/build-push-action@v6
         with:
           context: .
+          file: ${{ matrix.dockerfile }}
           push: true
+          platforms: ${{ matrix.platforms }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
-          cache-from: type=gha
-          cache-to: type=gha,mode=max
-          platforms: linux/amd64,linux/arm64
-
-      - name: Attest container image provenance
-        uses: actions/attest-build-provenance@v3
+          cache-from: type=gha,scope=release-${{ matrix.name }}
+          cache-to: type=gha,mode=max,scope=release-${{ matrix.name }}
+      - uses: actions/attest-build-provenance@v3
         with:
-          subject-name: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}
+          subject-name: ${{ env.REGISTRY }}/${{ github.repository }}${{ matrix.suffix }}
           subject-digest: ${{ steps.build.outputs.digest }}
           push-to-registry: true
-
-      - name: Generate SBOM
-        uses: anchore/sbom-action@v0
+      - uses: anchore/sbom-action@v0
         with:
-          image: ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}@${{ steps.build.outputs.digest }}
+          image: ${{ env.REGISTRY }}/${{ github.repository }}${{ matrix.suffix }}@${{ steps.build.outputs.digest }}
           format: spdx-json
-          output-file: sbom.spdx.json
-
-      - name: Upload SBOM
-        uses: actions/upload-artifact@v4
+          output-file: sbom-${{ matrix.name }}.spdx.json
+      - uses: actions/upload-artifact@v4
         with:
-          name: sbom-${{ needs.prepare.outputs.tag }}
-          path: sbom.spdx.json
+          name: sbom-${{ matrix.name }}
+          path: sbom-${{ matrix.name }}.spdx.json
 
-  create-release:
-    name: Create GitHub Release
-    needs: [prepare, publish-crate, publish-docker]
+  release:
+    name: GitHub release
+    needs: [resolve, binaries, images]
     runs-on: ubuntu-latest
     permissions:
       contents: write
     steps:
-      - name: Checkout release tag
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
         with:
-          ref: ${{ needs.prepare.outputs.tag }}
-
-      - name: Download release artifacts
-        uses: actions/download-artifact@v4
+          ref: ${{ needs.resolve.outputs.tag }}
+      - uses: actions/download-artifact@v4
         with:
-          path: release-assets
+          path: assets
           pattern: piramid-*
           merge-multiple: true
 
       - name: Resolve release notes
-        shell: bash
         run: |
           set -euo pipefail
-          tag="${{ needs.prepare.outputs.tag }}"
-          version="${{ needs.prepare.outputs.version }}"
-
-          for candidate in "release-notes/${tag}.md" "release-notes/${version}.md" "release-notes/latest.md"; do
-            if [ -f "$candidate" ]; then
-              cp "$candidate" release-body.md
-              exit 0
-            fi
+          tag="${{ needs.resolve.outputs.tag }}"
+          for candidate in "release-notes/${tag}.md" "release-notes/${tag#v}.md"; do
+            if [ -f "$candidate" ]; then cp "$candidate" body.md; exit 0; fi
           done
+          printf 'Piramid %s\n' "$tag" > body.md
 
-          cat > release-body.md <<EOF
-          Piramid ${tag} release.
-
-          This release publishes the crate, Docker image, and platform binaries from the same tagged source.
-          EOF
-
-      - name: Create release
-        uses: softprops/action-gh-release@v2
+      - uses: softprops/action-gh-release@v2
         with:
-          tag_name: ${{ needs.prepare.outputs.tag }}
-          name: Piramid ${{ needs.prepare.outputs.tag }}
-          body_path: release-body.md
+          tag_name: ${{ needs.resolve.outputs.tag }}
+          name: Piramid ${{ needs.resolve.outputs.tag }}
+          body_path: body.md
           generate_release_notes: true
-          files: release-assets/*
+          files: assets/*

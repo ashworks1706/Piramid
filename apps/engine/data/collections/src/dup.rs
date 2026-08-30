@@ -1,0 +1,95 @@
+//! Near-duplicate detection: search each vector against the collection and report hits above a
+//! similarity threshold.
+
+use std::collections::HashSet;
+use uuid::Uuid;
+
+use super::collection::Collection;
+use piramid_compute::Metric;
+use piramid_core::error::Result;
+use piramid_index::IndexSearchRequest;
+
+#[derive(Debug)]
+pub struct DuplicateHit {
+    pub id_a: Uuid,
+    pub id_b: Uuid,
+    pub score: f32,
+}
+
+pub fn find_duplicates(
+    collection: &Collection,        // collection to search for duplicates.
+    metric: Metric,                 // similarity metric to use for comparing vectors.
+    threshold: f32, // minimum similarity score for two vectors to be considered duplicates.
+    limit: Option<usize>, // optional limit on the number of duplicate pairs to return.
+    k_override: Option<usize>, // optional override for the number of nearest neighbors to consider when searching for duplicates.
+    ef_override: Option<usize>, // optional override for the ef parameter used in the vector index search.
+    nprobe_override: Option<usize>, // optional override for the nprobe parameter used in the vector index search.
+) -> Result<Vec<DuplicateHit>> {
+    let mut pairs = Vec::new();
+    let vectors = collection.vectors_view();
+    let metadatas = collection.metadata_view();
+    let ids: Vec<Uuid> = vectors.keys().cloned().collect();
+    let mode = collection.config.execution;
+    let mut search_cfg = collection.config.search;
+    if let Some(ef) = ef_override {
+        search_cfg.ef = Some(ef);
+    }
+    if let Some(nprobe) = nprobe_override {
+        search_cfg.nprobe = Some(nprobe);
+    }
+    let k_default = 50usize.saturating_sub(1);
+    let neighbor_k = k_override
+        .or_else(|| limit.map(|l| l.saturating_mul(2).max(10)))
+        .unwrap_or(k_default)
+        .min(ids.len().saturating_sub(1))
+        .max(1);
+
+    let mut seen = HashSet::new();
+
+    for id in &ids {
+        let vec = match vectors.get(id) {
+            Some(v) => v,
+            None => continue,
+        };
+        let neighbors = collection.vector_index().search(IndexSearchRequest::new(
+            vec,
+            neighbor_k,
+            collection.vector_reader(),
+            search_cfg,
+            metadatas,
+        ))?;
+        for neighbor_id in neighbors {
+            if neighbor_id == *id {
+                continue;
+            }
+            let (a, b) = if id < &neighbor_id {
+                (*id, neighbor_id)
+            } else {
+                (neighbor_id, *id)
+            };
+            if !seen.insert((a, b)) {
+                continue;
+            }
+            if let (Some(va), Some(vb)) = (vectors.get(&a), vectors.get(&b)) {
+                let score = metric.calculate(va, vb, mode);
+                if score >= threshold {
+                    pairs.push(DuplicateHit {
+                        id_a: a,
+                        id_b: b,
+                        score,
+                    });
+                }
+            }
+        }
+    }
+
+    pairs.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    if let Some(max) = limit {
+        pairs.truncate(max);
+    }
+    Ok(pairs)
+}

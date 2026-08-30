@@ -1,0 +1,323 @@
+# Architecture
+
+How the workspace is cut, why each boundary sits where it does, and what has to stay true.
+
+## The problem this shape solves
+
+Piramid runs retrieval and, eventually, transformer inference in one process. That single-process
+goal is exactly why internal boundaries matter: with no network between the layers, nothing keeps
+them from growing into each other except discipline, and discipline that nothing checks tends not
+to survive.
+
+So the layering is physical. Each layer is a crate, and `scripts/check-deps.sh` fails CI on an edge
+that isn't in the rule below.
+
+## The tree
+
+```text
+apps/                     everything we author
+  engine/                 the library crates
+    core/                 errors, config, metadata, validation, stats
+    observability/        where measurements go: subscriber, OTLP, Prometheus
+    hardware/             code that changes when the machine changes
+      compute  gpu
+    data/                 where vectors live and who owns them
+      storage  collections
+    retrieval/            how you find them
+      index  search  embeddings
+    inference/            how you run a model over them
+    server/               how the outside world reaches it
+  cli/                    the piramid binary, which links the engine into one artifact
+  website/                piramiddb.com, with blog content and images inside it
+  sdk/                    npm and python clients
+
+deploy/  docs/  scripts/  .claude/  .github/     how it's built, shipped, and explained
+```
+
+Two things the naming is doing. `engine/` says what the thing is; "crates" describes Rust's
+compilation model, not the product. And one binary doesn't mean one folder: the engine is eleven
+crates and `apps/cli` is what links them into an artifact.
+
+The groups answer "what is this for", and each cut is a real one.
+
+`hardware/` is the code that changes when the machine changes. `compute` owns what cosine means
+and which backend runs it; `gpu` owns the device, meaning contexts, buffers, streams, and modules.
+They're separate because two subsystems need a device — `compute` for distance kernels and
+`inference` for model execution — and neither should have to depend on the other to allocate
+memory.
+
+`data/` is where vectors live and who owns them. `storage` is bytes: records, WAL, mmap, layout.
+`collections` is the object that owns a store, a cache, a checkpoint policy, and an index. A
+collection is acted on by search rather than being a way of finding things itself.
+
+`retrieval/` is how you find them: `index` for the ANN structure, `search` for planning and
+scoring, `embeddings` for turning text into a vector to search with.
+
+`core` and `observability` sit flat because they're used from everywhere rather than at one level.
+`core` is the vocabulary everything shares. `observability` is used by `server`, which renders
+metrics, and directly by `apps/cli`, which installs the tracing subscriber before any server
+exists. `server` and `inference` are flat because each is one crate, and a group of one buys
+nothing.
+
+`core::stats` and `observability` split a concern that's easy to read as two names for one thing.
+`stats` is what the engine measures about itself: latency, lock contention, embedding throughput,
+held as plain atomics with no dependency on `tracing` or any exporter, so `collections` and
+`server` can record into it freely. `observability` is where those numbers go, and it carries
+`tracing-subscriber` and OpenTelemetry. Merging them would link an exporter stack into every crate
+that times a lock.
+
+Folder groups are for finding your way around. They deliberately don't line up with the dependency
+order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types that
+configuration carries.
+
+## Crates
+
+```mermaid
+flowchart TD
+    CLI[apps/cli<br/>binary + umbrella facade]
+    Server[server<br/>http · services · runtime · cluster]
+    Inference[inference<br/>forward pass · kv_cache · augment seam]
+    Collections[collections<br/>Collection · cache · checkpoint]
+    Embeddings[embeddings<br/>openai · ollama · local]
+    Search[search<br/>planning · filtering · ranking]
+    Index[index<br/>flat · hnsw · ivf]
+    Storage[storage<br/>records · WAL · mmap · slab · quantization]
+    Core[core<br/>error · config · metadata · validation · stats]
+    Compute[compute<br/>distance kernels + dispatch]
+    Gpu[gpu<br/>device · buffer · stream · module]
+
+    CLI --> Server
+    CLI --> Inference
+    Server --> Collections
+    Server --> Embeddings
+    Server --> Search
+    Server --> Index
+    Server --> Storage
+    Server --> Core
+    Inference --> Gpu
+    Inference --> Core
+    Collections --> Search
+    Collections --> Index
+    Collections --> Storage
+    Collections --> Core
+    Embeddings --> Core
+    Search --> Index
+    Search --> Storage
+    Search --> Core
+    Index --> Storage
+    Index --> Core
+    Index --> Compute
+    Storage --> Core
+    Core --> Compute
+```
+
+| Crate | Owns | Must not |
+|---|---|---|
+| `core` | Errors, configuration, metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
+| `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product |
+| `compute` | Distance math, backend selection | Depend on anything in the workspace |
+| `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics or leak vendor types |
+| `storage` | Records, WAL, sidecars, mmap, vector layout, quantization | Decide API behaviour or collection lifecycle |
+| `index` | ANN traversal, index settings, sidecar format | Own collection storage or the vectors themselves |
+| `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
+| `collections` | The `Collection` object, cache, checkpoint, compaction | Serve HTTP |
+| `embeddings` | Provider adapters, caching, retries | Know about collections |
+| `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
+| `server` | Routes, handlers, services, `AppState`, routing | Touch file formats or index internals |
+| `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
+
+## The dependency rule
+
+A crate may depend on one listed below it. The reverse is a violation.
+
+```
+compute ─┐                    gpu ─┐
+         │                         ├─→ inference ─┐
+core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
+         └─→ embeddings ──────────────────────────────────┘
+```
+
+`scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
+document in the same change.
+
+### Why compute and gpu are leaves
+
+Neither depends on anything in the workspace, `core` included.
+
+`compute` is a leaf because kernels should be liftable into a standalone benchmark, and because a
+kernel layer that imports application configuration can't be reasoned about on its own.
+`ExecutionMode` lives in `compute` and is re-exported by `config` rather than the other way round;
+it names a backend, which is a compute concern.
+
+`gpu` is a leaf because both `compute` and `inference` need a device. If the device runtime lived
+inside `compute`, inference would depend on retrieval math to allocate memory. Keeping `gpu` a peer
+means both share one `Device`, which is what puts vectors and model weights in the same address
+space.
+
+```
+compute/backends/cuda.rs ──┐
+                           ├──→ gpu  (Device, DeviceBuffer, Stream, KernelModule)
+inference/backends/*.rs  ──┘
+```
+
+## The three seams
+
+Everything else exists to make these cheap to implement and swap.
+
+### compute::DistanceKernels
+
+One backend per file in `compute/backends/`, one arm in the registry. Nothing else changes.
+
+```rust
+fn cosine_batch(&self, query: &[f32], candidates: &[f32], dim: usize, out: &mut [f32])
+    -> ComputeResult<()>;
+```
+
+`candidates` is a contiguous row-major slab, not `&[Vec<f32>]`. A slab uploads to a device in one
+memcpy; a slice of `Vec`s is a set of scattered allocations that a device backend would have to
+gather on every call, and that gather costs more than the kernel saves. `out` is caller-owned so
+the buffer can be reused across queries and pinned later for async transfer.
+
+CPU backends get correct batch behaviour from default implementations that loop over the pairwise
+methods. A device backend overrides them with a real launch.
+
+Dispatch never panics. `backends::resolve_available` falls back to the best CPU backend with a
+warning when the requested one is missing, so a config asking for `gpu` on a machine without one
+degrades instead of crashing.
+
+### storage::vectors::VectorReader
+
+How an index reads vectors it doesn't own, so the backing store can change without touching any
+index. Cache-backed today, slab-backed or mmap-backed later.
+
+`as_slab() -> Option<(&[f32], usize)>` is the fast path. A reader over scattered allocations
+returns `None` rather than silently copying, because hiding that cost would make the CPU/device
+choice unmeasurable. `gather_into()` is the portable fallback. Both have defaults.
+
+`VectorSlab` is a contiguous `Vec<f32>` with a stride and a `Uuid → u32` ordinal map. It exists and
+isn't the default yet; migrating `CacheManager` onto it is on the roadmap and can happen one call
+site at a time because `as_slab` is optional.
+
+### inference::augment::RetrievalHook
+
+Where retrieval enters the forward pass.
+
+```rust
+fn wants(&self, point: RetrievalPoint) -> bool;
+fn on_retrieval_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
+```
+
+Mechanism-agnostic on purpose: it says when retrieval may occur and what it may touch, not how
+retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
+routing would all be implementations of the same trait.
+
+It exists before anything calls it because a forward-pass driver written without the seam is hard
+to retrofit with one, and a driver written with it costs nothing extra. `ForwardContext` is a
+named struct rather than a parameter list so adding state later doesn't break every
+implementation.
+
+A strategy that actually queries an index depends on `search`, so it belongs in its own crate
+depending on both that and `inference`. That's what keeps `inference` free of the retrieval stack.
+
+## Request flow
+
+```mermaid
+sequenceDiagram
+    participant C as Client
+    participant H as server::http
+    participant S as server::services
+    participant M as CollectionManager
+    participant Col as Collection
+    participant Se as search
+    participant Idx as index
+    participant St as storage
+
+    C->>H: HTTP request
+    H->>S: typed DTO
+    S->>M: get_existing / get_or_create
+    M->>Col: open or return loaded
+    S->>Col: domain operation
+    Col->>Se: SearchTarget + params
+    Se->>Idx: IndexSearchRequest
+    Idx->>St: read vectors via VectorReader
+    Se-->>Col: ranked hits
+    Col-->>S: domain result
+    S-->>H: response DTO
+    H-->>C: JSON
+```
+
+Conversion boundaries are explicit: HTTP shapes in `server::http`, operational decisions in
+`server::services`, domain mutation in `collections`, bytes and files in `storage`.
+
+`search` takes a `SearchTarget` — index, readers, defaults — rather than a `Collection`. That's
+what keeps `search` below `collections` instead of circular with it.
+
+## Write path
+
+The record store plus sidecars are the source of truth. Cache and index are acceleration
+structures that have to stay rebuildable from stored records.
+
+```mermaid
+flowchart TD
+    A[service receives write] --> B[CollectionManager opens collection]
+    B --> C[validate limits and dimensions]
+    C --> D[CheckpointManager logs WAL entry]
+    D --> E[RecordStore appends document]
+    E --> F[update offset index]
+    F --> G[CacheManager updates hot vector and metadata]
+    G --> H[VectorIndex updates ANN structure]
+    H --> I[checkpoint condition may flush sidecars]
+```
+
+## Durability
+
+WAL plus checkpoints. `CheckpointManager` owns collection-level bookkeeping and WAL rotation;
+byte-level serialization stays in `storage`. On open, the builder loads sidecars, opens the record
+store, initializes the WAL, and replays if needed.
+
+An index owns its own sidecar format, so save and load live in `index::persistence` rather than in
+`storage`.
+
+## Errors
+
+`core` is transport-agnostic. `PiramidError::kind()` returns an `ErrorKind` — `NotFound`,
+`Conflict`, `Upstream`, `Internal`, and so on — with no notion of a status code.
+`server::http::ApiError` is a newtype in the transport layer that maps a kind onto an HTTP status
+and renders JSON.
+
+Handlers keep `?` because `ApiError` converts from anything that converts into `PiramidError`, so a
+handler returns `ApiResult<T>` while everything below returns `piramid_core::Result`. It also means
+the orphan rule isn't a problem, since the `IntoResponse` impl is on a local newtype.
+
+## Invariants
+
+1. `compute` and `gpu` depend on nothing in the workspace.
+2. No library crate calls `std::process::exit`. Configuration loading returns a `Result`.
+3. `core` never names an HTTP type.
+4. Vendor SDK types, `cudarc` and `candle`, never escape their backend module.
+5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a
+   `// SAFETY:` comment.
+6. Cache and index are rebuildable from the record store.
+7. Retrieval works with no model loaded, and `inference` depends on nothing in the retrieval
+   stack. `inference::augment` holds only the trait; a strategy that queries an index is a
+   separate crate depending on both. Enforced by `scripts/check-deps.sh`.
+8. Default builds are CPU-only and need no vendor toolchain.
+9. Telemetry speaks protocols, not products. Nothing is sent to this project under any
+   configuration.
+
+## Where new code goes
+
+1. HTTP-specific goes in `apps/engine/server/src/http`.
+2. Something that coordinates a user-facing operation goes in `apps/engine/server/src/services`.
+3. Something that changes one collection's state goes in `apps/engine/data/collections`.
+4. Bytes, mmap, WAL, and sidecars go in `apps/engine/data/storage`.
+5. An ANN implementation detail goes in `apps/engine/retrieval/index`.
+6. Distance math or backend dispatch goes in `apps/engine/hardware/compute`.
+7. Device memory, streams, and kernels go in `apps/engine/hardware/gpu`.
+8. Model execution goes in `apps/engine/inference`.
+9. Retrieval inside the forward pass goes in `apps/engine/inference/src/augment`.
+10. Shared vocabulary — error, config, metadata — goes in `apps/engine/core`.
+11. A deployable, a site, or a client library goes in `apps/`.
+
+If a change touches three or more crates, start at the service boundary and make the data flow
+explicit before writing anything.
