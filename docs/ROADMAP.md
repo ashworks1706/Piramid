@@ -71,6 +71,13 @@
 
 ## Unscheduled
 
+- [ ] migrate off `serde_yaml` 0.9 — archived upstream and unmaintained. It parses every config
+      file and the support bundle. `serde_norway` is the maintained fork
+- [ ] `piramid write-config` emits `Config::default()` rather than the commented
+      `config.example.yaml`, so a generated file has the values without the explanations
+- [ ] make `runtime:` reach further. A reload applies to collections opened after it, so a running
+      collection keeps the search, cache and WAL settings it opened with. Either re-read them per
+      request or say in the docs that it is per-collection-open
 - [ ] tune IVF, or say in the docs that HNSW is the one to use
 - [ ] migrate bincode 1.x → 2.x: a format migration for records, sidecars and the WAL, with a read
       path for existing data (RUSTSEC-2025-0141, ignored in `deny.toml` until then)
@@ -83,6 +90,8 @@
 - [ ] test `apps/cli`. It has none, and `support-bundle` is the path that must never emit a secret
 - [ ] one HTTP-level test that builds the router and hits it. 25 routes, no test constructs one
 - [ ] untrack `apps/sdk/python/dist/` and `piramid.egg-info/` — build artifacts committed to git
+- [ ] no test starts the server and reloads config. The startup-block guard and the env-override
+      precedence are covered at the loader level only
 
 ## Out of scope
 

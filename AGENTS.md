@@ -45,9 +45,9 @@ One repo, one binary. Everything we author is under `apps/`. The library crates 
 folder and neither is hardware.
 
 ```
-apps/engine/core                  errors (every one the app wraps), config (including each
-                                  index family's parameters), metadata and filters, validation,
-                                  stats (what the engine measures about itself)
+apps/engine/core                  errors (every one the app wraps), config (the whole surface:
+                                  each index family's parameters, and telemetry), metadata and
+                                  filters, validation, stats (what the engine measures itself)
 apps/engine/observability         where those measurements go: subscriber, OTLP,
                                   Prometheus encoding
 apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
@@ -139,6 +139,10 @@ retrieval stack.
   second spelling of a name, no singular form of a plural request. If it cannot do what was asked,
   it returns an error saying so. A backend that quietly serves different numbers, a config knob
   nothing reads, and a `try_` wrapper around an infallible call are all the same bug.
+- Configuration is one file with two blocks, `startup:` and `runtime:`, split by when a setting
+  takes effect (ADR 0014). A new knob goes in the block that matches its lifecycle, gets an entry
+  in `config.example.yaml`, and is rejected by `validate` if its code isn't written yet. Env vars
+  are overrides only, spelled `PIRAMID__<PATH>`; don't add a hand-written name.
 
 ## Conventions
 

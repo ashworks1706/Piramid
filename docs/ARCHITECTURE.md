@@ -114,7 +114,7 @@ flowchart TD
 | Crate | Owns | Must not |
 |---|---|---|
 | `core` | Every error the app wraps, all configuration (including per-index-family parameters), metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
-| `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product |
+| `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product, or own its own settings — those are `core::config::TelemetryConfig` |
 | `compute` | Distance math, backend selection, quantization encodings | Depend on anything in the workspace |
 | `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics or leak vendor types |
 | `storage` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
@@ -319,6 +319,45 @@ store, initializes the WAL, and replays if needed.
 An index owns its own sidecar format, so save and load live in `index::persistence` rather than in
 `storage`.
 
+## Configuration
+
+One file, two blocks, split by *when a setting takes effect* rather than by which subsystem owns
+it ([ADR 0014](decisions/0014-config-splits-by-lifecycle.md)):
+
+```yaml
+startup:   # applied once at boot; changing one needs a restart
+runtime:   # re-read on POST /config/reload
+```
+
+The split is by lifecycle because the alternative had already produced a bug. Grouping by
+subsystem put `logging` inside the reloadable object while OTLP settings lived in a separate
+env-only struct in `observability` — and neither is re-read after boot, so a reload returned 200
+and silently changed nothing. Which block a key is in is now the answer to "do I need to restart?",
+and it cannot drift the way a comment would: `reload_config` compares the incoming startup block
+against the one the process booted with and returns an error if it differs.
+
+`runtime` is honest about its reach. `CollectionManager` re-reads the config when it opens a
+collection, so a reload applies to collections opened after it and to each request that reads a
+value on its way through — not to collections already in memory.
+
+Three rules keep the surface legible:
+
+- **One place per setting.** `runtime.search` holds `ef` and `nprobe`, not each `IndexConfig`
+  variant; `runtime.execution` chooses a strategy, not a `mode` field per index family;
+  `startup.threads` is the only thread count. A knob that can be spelled two ways is a bug.
+- **Nothing is silently ignored.** `deny_unknown_fields` throughout, so a typo or a key in the
+  wrong block fails at startup naming it. Settings whose code isn't written yet — `runtime.inference`,
+  `startup.embedding.provider: piramid` — exist so the shape is fixed before the work lands, and
+  `validate` refuses them rather than accepting a value nothing reads.
+- **The example is tested.** `config.example.yaml` is the whole surface at its defaults, with tests
+  asserting it deserializes to exactly `Config::default()` and that every key appears in it.
+
+Environment variables are overrides only, spelled mechanically from the path:
+`runtime.cache.max_bytes` is `PIRAMID__RUNTIME__CACHE__MAX_BYTES`, parsed as YAML so `8`, `true`
+and `null` mean what they do in the file. There is no table of names to keep in sync.
+`OPENAI_API_KEY` is the one environment-only setting, so a key never lands in a file that gets
+shared, and the support bundle redacts it.
+
 ## Errors
 
 `core` is transport-agnostic. `PiramidError::kind()` returns an `ErrorKind` — `NotFound`,
@@ -345,6 +384,8 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 8. Default builds are CPU-only and need no vendor toolchain.
 9. Telemetry speaks protocols, not products. Nothing is sent to this project under any
    configuration.
+10. No setting is accepted that nothing reads. An unknown key, a key in the wrong lifecycle block,
+    and a feature that isn't implemented all fail at startup naming the key.
 
 ## Where new code goes
 
@@ -358,7 +399,9 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 8. Model execution goes in `apps/engine/inference`.
 9. Retrieval inside the forward pass goes in `apps/engine/inference/src/augment`.
 10. Shared vocabulary — error, config, metadata — goes in `apps/engine/core`.
-11. A deployable, a site, or a client library goes in `apps/`.
+11. A new setting goes in `startup` if it is read once at boot and in `runtime` if it is re-read,
+    with a matching entry in `config.example.yaml`; the tests fail otherwise.
+12. A deployable, a site, or a client library goes in `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow
 explicit before writing anything.
