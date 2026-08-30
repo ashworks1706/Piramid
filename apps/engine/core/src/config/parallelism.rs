@@ -38,13 +38,6 @@ impl ParallelismConfig {
         }
     }
 
-    pub fn fixed(num_threads: usize) -> Self {
-        ParallelismConfig {
-            mode: ParallelismMode::Fixed(num_threads),
-            parallel_search: true,
-        }
-    }
-
     /// Resolved thread count. Zero means let rayon decide.
     pub fn num_threads(&self) -> usize {
         match self.mode {

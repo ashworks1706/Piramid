@@ -1,7 +1,4 @@
 //! The offset index: document id to byte range in the record file.
-//!
-//! Named `offsets`, not `index` — this maps a `Uuid` to where its bytes live, while
-//! `piramid-index` decides which vectors are worth reading.
 
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;

@@ -1,6 +1,4 @@
 //! Compressed vector representations.
-//!
-//! Scalar int8 by default. Product quantization stores a code per block: smaller, less accurate.
 
 use serde::{Deserialize, Serialize};
 
@@ -74,10 +72,6 @@ impl ScalarQuantizedVector {
                 normalized * range + self.min
             })
             .collect()
-    }
-
-    pub fn dim(&self) -> usize {
-        self.values.len()
     }
 }
 
@@ -211,11 +205,7 @@ pub struct QuantizedVector {
 }
 
 impl QuantizedVector {
-    /// Quantize `vector` according to `cfg`.
-    ///
-    /// `Int4` and `Float16` have no encoder, so they are an error here rather than a silent
-    /// downgrade to scalar: a vector stored in a format nobody asked for is worse than a
-    /// failed write.
+    /// Quantizes `vector` according to `cfg`; errors on `Int4`/`Float16`, which have no encoder.
     pub fn from_f32(vector: &[f32], cfg: &QuantizationConfig) -> Result<Self> {
         use piramid_core::config::QuantizationLevel;
         match cfg.level {

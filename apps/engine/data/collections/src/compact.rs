@@ -1,7 +1,4 @@
 //! Compaction: rewrite the record store without dead entries.
-//!
-//! Copies live documents to a temp file and swaps it in, so an interrupted run leaves the
-//! original intact.
 
 use std::collections::HashMap;
 

@@ -38,22 +38,3 @@ pub enum StorageError {
     #[error("Read operation failed: {0}")]
     ReadFailed(String),
 }
-
-impl StorageError {
-    pub fn is_recoverable(&self) -> bool {
-        match self {
-            Self::VectorNotFound(_) => true,
-            Self::CollectionNotFound(_) => true,
-            Self::CollectionExists(_) => true,
-            Self::InvalidDimension { .. } => true,
-            Self::InvalidVectorData(_) => true,
-            Self::StorageFull(_) => false,
-            Self::CorruptedData(_) => false,
-            Self::CorruptedIndex(_) => false,
-            Self::MemoryMapError(_) => false,
-            Self::LockFailed(_) => true,
-            Self::WriteFailed(_) => false,
-            Self::ReadFailed(_) => true,
-        }
-    }
-}

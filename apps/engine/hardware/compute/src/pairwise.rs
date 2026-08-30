@@ -1,15 +1,6 @@
-//! Single-pair distance entry points.
-//!
-//! Hot-path wrappers for index traversal and reranking. The caller resolves a backend once with
-//! [`crate::backends::for_mode`] and passes it in, so a scan does one lookup rather than one per
-//! vector.
-//!
-//! # Panics
-//!
-//! Every function asserts both operands have the same length. That is a caller contract:
-//! dimensions are checked at the collection boundary, so a mismatch here is a bug upstream. For
-//! untrusted input use the batch kernels on [`crate::DistanceKernels`], which return
-//! [`ComputeError::ShapeMismatch`](crate::ComputeError::ShapeMismatch) instead.
+//! Single-pair distance entry points; hot-path wrappers over a caller-resolved backend. Panics on
+//! mismatched lengths — a caller contract checked upstream; untrusted input should use the batch
+//! kernels on [`crate::DistanceKernels`] instead.
 
 use crate::kernels::DistanceKernels;
 

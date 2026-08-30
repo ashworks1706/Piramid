@@ -1,9 +1,4 @@
-//! Query execution.
-//!
-//! Plans overfetch, asks the index for candidates, scores them, applies any metadata filter. It
-//! knows nothing about collections: the caller passes a [`SearchTarget`] naming the index and
-//! readers, plus a resolver from candidate id to document. That keeps `search/` below
-//! `collections/`.
+//! Query execution: plans overfetch, asks the index for candidates, scores and filters them.
 
 use crate::{utils::sort_and_truncate, Hit};
 use piramid_compute::{backends::for_mode, ExecutionMode, Metric};
@@ -38,9 +33,7 @@ impl Default for SearchParams<'_> {
     }
 }
 
-/// What a search runs against.
-///
-/// Borrowed views only; the caller owns everything.
+/// What a search runs against. Borrowed views only; the caller owns everything.
 pub struct SearchTarget<'a> {
     /// The ANN index to query.
     pub index: &'a dyn VectorIndex,
@@ -53,9 +46,6 @@ pub struct SearchTarget<'a> {
 }
 
 /// Run one query against `target`.
-///
-/// `resolve` turns a candidate id into its stored document; it returns `Ok(None)` when the index
-/// refers to something the store no longer has, which is reported as a search failure.
 pub fn search(
     target: &SearchTarget<'_>,
     query: &[f32],

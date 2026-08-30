@@ -2,11 +2,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Seconds since the Unix epoch.
-///
-/// Saturates at 0 for a clock set before 1970 rather than panicking. It was `unwrap` at twelve
-/// call sites across five crates; one of them tripping would have killed a write path over a
-/// misconfigured machine clock, which is not a reason to lose data.
+/// Seconds since the Unix epoch; saturates at 0 rather than panicking on a pre-1970 clock.
 pub fn unix_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

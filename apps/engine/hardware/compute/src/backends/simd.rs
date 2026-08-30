@@ -1,7 +1,4 @@
-//! Explicitly vectorized CPU backend.
-//!
-//! `wide`'s `f32x8`, which lowers to AVX2 on x86_64 and NEON on aarch64. Tail elements that do
-//! not fill a lane are folded in scalar.
+//! Explicitly vectorized CPU backend using `wide`'s `f32x8` (AVX2 on x86_64, NEON on aarch64).
 
 use wide::f32x8;
 

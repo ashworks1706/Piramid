@@ -1,7 +1,4 @@
 //! Conversions between the HTTP request/response shapes and domain types.
-//!
-//! Not a service. `services/vector/search.rs` holds the search endpoints; this holds the parsing,
-//! override resolution and DTO mapping they share with the embedding and collection services.
 
 use crate::services::types::{HitResponse, SearchTuning};
 use piramid_compute::Metric;
@@ -106,9 +103,6 @@ pub fn hit_to_response(hit: Hit) -> HitResponse {
 }
 
 /// Convert one JSON value to a [`MetadataValue`], rejecting shapes metadata cannot hold.
-///
-/// Dropping the field instead would store a document that does not match what was sent, and the
-/// caller would only find out at query time.
 fn json_to_metadata_value(field: &str, value: serde_json::Value) -> Result<MetadataValue> {
     Ok(match value {
         serde_json::Value::String(s) => MetadataValue::String(s),

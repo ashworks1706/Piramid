@@ -205,7 +205,7 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
     }
 
     let loaded_collections = state.collection_manager.len();
-    let (disk_total_bytes, disk_available_bytes) = disk_stats(&state.data_dir)?;
+    let (disk_total_bytes, disk_available_bytes) = crate::runtime::disk::stats(&state.data_dir)?;
     let ok = collections
         .iter()
         .all(|collection| collection.integrity_ok && collection.loaded);
@@ -236,8 +236,4 @@ fn current_unix_secs() -> Result<u64> {
         .duration_since(UNIX_EPOCH)
         .map_err(|e| piramid_core::error::PiramidError::other(format!("system clock error: {e}")))?
         .as_secs())
-}
-
-fn disk_stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
-    crate::runtime::disk::stats(path)
 }

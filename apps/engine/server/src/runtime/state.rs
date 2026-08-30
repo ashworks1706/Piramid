@@ -160,10 +160,6 @@ impl AppState {
     }
 
     /// Re-read configuration from disk and environment, swapping it in atomically.
-    ///
-    /// A rejected configuration leaves the running config untouched and surfaces as an error to
-    /// the caller. Loading used to terminate the process on a parse failure, which meant a bad
-    /// payload to the reload endpoint could take the server down.
     pub fn reload_config(&self) -> Result<AppConfig> {
         let new_cfg = piramid_core::config::loader::load_app_config()
             .map_err(|e| ServerError::InvalidRequest(e.to_string()))?;

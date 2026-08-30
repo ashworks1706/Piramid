@@ -1,9 +1,4 @@
-//! Write-ahead log.
-//!
-//! One JSON entry per line after a version header, each with a monotonic sequence number.
-//! Line-delimited for recoverability over compactness: a torn write costs the last line, not the
-//! file. Replay returns entries above a sequence number; checkpointing writes a marker so
-//! everything below can be discarded, and rotation truncates.
+//! Write-ahead log: one JSON entry per line, each with a monotonic sequence number.
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Write};
@@ -38,9 +33,6 @@ impl Wal {
     }
 
     /// A WAL that writes nothing, for `wal.enabled: false`.
-    ///
-    /// It keeps the sequence counter so callers do not branch on whether logging is on; the
-    /// tradeoff is explicit in config, which is where the durability choice belongs.
     pub fn disabled(path: PathBuf, next_seq: u64) -> Result<Self> {
         Ok(Wal {
             file: None,
@@ -89,10 +81,7 @@ impl Wal {
         Ok(entries)
     }
 
-    /// Append an entry, assigning it the next sequence number.
-    ///
-    /// With the WAL disabled the sequence still advances, so sequence numbers stay comparable
-    /// across a config change.
+    /// Appends an entry, assigning it the next sequence number.
     pub fn log(&mut self, entry: &mut WalEntry) -> Result<()> {
         match entry {
             WalEntry::Insert { seq, .. }
@@ -117,8 +106,7 @@ impl Wal {
         Ok(())
     }
 
-    /// Truncate the log and start again. Safe only after a checkpoint has made the discarded
-    /// entries redundant.
+    /// Truncates the log and starts again; safe only after a checkpoint.
     pub fn rotate(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());
@@ -142,8 +130,7 @@ impl Wal {
         Ok(())
     }
 
-    /// Write the version header if the file is empty. A non-empty file already has one — `replay`
-    /// checks it and refuses a log whose version disagrees.
+    /// Writes the version header if the file is empty.
     fn ensure_header(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());

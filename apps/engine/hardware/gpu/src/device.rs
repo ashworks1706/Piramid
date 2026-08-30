@@ -4,10 +4,7 @@ use std::sync::Arc;
 
 use crate::error::GpuResult;
 
-/// What a device can do, probed once at startup.
-///
-/// Consulted before selecting a kernel variant — e.g. tensor-core paths need a minimum compute
-/// capability, and batch sizing depends on available memory.
+/// What a device can do, probed once at startup and consulted before selecting a kernel variant.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeviceCapabilities {
     /// Human-readable device name.
@@ -22,11 +19,7 @@ pub struct DeviceCapabilities {
     pub multiprocessor_count: u32,
 }
 
-/// The contract a device runtime must satisfy.
-///
-/// Implemented per vendor backend under [`crate::backends`]. Everything above this trait —
-/// `piramid-compute` kernels and `piramid-inference` model execution alike — is written against
-/// the trait, never against a vendor SDK.
+/// The contract a device runtime must satisfy, implemented per vendor backend under [`crate::backends`].
 pub trait DeviceRuntime: Send + Sync + std::fmt::Debug {
     /// Backend name, e.g. `"cudarc"`.
     fn name(&self) -> &'static str;
@@ -41,11 +34,7 @@ pub trait DeviceRuntime: Send + Sync + std::fmt::Debug {
     fn synchronize(&self) -> GpuResult<()>;
 }
 
-/// A handle to one compute device.
-///
-/// Cheap to clone and shared across subsystems: the retrieval path and the inference path are
-/// expected to hold the *same* `Device` so vectors and model weights land in one address space
-/// and never round-trip through the host between them.
+/// A cheap-to-clone handle to one compute device, shared by the retrieval and inference paths.
 #[derive(Debug, Clone)]
 pub struct Device {
     runtime: Arc<dyn DeviceRuntime>,
@@ -57,10 +46,7 @@ impl Device {
         Self { runtime }
     }
 
-    /// Open the default device for this build.
-    ///
-    /// Returns [`GpuError::Unavailable`](crate::GpuError::Unavailable) when no GPU backend is
-    /// compiled in, so callers can fall back to CPU without conditional compilation of their own.
+    /// Open the default device for this build; unavailable when no GPU backend is compiled in.
     pub fn open_default() -> GpuResult<Self> {
         crate::backends::open_default()
     }

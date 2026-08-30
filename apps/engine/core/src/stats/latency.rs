@@ -100,24 +100,6 @@ impl LatencyTracker {
         }
     }
 
-    pub fn avg_delete_latency_ms(&self) -> Option<f32> {
-        let us = self.delete_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
-    }
-
-    pub fn avg_update_latency_ms(&self) -> Option<f32> {
-        let us = self.update_latency_us.load(Ordering::Relaxed);
-        if us > 0 {
-            Some(us as f32 / 1000.0)
-        } else {
-            None
-        }
-    }
-
     pub fn avg_lock_read_latency_ms(&self) -> Option<f32> {
         let us = self.lock_read_latency_us.load(Ordering::Relaxed);
         if us > 0 {

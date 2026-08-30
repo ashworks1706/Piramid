@@ -4,9 +4,7 @@ use piramid_core::error::Result;
 use std::fs;
 use std::io::{BufReader, Read};
 
-/// Read a file front to back so its pages are resident before first use.
-///
-/// A missing file is not an error: there is simply nothing to warm.
+/// Reads a file front to back so its pages are resident before first use.
 pub fn warm_file(path: &str) -> Result<()> {
     let file = match fs::File::open(path) {
         Ok(f) => f,

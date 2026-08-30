@@ -7,7 +7,7 @@ mod persistence;
 mod selector;
 mod traits;
 
-pub use persistence::{get_index_file_path, load_vector_index, save_vector_index};
+pub use persistence::{load_vector_index, save_vector_index};
 pub use piramid_core::config::{AutoIndexConfig, IndexConfig, IndexKind};
 pub use selector::create_index;
 pub use traits::{

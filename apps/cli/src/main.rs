@@ -54,10 +54,7 @@ enum Commands {
         command: ShowCommands,
     },
 
-    /// Write a diagnostic bundle to attach to a bug report
-    ///
-    /// Collects version, platform, build features, resolved configuration, and collection state
-    /// into one file. Credential-shaped values are redacted; review before sharing.
+    /// Write a diagnostic bundle to attach to a bug report. Secrets are redacted; review it first
     SupportBundle {
         /// Where to write the bundle
         #[arg(long, short, default_value = "piramid-support-bundle.md")]
@@ -171,9 +168,6 @@ fn handle_show_command(command: ShowCommands) -> std::io::Result<()> {
 }
 
 /// Report a configuration failure and exit.
-///
-/// Loading returns a `Result` so no library crate decides the process should die; the binary is
-/// where that call belongs, and this is the only place it is made.
 fn exit_on_config_error<T>(error: piramid::config::loader::ConfigError) -> T {
     eprintln!("piramid: {error}");
     std::process::exit(1);
@@ -211,8 +205,7 @@ fn support_bundle(
         )
         .map_err(std::io::Error::other)?,
     );
-    // Best-effort: a broken collection is often why someone is running this, so report it in
-    // the bundle rather than refusing to write one.
+    // Best-effort: a broken collection shouldn't stop the bundle from being written.
     let _ = preload_collections_for_metrics(&state);
 
     let path = support::write(&runtime, &state, Some(output))?;
@@ -377,10 +370,7 @@ fn start_server_inline() -> std::io::Result<()> {
     })
 }
 
-/// Install tracing and any configured telemetry exporters.
-///
-/// Returns a guard that must live until shutdown: dropping it flushes pending spans and stops
-/// export. Returns `None` when logging is disabled or already initialized.
+/// Install tracing and any configured telemetry exporters; `None` if disabled or already run.
 fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard>> {
     static TRACING_INIT: OnceLock<()> = OnceLock::new();
     if TRACING_INIT.get().is_some() {
@@ -425,9 +415,6 @@ fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard
 }
 
 /// Add a filter directive built from a literal in this file.
-///
-/// A parse failure is a bug here, not bad input, so it is reported rather than dropped — a
-/// silently missing directive means logging a target the operator switched off.
 fn add_directive(mut filter: EnvFilter, directive: &str) -> EnvFilter {
     match tracing_subscriber::filter::Directive::from_str(directive) {
         Ok(parsed) => filter = filter.add_directive(parsed),

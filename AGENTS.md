@@ -55,7 +55,7 @@ apps/engine/data/storage          records, WAL, sidecars, mmap, VectorSlab, quan
 apps/engine/data/collections      the Collection object, cache, checkpoint, compact
 apps/engine/retrieval/index       flat, hnsw, ivf, selector, sidecar persistence
 apps/engine/retrieval/search      query planning, filtering, scoring, ranking
-apps/engine/retrieval/embeddings  openai, ollama, local providers
+apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
 apps/engine/inference             forward pass, kv_cache, batching, sampling,
                                   augment (the RetrievalHook seam)
 apps/engine/server                http, services, runtime state, cluster

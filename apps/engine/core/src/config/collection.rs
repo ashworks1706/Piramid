@@ -47,40 +47,13 @@ impl Default for CollectionConfig {
 }
 
 impl CollectionConfig {
-    pub fn with_index(index: crate::config::IndexConfig) -> Self {
-        CollectionConfig {
-            index,
-            ..Default::default()
-        }
-    }
-
     pub fn with_int8_quantization(mut self) -> Self {
         self.quantization = QuantizationConfig::int8();
         self
     }
 
-    pub fn with_memory_limit_mb(mut self, limit_mb: usize) -> Self {
-        self.memory = MemoryConfig::with_limit_mb(limit_mb);
-        self
-    }
-
-    pub fn without_wal(mut self) -> Self {
-        self.wal = WalConfig::disabled();
-        self
-    }
-
     pub fn single_threaded(mut self) -> Self {
         self.parallelism = ParallelismConfig::single_threaded();
-        self
-    }
-
-    pub fn with_execution_mode(mut self, mode: ExecutionMode) -> Self {
-        self.execution = mode;
-        self
-    }
-
-    pub fn with_limits(mut self, limits: LimitsConfig) -> Self {
-        self.limits = limits;
         self
     }
 }

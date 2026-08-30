@@ -17,9 +17,12 @@ backend touches one new file and one existing one.
 `ExecutionMode` moves to `compute` and is re-exported by `config` — it names a backend, which is a
 compute concern. `compute` now depends on nothing in the workspace.
 
-Dispatch returns `Result`, and `resolve_available` falls back to the best CPU backend with a
-`warn` rather than panicking. `jit` is removed; `#[serde(alias = "Jit")]` on `Simd` keeps
-previously persisted index sidecars loadable.
+Dispatch returns `Result` rather than panicking. `jit` is removed.
+
+**Amended.** `resolve_available`, which fell back to the best CPU backend with a `warn`, is gone:
+a silent substitution meant a machine without AVX2 produced scalar numbers under a `simd` label.
+`for_mode` is the only lookup and it errors. The `#[serde(alias = "Jit")]` compatibility shim is
+also gone; there were no sidecars written before the rename.
 
 **Consequences.** Four reachable panics gone. New hardware is a new file, never a new match arm.
 The batch methods define the device contract — see [0005](0005-contiguous-vector-layout.md).

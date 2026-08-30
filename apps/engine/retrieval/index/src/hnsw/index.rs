@@ -80,10 +80,7 @@ impl HnswIndex {
             node.tombstone = true;
         }
     }
-    /// Draw a layer for a new node.
-    ///
-    /// Layer occupancy decays exponentially, which is what keeps the upper layers sparse enough
-    /// to act as an index over the lower ones.
+    /// Draw a layer for a new node; exponential decay keeps upper layers sparse.
     fn random_layer(&self) -> usize {
         // floor(-ln(uniform) * ml)
         let r: f32 = rand::random();
@@ -91,8 +88,6 @@ impl HnswIndex {
     }
 
     /// Insert `id`, linking it into each layer it occupies.
-    ///
-    /// `vectors` supplies the already-indexed vectors needed to compute distances while linking.
     pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
         let kernels = for_mode(self.config.mode)?;
         let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
@@ -205,10 +200,7 @@ impl HnswIndex {
         Ok(())
     }
 
-    /// Find the `k` nearest neighbours of `query`.
-    ///
-    /// Descends greedily to layer 0, then widens the search there to `ef` candidates. `ef` is the
-    /// recall/speed knob: larger explores more of the graph.
+    /// Find the `k` nearest neighbours of `query`, widening to `ef` candidates at layer 0.
     pub fn search(
         &self,
         query: &[f32],
@@ -349,10 +341,7 @@ impl HnswIndex {
         result.into_iter().map(|c| c.id).collect()
     }
 
-    /// Pick the `m` closest candidates.
-    ///
-    /// The paper's heuristic also considers diversity between neighbours; this takes distance
-    /// only, which is cheaper and adequate at the graph sizes tested here.
+    /// Pick the `m` closest candidates by distance only (no diversity heuristic).
     fn select_neighbors(
         &self,
         candidates: &[Uuid],
@@ -381,16 +370,6 @@ impl HnswIndex {
         distances.sort_by(|a, b| a.1.partial_cmp(&b.1).unwrap_or(Ordering::Equal));
         distances.truncate(m);
         distances.into_iter().map(|(id, _)| id).collect()
-    }
-
-    #[allow(dead_code)]
-    fn get_neighbors_at_level(&self, node_id: &Uuid, level: usize) -> Vec<Uuid> {
-        if let Some(node) = self.nodes.get(node_id) {
-            if level < node.connections.len() {
-                return node.connections[level].clone();
-            }
-        }
-        Vec::new()
     }
 
     /// Distance under the configured metric, normalized so smaller is always nearer.

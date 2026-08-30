@@ -1,7 +1,4 @@
 //! Configuration loading: file, then environment overrides.
-//!
-//! Everything here returns a [`Result`]. A library must not decide the process should die;
-//! `apps/cli` is the only place that turns a [`ConfigError`] into a message and an exit code.
 
 use std::env;
 use std::fmt::{self, Display, Formatter};
@@ -128,10 +125,7 @@ pub fn load_runtime_config() -> Result<RuntimeConfig, ConfigError> {
     })
 }
 
-/// Default model for a provider that did not name one.
-///
-/// An unknown provider gets no default: handing it an OpenAI model name would send a request
-/// nobody asked for. `create_embedder` rejects the provider a moment later anyway.
+/// Default model for a provider that did not name one; unknown providers get none.
 fn default_embedding_model(provider: &str) -> Option<String> {
     match provider {
         "openai" => Some("text-embedding-3-small".to_string()),
@@ -167,10 +161,7 @@ fn load_from_file() -> Result<Option<AppConfig>, ConfigError> {
     }
 }
 
-/// Default data directory: `~/.piramid`.
-///
-/// Errors rather than falling back to the working directory, which would put a database wherever
-/// the process happened to be started from and quietly lose it on the next run.
+/// Default data directory: `~/.piramid`. Errors rather than falling back to the working directory.
 pub fn default_data_dir() -> Result<String, ConfigError> {
     let home = env::var("HOME").map_err(|_| ConfigError::Env {
         name: "DATA_DIR".to_string(),

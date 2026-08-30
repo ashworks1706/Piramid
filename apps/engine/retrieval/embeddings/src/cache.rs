@@ -1,7 +1,4 @@
 //! An `Embedder` wrapper that caches by text, evicting least-recently-used entries.
-//!
-//! Applied once by [`create_embedder`](crate::providers::create_embedder), so a provider is only
-//! the HTTP call it makes.
 
 use async_trait::async_trait;
 use lru::LruCache;

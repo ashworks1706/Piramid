@@ -13,10 +13,6 @@ use piramid_core::validation;
 use super::{ensure_available, MAX_BATCH_SIZE};
 
 /// Search a collection with one or more query vectors.
-///
-/// The span carries the fields an operator needs to explain a slow query without reproducing it:
-/// which collection, how many neighbours, which index, and whether the recall knobs were
-/// overridden per-request. `results` and `elapsed_ms` are recorded once known.
 #[tracing::instrument(
     name = "search",
     target = "piramid::search",

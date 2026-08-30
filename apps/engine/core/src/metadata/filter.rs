@@ -1,7 +1,4 @@
-//! Metadata predicates.
-//!
-//! A [`Filter`] narrows results by document metadata. It sits beside [`Metadata`] rather than in
-//! `search/` because indexes evaluate filters mid-traversal, and `index/` is below `search/`.
+//! Metadata predicates: a [`Filter`] narrows results by document metadata.
 
 use crate::metadata::value::{Metadata, MetadataValue};
 

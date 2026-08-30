@@ -1,8 +1,4 @@
-//! Vector layout and access, separately from [`crate::record_store`], which owns document layout
-//! on disk.
-//!
-//! Layout is a storage concern, not an index concern: several indexes read the same vectors, and
-//! the layout is what decides whether a device path is viable at all.
+//! Vector layout and access, separately from [`crate::record_store`].
 
 pub mod reader;
 pub mod slab;

@@ -1,8 +1,4 @@
-//! Shared foundation for every Piramid crate.
-//!
-//! Errors, configuration, metadata, validation, and self-measurement. Depends on
-//! `piramid-compute` for the [`ExecutionMode`](compute::ExecutionMode) and
-//! [`Metric`](compute::Metric) types configuration carries, and on nothing else in the workspace.
+//! Shared foundation for every Piramid crate: errors, configuration, metadata, validation, stats.
 
 pub mod clock;
 pub mod config;

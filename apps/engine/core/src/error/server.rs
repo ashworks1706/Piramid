@@ -36,21 +36,6 @@ pub enum ServerError {
 }
 
 impl ServerError {
-    pub fn is_recoverable(&self) -> bool {
-        match self {
-            Self::InvalidRequest(_) => true,
-            Self::ValidationFailed(_) => true,
-            Self::NotFound(_) => true,
-            Self::AlreadyExists(_) => true,
-            Self::AuthenticationFailed(_) => true,
-            Self::AuthorizationFailed(_) => true,
-            Self::RateLimitExceeded => true,
-            Self::Timeout => true,
-            Self::Internal(_) => false,
-            Self::ServiceUnavailable(_) => true,
-        }
-    }
-
     /// Transport-agnostic classification for this error.
     pub fn kind(&self) -> ErrorKind {
         match self {

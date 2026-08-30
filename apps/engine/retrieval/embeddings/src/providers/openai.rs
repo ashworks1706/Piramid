@@ -1,10 +1,4 @@
-//! The OpenAI embeddings wire format.
-//!
-//! Named for the protocol, not the vendor: any server speaking it — llama.cpp, vLLM, LM Studio,
-//! a gateway — is this provider with `EMBEDDING_BASE_URL` pointed at it. The API key is optional
-//! for exactly that reason.
-//!
-//! Known-good models: `text-embedding-3-small` (1536) and `text-embedding-3-large` (3072).
+//! The OpenAI embeddings wire format; works with any server speaking the same protocol.
 
 use async_trait::async_trait;
 use reqwest::Client;

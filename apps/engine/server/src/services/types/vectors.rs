@@ -1,10 +1,7 @@
 use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 
-/// Insert one or more documents.
-///
-/// Always a list, even for one document. A singular shape alongside this one meant two request
-/// bodies, two response bodies and two validation paths for the same operation.
+/// Insert one or more documents. Always a list, even for one document.
 #[derive(Deserialize)]
 pub struct InsertRequest {
     pub vectors: Vec<Vec<f32>>,

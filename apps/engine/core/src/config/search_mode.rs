@@ -26,11 +26,4 @@ impl RangeSearchParams {
             max_results: None,
         }
     }
-
-    pub fn with_limit(max_distance: f32, max_results: usize) -> Self {
-        RangeSearchParams {
-            max_distance,
-            max_results: Some(max_results),
-        }
-    }
 }

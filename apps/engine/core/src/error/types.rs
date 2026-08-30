@@ -4,8 +4,6 @@ use thiserror::Error;
 pub type Result<T> = std::result::Result<T, PiramidError>;
 
 /// What kind of failure occurred, independent of any wire protocol.
-///
-/// Transports map these onto their own status codes so no library crate has to know about HTTP.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorKind {
     /// The request was malformed or failed validation.
@@ -65,24 +63,7 @@ impl PiramidError {
         Self::Other(msg.into())
     }
 
-    pub fn is_recoverable(&self) -> bool {
-        match self {
-            Self::Storage(e) => e.is_recoverable(),
-            Self::Index(e) => e.is_recoverable(),
-            Self::Server(e) => e.is_recoverable(),
-            Self::Embedding(e) => e.is_recoverable(),
-            Self::Compute(_) => false,
-            Self::Io(_) => false,
-            Self::Serialization(_) => false,
-            Self::Json(_) => false,
-            Self::Other(_) => false,
-        }
-    }
-
-    /// Transport-agnostic classification.
-    ///
-    /// Mapping a kind onto a protocol status is the transport's job — see
-    /// `piramid_server::http::ApiError`.
+    /// Transport-agnostic classification; mapping a kind onto a protocol status is the transport's job.
     pub fn kind(&self) -> ErrorKind {
         match self {
             Self::Server(e) => e.kind(),

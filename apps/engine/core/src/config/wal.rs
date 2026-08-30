@@ -31,15 +31,3 @@ impl Default for WalConfig {
         }
     }
 }
-
-impl WalConfig {
-    pub fn disabled() -> Self {
-        WalConfig {
-            enabled: false,
-            checkpoint_frequency: 0,
-            max_log_size: 0,
-            sync_on_write: false,
-            checkpoint_interval_secs: None,
-        }
-    }
-}

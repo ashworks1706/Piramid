@@ -1,26 +1,15 @@
-//! Batched distance kernels: one query against a contiguous slab of candidates.
-//!
-//! Mirrors the batch methods on `piramid-compute::DistanceKernels`, which is why that trait takes
-//! a slab — it uploads in one transfer and indexes as a device-side 2-D array.
-//!
-//! Not implemented. `distance.cu` beside this file is where the device code goes; this wrapper
-//! builds the launch geometry and binds arguments.
+//! Batched distance kernels: one query against a contiguous slab of candidates. Not implemented;
+//! `distance.cu` beside this file is where the device code goes.
 
 use crate::buffer::DeviceBuffer;
 use crate::error::{GpuError, GpuResult};
 use crate::module::LaunchConfig;
 use crate::stream::Stream;
 
-/// Threads per block for the distance kernels.
-///
-/// 256 is a reasonable starting point on most NVIDIA parts; tune against `benches/` once the
-/// kernel exists.
+/// Threads per block for the distance kernels; a starting point to tune once the kernel exists.
 pub const BLOCK_SIZE: u32 = 256;
 
-/// Arguments for one batched distance launch.
-///
-/// Borrowing the buffers rather than owning them is deliberate: the candidate slab is expected to
-/// stay resident across many queries.
+/// Arguments for one batched distance launch; buffers are borrowed so slabs can stay resident.
 pub struct DistanceLaunch<'a> {
     /// Query vector, `dim` elements.
     pub query: &'a DeviceBuffer<f32>,

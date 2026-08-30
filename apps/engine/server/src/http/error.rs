@@ -1,9 +1,4 @@
-//! HTTP error mapping.
-//!
-//! `piramid-core::PiramidError` is transport-agnostic — no library crate knows what a status code
-//! is. [`ApiError`] is a transport-layer newtype that maps an [`ErrorKind`] onto a status and
-//! renders a JSON body. It converts from `PiramidError`, so a handler returns [`ApiResult<T>`],
-//! keeps `?`, and everything below it still returns `piramid-core::Result`.
+//! HTTP error mapping: maps a transport-agnostic [`ErrorKind`] onto a status and JSON body.
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};

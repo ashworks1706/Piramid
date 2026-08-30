@@ -1,5 +1,4 @@
-//! Application configuration: the root of every setting, and the env-override and validation
-//! rules that resolve it.
+//! Application configuration: the root of every setting.
 
 use serde::{Deserialize, Serialize};
 
@@ -358,9 +357,6 @@ fn parse_bool_env(name: &str, value: &str) -> Result<bool, String> {
 }
 
 /// Check the parameters of whichever index variant is configured.
-///
-/// The explicit variants used to go unchecked, and `create_index` substituted `ef_construction`
-/// for a zero `ef_search` rather than saying so.
 fn validate_index(index: &IndexConfig) -> Result<(), String> {
     match index {
         IndexConfig::Auto { auto, .. } => validate_auto_index(auto),

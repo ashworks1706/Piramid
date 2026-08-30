@@ -1,8 +1,4 @@
-//! Prometheus scrape endpoint.
-//!
-//! Renders the numbers `/api/metrics` returns as JSON into the text exposition format. The JSON
-//! endpoint stays as it is: it carries the full `AppConfig`, useful to a human and meaningless to
-//! a scraper. Served at `/metrics`, outside `/api` by convention.
+//! Renders `/api/metrics` JSON into the Prometheus text exposition format.
 
 use piramid_observability::prometheus::{MetricType, Registry, CONTENT_TYPE};
 
@@ -70,8 +66,7 @@ pub fn render(metrics: &MetricsResponse) -> String {
         by_collection(|c| c.lock_write_ms.map(f64::from)),
     );
 
-    // Index type is a label on a constant-1 gauge — the standard "info metric" shape, since the
-    // value itself is a string.
+    // Index type is a string, so it's a label on a constant-1 "info metric" gauge.
     registry.metric_family(
         "piramid_collection_index_info",
         "Index family in use for a collection.",

@@ -3,8 +3,6 @@
 use crate::Hit;
 
 /// Sort by score descending and keep the top `k`.
-///
-/// `NaN` scores compare equal so a single bad value cannot poison the ordering.
 pub fn sort_and_truncate(results: &mut Vec<Hit>, k: usize) {
     results.sort_by(|a, b| {
         b.score

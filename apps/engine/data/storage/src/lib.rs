@@ -1,7 +1,4 @@
 //! Persistence primitives: records, WAL, sidecars, mmap, and vector layout.
-//!
-//! Byte-level primitives only. API behavior, search semantics and collection lifecycle are
-//! decided above.
 
 pub mod document;
 pub mod manifest;

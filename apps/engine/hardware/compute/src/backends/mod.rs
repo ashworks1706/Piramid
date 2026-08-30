@@ -1,7 +1,4 @@
-//! Backend registry.
-//!
-//! One file per backend, one arm per backend in [`for_mode`]. Adding a backend touches this file
-//! and nothing else.
+//! Backend registry: one file per backend, one arm per backend in [`for_mode`].
 
 mod binary;
 mod parallel;
@@ -41,11 +38,7 @@ pub fn all() -> Vec<&'static dyn DistanceKernels> {
     backends
 }
 
-/// The backend serving `mode`, resolving `Auto` first.
-///
-/// Errors if the mode names a backend this build does not contain or this machine cannot run.
-/// There is no fallback: a caller that asked for a specific backend and silently got a different
-/// one has no way to know its numbers came from somewhere else.
+/// The backend serving `mode` (resolving `Auto` first); errors rather than silently falling back.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
     let backend: &'static dyn DistanceKernels = match mode.resolve() {
         ExecutionMode::Scalar | ExecutionMode::Auto => &SCALAR,

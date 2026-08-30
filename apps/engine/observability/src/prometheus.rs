@@ -1,8 +1,4 @@
-//! Prometheus text exposition.
-//!
-//! Hand-rolled rather than pulling in a metrics framework: Piramid already aggregates counters in
-//! `piramid_core::stats`, and a client would mean two parallel registries. This only renders what
-//! exists. Format: <https://prometheus.io/docs/instrumenting/exposition_formats/>
+//! Prometheus text exposition format: <https://prometheus.io/docs/instrumenting/exposition_formats/>
 
 use std::fmt::Write;
 
@@ -43,9 +39,6 @@ impl Registry {
     }
 
     /// Write a metric family, one line per label set.
-    ///
-    /// `samples` yields `(labels, value)` where labels are `(key, value)` pairs. Label values are
-    /// escaped per the exposition format.
     pub fn metric_family<'a>(
         &mut self,
         name: &str,

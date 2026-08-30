@@ -29,15 +29,6 @@ impl Default for CacheConfig {
 }
 
 impl CacheConfig {
-    pub fn disabled() -> Self {
-        CacheConfig {
-            enabled: false,
-            max_size: 0,
-            ttl_seconds: None,
-            max_bytes: Some(0),
-        }
-    }
-
     pub fn with_size(size: usize) -> Self {
         CacheConfig {
             enabled: true,
@@ -45,19 +36,5 @@ impl CacheConfig {
             ttl_seconds: None,
             max_bytes: None,
         }
-    }
-
-    pub fn with_size_and_ttl(size: usize, ttl_seconds: u64) -> Self {
-        CacheConfig {
-            enabled: true,
-            max_size: size,
-            ttl_seconds: Some(ttl_seconds),
-            max_bytes: None,
-        }
-    }
-
-    pub fn with_max_bytes(mut self, max_bytes: u64) -> Self {
-        self.max_bytes = Some(max_bytes);
-        self
     }
 }

@@ -22,9 +22,6 @@ fn ensure_available(state: &SharedState) -> Result<()> {
 }
 
 /// Embed texts through the configured provider and store the resulting vectors.
-///
-/// The only path that makes a network call, so it is the one most likely to dominate a slow
-/// request. Worth a span even when nothing else is instrumented.
 #[tracing::instrument(
     name = "embed",
     target = "piramid::embeddings",

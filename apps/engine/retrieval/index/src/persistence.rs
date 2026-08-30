@@ -1,6 +1,4 @@
-//! Index sidecar persistence.
-//!
-//! An index owns its own on-disk format, so save/load lives here rather than in `storage/`.
+//! Index sidecar persistence: an index owns its own on-disk format.
 
 use crate::{SerializableIndex, VectorIndex};
 use piramid_core::error::Result;
@@ -8,7 +6,7 @@ use std::fs;
 use std::path::Path;
 
 /// Sidecar path for a collection's index.
-pub fn get_index_file_path(collection_path: &str) -> String {
+fn get_index_file_path(collection_path: &str) -> String {
     format!("{}.vecindex.db", collection_path)
 }
 

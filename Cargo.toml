@@ -82,7 +82,6 @@ libc = "0.2"
 
 # dev
 criterion = { version = "0.5", features = ["html_reports"] }
-log = "0.4"
 
 [workspace.lints.rust]
 unsafe_code = "deny"

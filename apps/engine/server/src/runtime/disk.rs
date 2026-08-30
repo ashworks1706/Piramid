@@ -1,8 +1,4 @@
-//! Filesystem capacity probing.
-//!
-//! The server refuses writes when the data directory runs low, which means asking the OS. No safe
-//! `statvfs` wrapper is in the dependency set, so this is the one `unsafe` in `piramid-server` —
-//! factored here so the readiness check and the metrics endpoint share one audited copy.
+//! Filesystem capacity probing, the one `unsafe` site in `piramid-server`.
 
 use piramid_core::error::{Result, ServerError};
 

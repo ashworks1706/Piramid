@@ -1,5 +1,4 @@
-//! Near-duplicate detection: search each vector against the collection and report hits above a
-//! similarity threshold.
+//! Near-duplicate detection.
 
 use std::collections::HashSet;
 use uuid::Uuid;
@@ -20,13 +19,13 @@ pub struct DuplicateHit {
 }
 
 pub fn find_duplicates(
-    collection: &Collection,        // collection to search for duplicates.
-    metric: Metric,                 // similarity metric to use for comparing vectors.
-    threshold: f32, // minimum similarity score for two vectors to be considered duplicates.
-    limit: Option<usize>, // optional limit on the number of duplicate pairs to return.
-    k_override: Option<usize>, // optional override for the number of nearest neighbors to consider when searching for duplicates.
-    ef_override: Option<usize>, // optional override for the ef parameter used in the vector index search.
-    nprobe_override: Option<usize>, // optional override for the nprobe parameter used in the vector index search.
+    collection: &Collection,
+    metric: Metric,
+    threshold: f32,
+    limit: Option<usize>,
+    k_override: Option<usize>,
+    ef_override: Option<usize>,
+    nprobe_override: Option<usize>,
 ) -> Result<Vec<DuplicateHit>> {
     let mut pairs = Vec::new();
     let vectors = collection.vectors_view();

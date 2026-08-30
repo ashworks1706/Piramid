@@ -54,7 +54,8 @@
 - [ ] tune IVF, or say in the docs that HNSW is the one to use
 - [ ] migrate bincode 1.x → 2.x: a format migration for records, sidecars and the WAL, with a read
       path for existing data (RUSTSEC-2025-0141, ignored in `deny.toml` until then)
-- [ ] cut the website down to what the product actually does today
+- [ ] cut the website copy down to what the product actually does today (the seven
+      components are all reachable; it is the claims that are ahead of the code)
 - [ ] make the npm and python SDKs real clients, or unpublish them. They also predate the
       one-shape request bodies, so whatever ships has to speak the current API
 - [ ] decide on authentication and rate limiting. `ErrorKind::Unauthenticated` maps to 401 and

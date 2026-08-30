@@ -1,8 +1,4 @@
-//! Inverted-file index.
-//!
-//! Partitions vectors into k-means clusters and searches only those nearest the query, trading
-//! recall for an `O(sqrt N)` candidate set. For collections too big to scan and too small to
-//! justify a graph.
+//! Inverted-file index: partitions vectors into k-means clusters and searches the nearest ones.
 
 use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
@@ -36,10 +32,7 @@ impl IvfIndex {
         }
     }
 
-    /// Train centroids over `vectors` with Lloyd's algorithm.
-    ///
-    /// Offline work: centroids are rebuilt periodically, not on every insert. Runs until the
-    /// centroids stop moving or `max_iterations` is reached.
+    /// Train centroids over `vectors` with Lloyd's algorithm; rebuilt periodically, not per insert.
     pub fn build_clusters(&mut self, vectors: &dyn VectorReader) -> Result<()> {
         if vectors.is_empty() {
             return Ok(());
@@ -106,8 +99,7 @@ impl IvfIndex {
         Ok(())
     }
 
-    /// Index of the centroid nearest `vector`. Errors when there are no centroids: cluster 0 is
-    /// not a safe stand-in, the caller would push into an empty inverted list.
+    /// Index of the centroid nearest `vector`; errors if there are no centroids yet.
     fn find_nearest_centroid(
         &self,
         vector: &[f32],

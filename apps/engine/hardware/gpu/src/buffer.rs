@@ -1,7 +1,4 @@
-//! Device memory.
-//!
-//! [`DeviceBuffer`] exists so vectors and weights are uploaded once and reused across launches.
-//! An API that forces a per-call upload is slower than the CPU path it replaces.
+//! Device memory: [`DeviceBuffer`] lets vectors and weights be uploaded once and reused.
 
 use std::marker::PhantomData;
 
@@ -9,11 +6,7 @@ use crate::device::Device;
 use crate::error::GpuResult;
 use crate::stream::Stream;
 
-/// A typed allocation in device memory.
-///
-/// Generic over the element type so the same abstraction serves `f32` vector slabs, `f16` model
-/// weights, and `u32` index structures. `handle` is deliberately opaque: a backend stores its
-/// device pointer there and nothing above this module inspects it.
+/// A typed allocation in device memory, generic over element type (`f32`, `f16`, `u32`, ...).
 #[derive(Debug)]
 pub struct DeviceBuffer<T> {
     device: Device,
@@ -22,9 +15,7 @@ pub struct DeviceBuffer<T> {
     _marker: PhantomData<T>,
 }
 
-/// Backend-owned pointer to a device allocation.
-///
-/// Kept opaque so vendor pointer types never leak into signatures above [`crate`].
+/// Backend-owned pointer to a device allocation, kept opaque to callers.
 #[derive(Debug)]
 pub struct DeviceAllocation {
     /// Raw device address, interpreted by the owning backend.

@@ -1,7 +1,4 @@
 //! The collection manifest: name, dimensionality, counts, timestamps.
-//!
-//! Named `manifest` so it isn't confused with `piramid_core::metadata::Metadata`, which is the
-//! key-value payload on a single document.
 
 use piramid_core::error::{Result, StorageError};
 use serde::{Deserialize, Serialize};
@@ -32,20 +29,11 @@ impl CollectionMetadata {
         }
     }
 
-    pub fn with_dimensions(name: String, dimensions: usize) -> Self {
-        let mut meta = Self::new(name);
-        meta.dimensions = Some(dimensions);
-        meta
-    }
-
     pub fn touch(&mut self) {
         self.updated_at = piramid_core::clock::unix_secs();
     }
 
-    /// Record the collection's vector width the first time a vector is stored.
-    ///
-    /// Errors on disagreement rather than ignoring the new value, which would leave the manifest
-    /// describing a width the data does not have.
+    /// Records the collection's vector width the first time a vector is stored.
     pub fn set_dimensions(&mut self, dimensions: usize) -> Result<()> {
         match self.dimensions {
             None => {

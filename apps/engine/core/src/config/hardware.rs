@@ -37,21 +37,3 @@ impl Default for HardwareConfig {
         }
     }
 }
-
-impl HardwareConfig {
-    pub fn cpu_only() -> Self {
-        Self {
-            profile: HardwareProfile::CpuOnly,
-            gpu_enabled: false,
-            ..Self::default()
-        }
-    }
-
-    pub fn gpu() -> Self {
-        Self {
-            profile: HardwareProfile::Gpu,
-            gpu_enabled: true,
-            ..Self::default()
-        }
-    }
-}

@@ -90,11 +90,7 @@ impl Collection {
         self.cache.clear_all();
     }
 
-    /// Fault frequently used files into the page cache to reduce cold-start latency.
-    ///
-    /// Best-effort by definition — the collection is already open and correct without it — but a
-    /// failure is logged rather than dropped, because an unreadable sidecar here is the first
-    /// symptom of one that will fail a later checkpoint.
+    /// Faults frequently used files into the page cache to reduce cold-start latency.
     pub fn warm_page_cache(&self) {
         self.record_store.warm_page_cache();
         let base = self.path.clone();
@@ -142,11 +138,6 @@ impl Collection {
 
     pub(super) fn rebuild_vector_cache(&mut self) -> Result<()> {
         cache_maintenance::rebuild(self)
-    }
-
-    /// Rebuild the ANN index from stored records, used when it and the cache have diverged.
-    pub fn ensure_cache_consistency(&mut self) -> Result<()> {
-        cache_maintenance::ensure_consistent(self)
     }
 
     /// Rebuild the vector index from on-disk data and persist it.

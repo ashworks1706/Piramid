@@ -1,9 +1,4 @@
-//! Diagnostic bundle generation.
-//!
-//! Piramid sends no telemetry anywhere, so a bug report is the only thing a maintainer ever sees.
-//! This writes what they'd otherwise ask for over three round-trips into one file: version,
-//! platform, resolved config, features, collection and WAL state. Every value that could be a
-//! credential is redacted, because the bundle is meant to be pasted into a public issue.
+//! Diagnostic bundle generation: version, platform, config, features, and collection/WAL state.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -13,8 +8,7 @@ use std::sync::Arc;
 use piramid::config::loader::RuntimeConfig;
 use piramid::runtime::AppState;
 
-/// Substrings matched case-insensitively against env var names to redact their values. Prefer
-/// over-redacting: a missing value costs a follow-up question, a leaked one costs a rotation.
+/// Substrings matched case-insensitively against env var names to redact their values.
 const SECRET_MARKERS: &[&str] = &[
     "KEY",
     "TOKEN",
@@ -26,8 +20,6 @@ const SECRET_MARKERS: &[&str] = &[
 ];
 
 /// Environment variables worth reporting, beyond the resolved config.
-/// Credential variables are included too, as a redacted placeholder: whether a key is *set* is
-/// diagnostic ("the provider is configured but calls fail"), while its value never is.
 const REPORTED_PREFIXES: &[&str] = &[
     "PIRAMID_",
     "EMBEDDING_",

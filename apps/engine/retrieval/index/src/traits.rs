@@ -12,12 +12,6 @@ use piramid_core::metadata::Metadata;
 pub use piramid_storage::vectors::{HashMapVectorReader, SlabVectorReader, VectorReader};
 
 /// Read-only access to per-document metadata during a search.
-///
-/// The counterpart to [`VectorReader`]. Indexes that evaluate filters mid-traversal read through
-/// this rather than taking a concrete map, so the backing store can change without touching any
-/// index implementation.
-///
-/// `Sync` for the same reason as [`VectorReader`]: batch search shares one view across threads.
 pub trait MetadataReader: Sync {
     /// Metadata for `id`, if present.
     fn get(&self, id: &Uuid) -> Option<&Metadata>;
@@ -30,10 +24,6 @@ impl MetadataReader for HashMap<Uuid, Metadata> {
 }
 
 /// Everything an index needs to answer one query.
-///
-/// A struct rather than a parameter list so that adding a field later — a device handle, a
-/// deadline, a quantization hint — does not change [`VectorIndex::search`]'s signature and break
-/// every implementation.
 pub struct IndexSearchRequest<'a> {
     /// Query vector.
     pub query: &'a [f32],
@@ -76,16 +66,8 @@ impl<'a> IndexSearchRequest<'a> {
 }
 
 /// An approximate-nearest-neighbor index over a collection's vectors.
-///
-/// Implementations own traversal structure only. They do **not** own the vectors themselves —
-/// those arrive through [`VectorReader`] — so the same index can sit over a cache-backed,
-/// slab-backed, or device-resident store without changing.
 pub trait VectorIndex: Send + Sync {
     /// Add `vector` under `id`.
-    ///
-    /// `vectors` gives access to already-indexed vectors, which graph indexes need to compute
-    /// distances while linking the new node. Errors if the configured compute backend is not
-    /// available on this machine.
     fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()>;
 
     /// Return up to `request.k` neighbor ids, nearest first.
@@ -164,15 +146,7 @@ impl std::fmt::Display for IndexType {
     }
 }
 
-/// Persistable form of any index.
-///
-/// # Extension cost
-///
-/// Unlike [`VectorIndex`], this enum is deliberately closed: it defines the on-disk sidecar
-/// format, and an open registry would make stored indexes unreadable by a build that lacks the
-/// implementation that wrote them. Adding an index family therefore means adding a variant here,
-/// and old binaries will refuse to load the new variant. That is the intended trade — a loud
-/// failure rather than a silent one.
+/// Persistable form of any index. Deliberately closed: adding a family means adding a variant.
 #[derive(Serialize, Deserialize)]
 pub enum SerializableIndex {
     /// A flat index.

@@ -70,9 +70,6 @@ fn build_entries(req: InsertRequest) -> Result<Vec<Document>> {
 }
 
 /// Insert documents.
-///
-/// A write touches the WAL, the record store, the cache, and the index, so a slow one is
-/// ambiguous without a span to hang the sub-timings off.
 #[tracing::instrument(
     name = "insert",
     target = "piramid::writes",

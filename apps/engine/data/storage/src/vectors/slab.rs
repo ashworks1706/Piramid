@@ -1,23 +1,10 @@
 //! Contiguous vector storage.
-//!
-//! Vectors are held as `HashMap<Uuid, Vec<f32>>` in several places, which makes every row a
-//! separate allocation: the prefetcher cannot stride across candidates, and a device path has to
-//! gather rows into a staging buffer on every call, usually costing more than the kernel saves.
-//! A [`VectorSlab`] puts all rows in one `Vec<f32>` at a fixed stride, so a candidate set is a
-//! subslice and uploads in one transfer.
-//!
-//! Nothing is migrated onto it yet. Adopting it behind
-//! [`VectorReader::as_slab`](crate::vectors::VectorReader::as_slab) can happen one call site at
-//! a time, since that method is optional.
 
 use std::collections::HashMap;
 
 use uuid::Uuid;
 
-/// Dense row-major storage for equal-length vectors.
-///
-/// Rows are addressed by a `u32` ordinal rather than a `Uuid`, so hot structures can hold a 4-byte
-/// handle instead of a 16-byte key.
+/// Dense row-major storage for equal-length vectors, addressed by `u32` ordinal.
 #[derive(Debug, Clone, Default)]
 pub struct VectorSlab {
     /// All rows, row-major, `len() * dim` elements.
@@ -66,16 +53,11 @@ impl VectorSlab {
     }
 
     /// The whole backing slab, row-major.
-    ///
-    /// This is what a device upload copies and what a batch kernel indexes.
     pub fn data(&self) -> &[f32] {
         &self.data
     }
 
-    /// Append a vector, returning its ordinal.
-    ///
-    /// Returns `None` if `vector.len()` disagrees with [`VectorSlab::dim`], or if `id` is already
-    /// present — use [`VectorSlab::replace`] to overwrite.
+    /// Appends a vector, returning its ordinal, or `None` on a width mismatch or duplicate id.
     pub fn push(&mut self, id: Uuid, vector: &[f32]) -> Option<u32> {
         if vector.len() != self.dim || self.ordinals.contains_key(&id) {
             return None;
@@ -87,9 +69,7 @@ impl VectorSlab {
         Some(ordinal)
     }
 
-    /// Overwrite the row for `id` in place, returning its ordinal.
-    ///
-    /// Returns `None` if `id` is absent or the width disagrees.
+    /// Overwrites the row for `id` in place, returning its ordinal, or `None` if absent.
     pub fn replace(&mut self, id: &Uuid, vector: &[f32]) -> Option<u32> {
         if vector.len() != self.dim {
             return None;
@@ -129,11 +109,7 @@ impl VectorSlab {
             .zip(self.data.chunks_exact(self.dim.max(1)))
     }
 
-    /// Copy the rows for `ids` into `out`, row-major.
-    ///
-    /// This is the fallback path for building a contiguous candidate set out of a non-contiguous
-    /// source. `out` must be exactly `ids.len() * dim` long. Returns `None` on a length mismatch or
-    /// an unknown id.
+    /// Copies the rows for `ids` into `out`, row-major; `out` must be `ids.len() * dim` long.
     pub fn gather_into(&self, ids: &[Uuid], out: &mut [f32]) -> Option<()> {
         if out.len() != ids.len() * self.dim {
             return None;

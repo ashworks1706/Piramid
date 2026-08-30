@@ -83,14 +83,6 @@ impl CacheManager {
             .sum()
     }
 
-    pub fn vector_len(&self) -> usize {
-        self.vectors.len()
-    }
-
-    pub fn vector_contains(&self, id: &Uuid) -> bool {
-        self.vectors.contains_key(id)
-    }
-
     fn vector_usage_bytes(&self) -> usize {
         self.vectors
             .values()

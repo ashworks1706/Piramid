@@ -12,23 +12,10 @@ pub fn ensure_file_size(file: &File, min_size: u64) -> Result<()> {
     Ok(())
 }
 
-/// Create a mutable memory map over `file`.
-///
-/// `file` must already be at least as large as the region to be mapped; call
-/// [`ensure_file_size`] first.
-///
-/// # Safety
-///
-/// Mapping is unsafe because the OS, not Rust, controls the mapped bytes: if another process
-/// truncates or writes the file while the map is live, the contents change underneath us and a
-/// shrink can turn reads into SIGBUS. Piramid treats a collection's data file as exclusively
-/// owned by the process that opened it, which is what makes this sound.
-///
-/// This is one of two deliberate `unsafe` sites outside `piramid-gpu`; the workspace denies
-/// `unsafe_code` so each one has to be allowed explicitly and justified here.
+/// Creates a mutable memory map over `file`; call [`ensure_file_size`] first.
 #[allow(unsafe_code)]
 pub fn create_mmap(file: &File) -> Result<MmapMut> {
-    // SAFETY: see the contract above — the caller guarantees exclusive ownership of `file`.
+    // SAFETY: caller guarantees exclusive ownership of `file` for the life of the mapping.
     unsafe { Ok(MmapOptions::new().map_mut(file)?) }
 }
 
@@ -73,9 +60,6 @@ pub fn grow_mmap_if_needed(
 }
 
 /// Bytes currently addressable: the mapping's length, or the file's when there is no mapping.
-///
-/// An unreadable file is an error rather than a zero, which would read as "empty" and send every
-/// caller down the grow path.
 pub fn mapped_or_file_len(mmap: Option<&[u8]>, file: &File) -> Result<u64> {
     match mmap {
         Some(mmap) => Ok(mmap.len() as u64),

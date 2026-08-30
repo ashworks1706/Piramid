@@ -78,7 +78,7 @@ flowchart TD
     Server[server<br/>http · services · runtime · cluster]
     Inference[inference<br/>forward pass · kv_cache · augment seam]
     Collections[collections<br/>Collection · cache · checkpoint]
-    Embeddings[embeddings<br/>openai · ollama · local]
+    Embeddings[embeddings<br/>openai · ollama]
     Search[search<br/>planning · filtering · ranking]
     Index[index<br/>flat · hnsw · ivf]
     Storage[storage<br/>records · WAL · mmap · slab · quantization]
@@ -216,9 +216,11 @@ the buffer can be reused across queries and pinned later for async transfer.
 CPU backends get correct batch behaviour from default implementations that loop over the pairwise
 methods. A device backend overrides them with a real launch.
 
-Dispatch never panics. `backends::resolve_available` falls back to the best CPU backend with a
-warning when the requested one is missing, so a config asking for `gpu` on a machine without one
-degrades instead of crashing.
+`backends::for_mode` is the only lookup and it checks availability itself. A mode naming a
+backend this build does not contain, or this machine cannot run, is an error — there is no
+fallback, because a caller that asked for one backend and silently got another has no way to know
+its numbers came from somewhere else. Callers resolve once per operation and pass the backend into
+the loop.
 
 ### storage::vectors::VectorReader
 

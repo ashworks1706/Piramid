@@ -1,7 +1,4 @@
 //! Input validation for vectors, text, names, and batch sizes.
-//!
-//! Runs at the service boundary so everything below can assume well-formed input, which is why
-//! the compute kernels assert on dimension rather than returning a `Result`.
 
 use crate::error::{Result, ServerError};
 
@@ -38,10 +35,7 @@ pub fn validate_vectors(vectors: &[Vec<f32>]) -> Result<()> {
     Ok(())
 }
 
-/// Scale a vector to unit length.
-///
-/// With normalized vectors, dot product and cosine similarity coincide, and magnitude stops
-/// influencing ranking. A zero or non-finite magnitude returns a zero vector rather than NaN.
+/// Scale a vector to unit length; a zero or non-finite magnitude returns a zero vector.
 pub fn normalize_vector(vector: &[f32]) -> Vec<f32> {
     let magnitude: f32 = vector.iter().map(|&x| x * x).sum::<f32>().sqrt();
 
@@ -82,8 +76,7 @@ pub fn validate_text(text: &str) -> Result<()> {
     Ok(())
 }
 
-/// Collection names are used as filename stems, so they are restricted to characters that are
-/// safe on every supported platform.
+/// Restricted to characters safe as a filename stem on every platform.
 pub fn validate_collection_name(name: &str) -> Result<()> {
     if name.is_empty() {
         return Err(

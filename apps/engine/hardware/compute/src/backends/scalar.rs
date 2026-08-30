@@ -1,7 +1,4 @@
-//! Portable scalar backend.
-//!
-//! No intrinsics, no threads. The correctness reference the other backends are checked against,
-//! and the fallback where there is no vector unit.
+//! Portable scalar backend: no intrinsics or threads, the correctness reference for the others.
 
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;

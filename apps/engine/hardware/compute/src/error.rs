@@ -2,11 +2,7 @@
 
 use std::fmt::{Display, Formatter};
 
-/// A kernel failed to run.
-///
-/// Kernels never panic on caller-supplied data. Dimension mismatches, unavailable backends, and
-/// device faults all surface here so the service layer can decide between failing the request and
-/// falling back to another backend.
+/// A kernel failed to run: dimension mismatch, unavailable backend, or a device fault.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ComputeError {
     /// The requested backend is not compiled in, or the hardware is absent.

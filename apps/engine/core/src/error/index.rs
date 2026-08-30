@@ -29,19 +29,3 @@ pub enum IndexError {
     #[error("Index load failed: {0}")]
     LoadFailed(String),
 }
-
-impl IndexError {
-    pub fn is_recoverable(&self) -> bool {
-        match self {
-            Self::NotInitialized => true,
-            Self::Corrupted(_) => false,
-            Self::InvalidConfig(_) => true,
-            Self::BuildFailed(_) => true,
-            Self::SearchFailed(_) => true,
-            Self::NodeNotFound(_) => true,
-            Self::InvalidLayer(_) => true,
-            Self::PersistenceFailed(_) => false,
-            Self::LoadFailed(_) => false,
-        }
-    }
-}

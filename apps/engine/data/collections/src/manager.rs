@@ -98,10 +98,7 @@ impl CollectionManager {
         format!("{}/{}.db", self.data_dir, name)
     }
 
-    /// Warm in the background when there is a runtime to do it on.
-    ///
-    /// Outside one — a test, the CLI — there is nothing to spawn onto and warming is skipped;
-    /// it is a latency optimization, so the collection is already usable either way.
+    /// Warms in the background when there is a runtime to do it on; skipped otherwise.
     fn warm_page_cache(&self, handle: CollectionHandle) {
         let Ok(runtime) = Handle::try_current() else {
             return;

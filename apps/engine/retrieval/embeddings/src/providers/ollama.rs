@@ -1,6 +1,4 @@
 //! Ollama provider, for local embedding models.
-//!
-//! Known-good models: `nomic-embed-text` (768), `mxbai-embed-large` (1024), `all-minilm` (384).
 
 use async_trait::async_trait;
 use reqwest::Client;

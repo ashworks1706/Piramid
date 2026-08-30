@@ -1,11 +1,5 @@
-//! NVIDIA CUDA backend, built on `cudarc`. Compiled only under `gpu-cuda`.
-//!
-//! To fill in: add `cudarc` under that feature, have [`CudaRuntime`] own the `CudaContext` and
-//! populate [`DeviceCapabilities`] from a probe in [`open_default`], then implement the
-//! allocation, transfer, stream and module functions in [`super`] by delegating here.
-//!
-//! `cudarc` types must not escape this file. That containment is what lets a second backend
-//! (ROCm, Metal) land without touching anything above `gpu/`.
+//! NVIDIA CUDA backend, built on `cudarc`; compiled only under `gpu-cuda`. `cudarc` types must
+//! never escape this file.
 
 use std::sync::Arc;
 

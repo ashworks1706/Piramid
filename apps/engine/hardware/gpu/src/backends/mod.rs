@@ -1,10 +1,4 @@
-//! Vendor backend adapters.
-//!
-//! The only place a vendor SDK type may appear. Everything above is written against
-//! [`crate::device::DeviceRuntime`] and the free functions here.
-//!
-//! To add a backend: a feature-gated submodule implementing `DeviceRuntime`, plus one arm in each
-//! function below. Dispatch is centralized so no other file needs `#[cfg]` for hardware.
+//! Vendor backend adapters; the only place a vendor SDK type may appear.
 
 #[cfg(feature = "gpu-cuda")]
 pub mod cudarc;

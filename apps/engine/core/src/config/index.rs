@@ -1,6 +1,4 @@
 //! Index selection configuration.
-//!
-//! The types a collection is configured with. Building an index from them is `index::create_index`.
 
 use serde::{Deserialize, Serialize};
 
@@ -8,9 +6,6 @@ use crate::config::SearchConfig;
 use piramid_compute::{ExecutionMode, Metric};
 
 /// Which index family a configuration resolves to.
-///
-/// Mirrors `index::IndexType` so configuration can answer "what would you pick" without depending
-/// on the index crate.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IndexKind {
     /// Brute-force scan.

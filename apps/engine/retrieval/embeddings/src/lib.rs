@@ -1,6 +1,4 @@
-//! Embedding providers.
-//!
-//! Turns text into vectors so callers can ingest documents without running a model themselves.
+//! Embedding providers: turns text into vectors.
 
 pub mod cache;
 pub mod providers;

@@ -25,22 +25,6 @@ impl Default for MemoryConfig {
 }
 
 impl MemoryConfig {
-    pub fn with_limit_mb(limit_mb: usize) -> Self {
-        MemoryConfig {
-            max_memory_per_collection: Some(limit_mb * 1024 * 1024),
-            initial_mmap_size: 1024 * 1024,
-            use_mmap: true,
-        }
-    }
-
-    pub fn with_mmap_size_mb(size_mb: usize) -> Self {
-        MemoryConfig {
-            max_memory_per_collection: None,
-            initial_mmap_size: size_mb * 1024 * 1024,
-            use_mmap: true,
-        }
-    }
-
     pub fn no_mmap() -> Self {
         MemoryConfig {
             max_memory_per_collection: None,

@@ -1,14 +1,8 @@
-//! Execution-mode selection for compute kernels.
-//!
-//! [`ExecutionMode`] names which backend runs a kernel. It lives here rather than in `config/` so
-//! the kernel layer stays a leaf; `config/` re-exports it.
+//! Execution-mode selection: [`ExecutionMode`] names which backend runs a kernel.
 
 use serde::{Deserialize, Serialize};
 
-/// Which compute backend should execute a kernel.
-///
-/// [`ExecutionMode::Auto`] is a request, not a backend: call [`ExecutionMode::resolve`] to turn it
-/// into a concrete choice based on detected CPU features.
+/// Which compute backend should execute a kernel; `Auto` is a request, not a backend.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 pub enum ExecutionMode {
     /// Detect the best available backend at runtime.
@@ -27,12 +21,7 @@ pub enum ExecutionMode {
 }
 
 impl ExecutionMode {
-    /// Resolve [`ExecutionMode::Auto`] into a concrete backend using detected CPU features.
-    ///
-    /// This performs no availability checking for non-`Auto` modes: an explicitly requested
-    /// backend is returned as-is so the caller can distinguish "unavailable" from "not asked for".
-    /// Use [`crate::backends::resolve_available`] to get a mode that is guaranteed to be
-    /// runnable on this machine.
+    /// Resolve `Auto` into a concrete backend using detected CPU features; other modes pass through.
     pub fn resolve(&self) -> ExecutionMode {
         match self {
             ExecutionMode::Auto => {

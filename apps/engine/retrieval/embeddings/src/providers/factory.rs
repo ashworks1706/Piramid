@@ -9,8 +9,7 @@ use super::openai::OpenAIEmbedder;
 use crate::cache::CachedEmbedder;
 use crate::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResult};
 
-/// Entries kept per embedder. One number, applied here, rather than a constant per provider and
-/// a `with_cache_size` constructor nothing called.
+/// Entries kept per embedder.
 // The unwrap is const-evaluated: a zero literal here fails the build, not a request.
 #[allow(clippy::unwrap_used, reason = "const context; checked at compile time")]
 const CACHE_CAPACITY: NonZeroUsize = NonZeroUsize::new(10_000).unwrap();
@@ -21,15 +20,6 @@ pub enum EmbeddingProvider {
     /// Anything speaking the OpenAI embeddings format, including a local server.
     OpenAI,
     Ollama,
-}
-
-impl EmbeddingProvider {
-    pub fn as_str(&self) -> &'static str {
-        match self {
-            Self::OpenAI => "openai",
-            Self::Ollama => "ollama",
-        }
-    }
 }
 
 impl FromStr for EmbeddingProvider {

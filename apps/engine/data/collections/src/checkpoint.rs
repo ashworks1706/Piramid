@@ -10,8 +10,8 @@ use std::{fs, path::PathBuf};
 
 pub struct CheckpointManager {
     pub wal: Wal,
-    operation_count: usize, // Counter for the number of operations since the last checkpoint
-    last_checkpoint_ts: Option<u64>, // Timestamp of the last checkpoint for recovery purposes
+    operation_count: usize,
+    last_checkpoint_ts: Option<u64>,
 }
 
 impl CheckpointManager {
@@ -49,15 +49,15 @@ pub fn save_index(storage: &Collection) -> Result<()> {
 }
 
 pub fn save_vector_index(storage: &Collection) -> Result<()> {
-    save_vec_idx(&storage.path, storage.vector_index.as_ref()) // We pass a reference to the vector index to the save function, which will handle serializing and writing it to disk.
+    save_vec_idx(&storage.path, storage.vector_index.as_ref())
 }
 
 pub fn save_metadata(storage: &Collection) -> Result<()> {
-    save_meta(&storage.path, &storage.metadata) // need to save the metadata of the collection during checkpoints. contains their IDs and any associated metadata fields
+    save_meta(&storage.path, &storage.metadata)
 }
 
 fn wal_meta_path(path: &str) -> PathBuf {
-    PathBuf::from(format!("{}.wal.meta", path)) // The path for the WAL metadata file is constructed by appending ".wal.meta" to the base path of the collection.
+    PathBuf::from(format!("{}.wal.meta", path))
 }
 
 #[derive(Serialize, Deserialize, Default)]

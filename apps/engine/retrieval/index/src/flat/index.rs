@@ -1,7 +1,4 @@
-//! Brute-force index.
-//!
-//! Compares the query against every vector: `O(N)`, perfect recall, no build cost. The right
-//! choice below roughly ten thousand vectors, where traversal overhead outweighs the scan.
+//! Brute-force index: compares the query against every vector, `O(N)`, perfect recall.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;

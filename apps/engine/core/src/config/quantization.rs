@@ -84,19 +84,6 @@ impl QuantizationConfig {
         }
     }
 
-    pub fn int8_disk_only() -> Self {
-        QuantizationConfig {
-            level: QuantizationLevel::Int8,
-            disk_only: true,
-            stage: QuantizationStage::Storage,
-            preserve_raw_vectors: false,
-            storage_enabled: true,
-            index_enabled: false,
-            query_enabled: false,
-            result_enabled: false,
-        }
-    }
-
     pub fn pq(subquantizers: usize) -> Self {
         QuantizationConfig {
             level: QuantizationLevel::Pq { subquantizers },
@@ -108,12 +95,6 @@ impl QuantizationConfig {
             query_enabled: false,
             result_enabled: false,
         }
-    }
-
-    pub fn pre_search(mut self) -> Self {
-        self.stage = QuantizationStage::QueryPreSearch;
-        self.query_enabled = true;
-        self
     }
 
     pub fn post_search(mut self) -> Self {

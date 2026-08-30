@@ -6,7 +6,7 @@ use uuid::Uuid;
 #[derive(Clone, Debug)]
 pub struct RequestId(pub String);
 
-/// Middleware that assigns a request ID, adds it to extensions, and echoes it in the response header.
+/// Assigns a request ID, adds it to extensions, and echoes it in the response header.
 pub async fn assign_request_id(mut req: Request<Body>, next: Next) -> Response {
     let req_id = req
         .headers()
