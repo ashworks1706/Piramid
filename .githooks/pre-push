@@ -1,5 +1,15 @@
-#!/usr/bin/env sh
-set -eu
+#!/usr/bin/env bash
+# Runs the full gate before anything leaves the machine. Skip once with `git push --no-verify`.
+#
+# This replaces two scripts that no longer exist, scripts/check.sh and scripts/check-website.sh,
+# which were folded into `just check` when the workspace split.
+set -euo pipefail
+cd "$(git rev-parse --show-toplevel)"
 
-./scripts/check.sh
-./scripts/check-website.sh
+if ! command -v just >/dev/null; then
+  echo "pre-push: just not installed, skipping the gate (see https://just.systems)"
+  exit 0
+fi
+
+echo "pre-push: just check"
+just check
