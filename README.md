@@ -142,8 +142,7 @@ the case for, plus the experiment that would settle it. Building the seam rather
 mechanism means the device runtime, vector layout, kernel dispatch, and indexes stay useful
 whichever way that goes.
 
-[docs/ROADMAP.md](docs/ROADMAP.md) has the plan, including a list of what is currently missing or
-broken.
+[docs/ROADMAP.md](docs/ROADMAP.md) has the plan, as a todo list.
 
 ## Working on Piramid
 

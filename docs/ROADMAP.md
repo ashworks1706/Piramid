@@ -1,144 +1,77 @@
 # Roadmap
 
-What's being built and in what order. Pick one scoped item. If your idea is adjacent but not
-listed, open an issue before implementing.
+## Now (v0.3.0) — make the batch path reachable
 
-Current state is v0.2.0: a working single-node vector database. Collections, vector CRUD, kNN and
-range search, metadata filtering, embedding ingestion, WAL and checkpoints, three ANN index
-families, SIMD distance kernels. Eleven crates with an enforced dependency rule. Inference is
-scaffolding.
-
-The order below is a dependency order, not a wish list. Each block needs the one above it.
-
-## Now (v0.3.0)
-
-The goal of this release is that a GPU kernel, when written, has somewhere to plug in and a
-baseline to be measured against. Neither is true today.
-
-### 1. Make the batch path reachable
-
-Every scoring call site currently uses the pairwise API — `metric.calculate(a, b, mode)` in
-`flat/index.rs`, `hnsw/index.rs`, and `search/engine.rs`. Nothing calls
-`DistanceKernels::cosine_batch`. A GPU kernel written now would be code nothing invokes, so this
-comes first.
-
-- [ ] add unit tests for `VectorSlab` — push, replace, ordinals, row bounds, gather. It's about
-      180 lines with no coverage, and everything below builds on it
-- [ ] add a criterion bench for `compute`, comparing scalar, SIMD, and parallel across realistic
-      dimensions. There is no compute bench today, only `hnsw_performance`, so there is nothing to
-      measure a change against
-- [ ] route the flat index scan through `cosine_batch` rather than a per-vector loop. Flat is the
-      right first consumer because it already touches every vector
+- [ ] add unit tests for `VectorSlab` — push, replace, ordinals, row bounds, gather
+- [ ] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
+- [ ] route the flat index scan through `cosine_batch` instead of a per-vector loop
 - [ ] route the rerank loop in `search::engine` through the batch API
 
-### 2. Contiguous layout
+## Now (v0.3.0) — contiguous layout
 
-Now measurable, because step 1 gave us a bench and a batch call site.
+- [ ] migrate `CacheManager` onto `VectorSlab`, make `SlabVectorReader` the default reader
+- [ ] re-run the compute bench: scattered vs contiguous candidates, same kernel
+- [ ] use `u32` ordinals instead of `Uuid` in HNSW adjacency lists (sidecar format bump + load path)
 
-- [ ] migrate `CacheManager` onto `VectorSlab` and make `SlabVectorReader` the default reader
-- [ ] re-run the compute bench: scattered versus contiguous candidates, same kernel. This number
-      is the one that justifies GPU work, or doesn't
-- [ ] use `u32` ordinals instead of `Uuid` inside HNSW adjacency lists. Changes the sidecar
-      format, so it needs a version bump and a load path for old files
+## Now (v0.3.0) — GPU
 
-### 3. GPU
+- [ ] wire `cudarc` behind `gpu-cuda`: a real `Device`, `DeviceBuffer`, `Stream`
+- [ ] round-trip test — allocate, upload, download, compare — before any kernel
+- [ ] a `cosine_batch` CUDA kernel, benched against the scalar reference
+- [ ] keep a device-resident candidate slab across queries, measure against per-call upload
 
-Only meaningful once 1 and 2 land. Order matters here too: a kernel debugged on top of broken
-transfer is unfixable.
+## Now (v0.3.0) — independent
 
-- [ ] wire `cudarc` behind `gpu-cuda`: a real `Device`, `DeviceBuffer`, and `Stream`
-- [ ] round-trip test — allocate, upload, download, compare — before writing any kernel
-- [ ] a `cosine_batch` CUDA kernel, benched against the scalar reference for parity and speed
-- [ ] keep a device-resident candidate slab across queries and measure against per-call upload
-
-### Independent of the above
-
-These don't block anything and can be picked up in any order.
-
-- [ ] wire the existing PQ implementation into the search path. `piramid-storage::quantization` is
-      fully implemented and has zero callers outside its own module
+- [ ] wire `piramid-storage::quantization` into the search path
 - [ ] binary pre-filter into full-precision rerank, with a recall measurement
-- [ ] fix the 21 `unwrap`/`expect` call sites outside tests, then flip `unwrap_used` and
-      `expect_used` to `deny`
-- [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn`. Around 860 public
-      items, concentrated in `server/services/types` (165) and `core/config` (roughly 130).
-      `compute`, `gpu`, and `inference` already pass and enforce it themselves
-- [ ] decide what happens to `cluster`. It always returns `RouteDecision::Local` and is threaded
-      through `AppState` in six places for no behaviour
-
-### Done
-
-- [x] Prometheus text format at `/metrics`
-- [x] spans on search, write, embed, rebuild, and compact
-- [x] `piramid support-bundle` for bug reports
-- [x] `#![deny(missing_docs)]` on `compute`, `gpu`, and `inference`
+- [ ] fix the 21 `unwrap`/`expect` sites outside tests, then `deny` `unwrap_used`/`expect_used`
+- [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn` (~860 items)
+- [ ] decide what happens to `cluster`
+- [ ] make `SearchConfig::adaptive` and `SearchConfig::budget` do something, or delete them.
+      `min_ef`, `max_ef`, `min_nprobe`, `max_nprobe`, `recall_target` are validated and never read
+- [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects
+      both today
 
 ## Next (v0.4.0)
 
-Decide the mechanism before building it:
-
-- [ ] retrofit a small model in Python — JetBrains-Research/project-RETRO fixes the train/test
-      leakage in the original — and measure fused against prompt-stuffed at equal token budget, on
-      a corpus with low train/test overlap
-- [ ] publish the result either way, since a negative one redirects the project cheaply
-
-If it holds:
-
-- [ ] `candle` behind `inference-candle`, loading weights onto the same device retrieval uses
+- [ ] retrofit a small model in Python, measure fused vs prompt-stuffed at equal token budget
+- [ ] publish the result either way
+- [ ] `candle` behind `inference-candle`, weights on the same device retrieval uses
 - [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit
 - [ ] paged KV cache
-- [ ] the first real `RetrievalHook` implementation, as its own crate depending on both
-      `piramid-inference` and `piramid-search`
+- [ ] the first real `RetrievalHook` implementation, as its own crate
 - [ ] `/api/infer` and an OpenAI-compatible `/v1/chat/completions`
 - [ ] SSE streaming
 - [ ] continuous batching
-- [ ] spans on kernel launches and forward-pass stages, which is when OTLP starts earning its place
+- [ ] spans on kernel launches and forward-pass stages
 
-## Later (v0.5.0 and beyond)
+## Later (v0.5.0+)
 
 - [ ] fused kernels combining retrieval encoding and attention in one launch
-- [ ] an index co-designed for the attention access pattern, with relevance scoring jointly learned
-- [ ] fp16/bf16 for weights and stored vectors, with no upcasting on the hot path
-- [ ] distributed placement in `cluster`, once inference exists and dictates where things live
+- [ ] an index co-designed for the attention access pattern
+- [ ] fp16/bf16 for weights and stored vectors, no upcasting on the hot path
+- [ ] distributed placement in `cluster`
+
+## Unscheduled
+
+- [ ] tune IVF, or say in the docs that HNSW is the one to use
+- [ ] migrate bincode 1.x → 2.x: a format migration for records, sidecars and the WAL, with a read
+      path for existing data (RUSTSEC-2025-0141, ignored in `deny.toml` until then)
+- [ ] cut the website down to what the product actually does today
+- [ ] make the npm and python SDKs real clients, or unpublish them
+- [ ] decide on authentication and rate limiting. `ErrorKind::Unauthenticated` maps to 401 and
+      nothing emits it; CORS allows any origin, method and header; `/config/reload` is open
+- [ ] test `apps/cli`. It has none, and `support-bundle` is the path that must never emit a secret
+- [ ] one HTTP-level test that builds the router and hits it. 25 routes, no test constructs one
+- [ ] build a dashboard or drop the fallback. `ServeDir::new("dashboard")` serves a directory that
+      does not exist and nothing produces
+- [ ] untrack `apps/sdk/python/dist/` and `piramid.egg-info/` — build artifacts committed to git
 
 ## Out of scope
 
-Don't build toward these without a decision recorded in `docs/decisions/`.
-
-A managed cloud service. Piramid is a binary you run.
-
-Pretraining models from scratch. Retrofit only; pretraining isn't a solo project.
-
-Competing with Qdrant on vector-database breadth. Multi-tenancy, sharding, replication, and hybrid
-keyword search aren't differentiators here. If pure vector search is what someone needs, they
-should use Qdrant.
-
-Non-NVIDIA GPU backends until the CUDA path is real. `gpu/backends/` is structured so ROCm or
-Metal is additive, but a second backend before the first one works is scaffolding.
-
-A second deployable process. See [ADR 0001](decisions/0001-single-binary.md).
-
-Vendor telemetry integrations. Protocols are in scope, products aren't. See
-[ADR 0011](decisions/0011-open-standards-only.md).
-
-## Known gaps
-
-Things that are wrong or missing today, verified against the code rather than remembered.
-
-- The batch kernel API has no callers. `DistanceKernels::cosine_batch` and its siblings exist and
-  every scoring path uses the pairwise methods instead.
-- `VectorSlab` has no tests, and `as_slab`/`gather_into` have no callers. The seam is defined and
-  unused.
-- There is no benchmark for `compute`. The only bench in the workspace is `hnsw_performance`.
-- `quantization` is fully implemented and unreachable from the search path.
-- `cluster` always routes locally and is carried through `AppState` for nothing.
-- IVF works but is untuned. HNSW covers the sizes we actually test at.
-- 21 `unwrap`/`expect` call sites outside tests, so `unwrap_used` is still `allow`.
-- bincode 1.x is unmaintained (RUSTSEC-2025-0141), ignored in `deny.toml` because it defines the
-  on-disk format for records, sidecars and the WAL. Moving to 2.x is a format migration with a
-  compatibility path for existing data, not a version bump.
-- Roughly 860 undocumented public items outside `compute`, `gpu`, and `inference`.
-- The website is fourteen components for a product whose headline feature isn't built.
-- The npm and python SDKs are 11 and 7 lines, published under names already claimed on their
-  registries. Either make them real clients or unpublish them; a stub under an installable name is
-  worse than no package.
+- a managed cloud service
+- pretraining models from scratch
+- competing with Qdrant on vector-database breadth
+- non-NVIDIA GPU backends until the CUDA path is real
+- a second deployable process — [ADR 0001](decisions/0001-single-binary.md)
+- vendor telemetry integrations — [ADR 0011](decisions/0011-open-standards-only.md)

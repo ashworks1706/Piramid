@@ -61,7 +61,7 @@ New backends need a parity test against `ScalarBackend` and a bench against it.
 
 ## Good first issues
 
-`docs/ROADMAP.md` has a list of known gaps. Wiring the existing PQ implementation into the search
+`docs/ROADMAP.md` has the open todos. Wiring the existing PQ implementation into the search
 path, and backfilling doc comments so `missing_docs` can move from `allow` to `deny`, are both
 self-contained.
 
