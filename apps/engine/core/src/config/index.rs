@@ -1,8 +1,6 @@
 //! Index selection configuration.
 //!
-//! These are the *types* a collection is configured with. Building an index from them is the
-//! index layer's job (`index::create_index`), which keeps configuration below the implementations
-//! it describes.
+//! The types a collection is configured with. Building an index from them is `index::create_index`.
 
 use serde::{Deserialize, Serialize};
 

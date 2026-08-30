@@ -15,10 +15,10 @@ const DEFAULT_OPENAI_API_URL: &str = "https://api.openai.com/v1/embeddings";
 const DEFAULT_CACHE_SIZE: usize = 10000;
 
 struct OpenAIEmbedderInner {
-    client: Client,   // HTTP requests to the OpenAI API
-    api_key: String,  // OpenAI API key for authentication
-    model: String,    // OpenAI model name
-    base_url: String, // URL for the OpenAI API
+    client: Client,
+    api_key: String,
+    model: String,
+    base_url: String,
 }
 
 pub struct OpenAIEmbedder {

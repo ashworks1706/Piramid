@@ -71,7 +71,6 @@ pub fn grow_mmap_if_needed(
             file.set_len(new_size)?;
         }
     }
-    // Already large enough — keep the existing
-    // memory map without any changes.
+    // Already large enough; nothing to do.
     Ok(())
 }

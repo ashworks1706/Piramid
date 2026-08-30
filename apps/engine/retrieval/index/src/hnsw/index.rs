@@ -29,7 +29,7 @@ struct SearchContext<'a> {
 }
 impl PartialEq for SearchCandidate {
     fn eq(&self, other: &Self) -> bool {
-        self.distance == other.distance // equality based on distance
+        self.distance == other.distance
     }
 }
 
@@ -37,7 +37,7 @@ impl Eq for SearchCandidate {}
 
 impl PartialOrd for SearchCandidate {
     fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
-        Some(self.cmp(other)) // we order using the Ord implementation below
+        Some(self.cmp(other))
     }
 }
 
@@ -85,7 +85,7 @@ impl HnswIndex {
     fn random_layer(&self) -> usize {
         // floor(-ln(uniform) * ml)
         let r: f32 = rand::random();
-        (-r.ln() * self.config.ml).floor() as usize // this basically gives us a layer based on exponential decay
+        (-r.ln() * self.config.ml).floor() as usize
     }
 
     /// Insert `id`, linking it into each layer it occupies.
@@ -98,17 +98,17 @@ impl HnswIndex {
             filter: None,
             metadatas: &empty_meta,
         };
-        let layer = self.random_layer(); // this gives us a layer based on exponential decay
+        let layer = self.random_layer();
 
         // First node becomes the entry point.
         if self.start_node.is_none() {
-            self.start_node = Some(id); // set entry point
-            self.max_level = layer as isize; // this makes sure max_level is always the highest level
+            self.start_node = Some(id);
+            self.max_level = layer as isize;
             let node = HnswNode {
-                connections: vec![Vec::new(); layer + 1], // this creates empty connections for each layer
+                connections: vec![Vec::new(); layer + 1],
                 tombstone: false,
-            }; // create the node
-            self.nodes.insert(id, node); // insert into the index
+            };
+            self.nodes.insert(id, node);
             return;
         }
 
@@ -146,13 +146,11 @@ impl HnswIndex {
                     pending_connections[lc].push(neighbor_id);
                 }
 
-                // Add edge from neighbor to new node
                 if let Some(neighbor) = self.nodes.get_mut(&neighbor_id) {
                     if lc < neighbor.connections.len() {
                         neighbor.connections[lc].push(id);
 
-                        // Degree is capped per node; prune the neighbour if this edge pushed it
-                        // over.
+                        // Degree is capped per node; prune the neighbour if this edge pushed it over.
                         if neighbor.connections[lc].len() > m {
                             // Cloned to release the borrow on `self.nodes` before pruning.
                             let neighbor_connections = neighbor.connections[lc].clone();
@@ -328,8 +326,8 @@ impl HnswIndex {
             a.distance
                 .partial_cmp(&b.distance)
                 .unwrap_or(Ordering::Equal)
-        }); // sort
-        result.into_iter().map(|c| c.id).collect() // return only IDs
+        });
+        result.into_iter().map(|c| c.id).collect()
     }
 
     /// Pick the `m` closest candidates.

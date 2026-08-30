@@ -1,20 +1,9 @@
 //! Diagnostic bundle generation.
 //!
-//! Piramid is self-hosted: the operator runs it on their hardware with their data, and no
-//! telemetry reaches this project unless they deliberately configure an exporter of their own.
-//! That is the correct default for a database, and it means a bug report is the only channel
-//! through which a maintainer learns anything.
-//!
-//! This command exists to make that channel carry enough signal. It writes everything a
-//! maintainer usually has to ask for over three round-trips — version, platform, resolved
-//! configuration, enabled features, collection and WAL state — into one file the operator can
-//! read, check, and attach.
-//!
-//! # What it must never do
-//!
-//! Emit a secret. The bundle is written to be pasted into a public issue tracker, so every value
-//! that could be a credential is redacted, and the operator is told what was collected so they
-//! can verify before sharing.
+//! Piramid sends no telemetry anywhere, so a bug report is the only thing a maintainer ever sees.
+//! This writes what they'd otherwise ask for over three round-trips into one file: version,
+//! platform, resolved config, features, collection and WAL state. Every value that could be a
+//! credential is redacted, because the bundle is meant to be pasted into a public issue.
 
 use std::fmt::Write as _;
 use std::fs;
@@ -24,11 +13,8 @@ use std::sync::Arc;
 use piramid::config::loader::RuntimeConfig;
 use piramid::runtime::AppState;
 
-/// Environment variables whose values are never included.
-///
-/// Matched case-insensitively as substrings, so `OPENAI_API_KEY` and `PIRAMID_SENTRY_DSN` are both
-/// caught. Prefer over-redacting: a missing value costs a follow-up question, a leaked one costs a
-/// credential rotation.
+/// Substrings matched case-insensitively against env var names to redact their values. Prefer
+/// over-redacting: a missing value costs a follow-up question, a leaked one costs a rotation.
 const SECRET_MARKERS: &[&str] = &[
     "KEY",
     "TOKEN",
@@ -65,13 +51,11 @@ const REPORTED_PREFIXES: &[&str] = &[
     "PARALLEL_SEARCH",
 ];
 
-/// Whether a variable name looks like it holds a credential.
 fn is_secret(name: &str) -> bool {
     let upper = name.to_ascii_uppercase();
     SECRET_MARKERS.iter().any(|marker| upper.contains(marker))
 }
 
-/// Build the bundle text.
 pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     let mut out = String::new();
 
@@ -228,7 +212,7 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
     out
 }
 
-/// Write the bundle to `path`, or to a timestamped file in the working directory.
+/// Write the bundle to `path`, defaulting to `piramid-support-bundle.md` in the working directory.
 pub fn write(
     config: &RuntimeConfig,
     state: &Arc<AppState>,

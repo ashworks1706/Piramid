@@ -1,10 +1,9 @@
 //! Query execution.
 //!
-//! Plans overfetch, asks the index for candidates, scores them, and applies any metadata filter.
-//! This module knows nothing about collections: the caller hands it a [`SearchTarget`] describing
-//! the index and readers to use, plus a resolver that turns a candidate id into a full document.
-//! That keeps `search/` below `collections/` so a collection can compose search without search
-//! ever needing to know what a collection is.
+//! Plans overfetch, asks the index for candidates, scores them, applies any metadata filter. It
+//! knows nothing about collections: the caller passes a [`SearchTarget`] naming the index and
+//! readers, plus a resolver from candidate id to document. That keeps `search/` below
+//! `collections/`.
 
 use crate::{utils::sort_and_truncate, Hit};
 use piramid_compute::{ExecutionMode, Metric};

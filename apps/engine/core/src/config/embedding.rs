@@ -1,7 +1,6 @@
 //! Embedding provider configuration.
 //!
-//! Lives in `config/` rather than `embeddings/` so that configuration stays below the provider
-//! layer: the loader can parse it without pulling in HTTP clients.
+//! Here rather than in `embeddings/` so the loader can parse it without pulling in HTTP clients.
 
 use serde::{Deserialize, Serialize};
 

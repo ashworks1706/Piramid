@@ -1,4 +1,6 @@
-// allowing users to generate embeddings from text without needing to handle the embeddings externally
+//! Embedding providers.
+//!
+//! Turns text into vectors so callers can ingest documents without running a model themselves.
 
 pub mod cache;
 pub mod providers;

@@ -1,18 +1,13 @@
 //! Single-pair distance entry points.
 //!
-//! These are the hot-path convenience wrappers used by index traversal and reranking. They select
-//! a backend via [`crate::backends::resolve_available`], so an unavailable backend
-//! degrades to CPU rather than failing the query.
+//! Hot-path wrappers for index traversal and reranking. They resolve a backend through
+//! [`crate::backends::resolve_available`], so an unavailable one degrades to CPU.
 //!
 //! # Panics
 //!
-//! Every function here asserts that both operands have the same length. That is a caller
-//! contract, not a runtime condition — mismatched dimensions mean a bug upstream of the kernel,
-//! and vectors are dimension-checked at the collection boundary long before they reach here.
-//! Validated once at this layer so the backends can assume well-formed input.
-//!
-//! For untrusted input, or when a mismatch should be recoverable, use the batch kernels on
-//! [`crate::DistanceKernels`], which return
+//! Every function asserts both operands have the same length. That is a caller contract:
+//! dimensions are checked at the collection boundary, so a mismatch here is a bug upstream. For
+//! untrusted input use the batch kernels on [`crate::DistanceKernels`], which return
 //! [`ComputeError::ShapeMismatch`](crate::ComputeError::ShapeMismatch) instead.
 
 use crate::backends::resolve_available;

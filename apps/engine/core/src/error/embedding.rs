@@ -1,7 +1,6 @@
 //! Embedding provider errors.
 //!
-//! `is_recoverable` distinguishes transient failures worth retrying from permanent ones; see
-//! `retry::RetryEmbedder`, which is its only consumer.
+//! `is_recoverable` separates transient failures from permanent ones, for `retry::RetryEmbedder`.
 
 use thiserror::Error;
 

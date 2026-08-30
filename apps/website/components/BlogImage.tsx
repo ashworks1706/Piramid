@@ -9,7 +9,6 @@ type Props = {
   alt?: string;
 };
 
-// Zoom levels cycled through on each click inside the lightbox
 const ZOOM_LEVELS = [1, 1.8, 3];
 
 export function BlogImage({ src, alt }: Props) {
@@ -40,7 +39,6 @@ export function BlogImage({ src, alt }: Props) {
     });
   }, []);
 
-  // Wheel to zoom
   const onWheel = useCallback((e: React.WheelEvent) => {
     e.stopPropagation();
     setZoomIdx((i) => {
@@ -51,7 +49,6 @@ export function BlogImage({ src, alt }: Props) {
     });
   }, []);
 
-  // Drag to pan while zoomed
   const onMouseDown = useCallback(
     (e: React.MouseEvent) => {
       if (!isZoomed) return;
@@ -77,7 +74,6 @@ export function BlogImage({ src, alt }: Props) {
     setIsDragging(false);
   }, []);
 
-  // Touch drag
   const touchStart = useRef({ x: 0, y: 0 });
   const onTouchStart = useCallback(
     (e: React.TouchEvent) => {
@@ -95,7 +91,6 @@ export function BlogImage({ src, alt }: Props) {
     });
   }, []);
 
-  // ESC to close
   useEffect(() => {
     if (!open) return;
     const handler = (e: KeyboardEvent) => {
@@ -105,7 +100,6 @@ export function BlogImage({ src, alt }: Props) {
     return () => window.removeEventListener("keydown", handler);
   }, [open, close]);
 
-  // Prevent body scroll when lightbox open
   useEffect(() => {
     if (open) {
       document.body.style.overflow = "hidden";
@@ -133,7 +127,6 @@ export function BlogImage({ src, alt }: Props) {
           onMouseUp={onMouseUp}
           onMouseLeave={onMouseUp}
         >
-          {/* Close button */}
           <button
             onClick={close}
             className="absolute top-4 right-4 z-10 flex h-9 w-9 items-center justify-center rounded-full border border-white/10 bg-white/10 text-white backdrop-blur transition hover:bg-white/20"
@@ -142,7 +135,6 @@ export function BlogImage({ src, alt }: Props) {
             ✕
           </button>
 
-          {/* Zoom hint */}
           <div className="absolute top-4 left-1/2 -translate-x-1/2 flex items-center gap-2 rounded-full border border-white/10 bg-white/5 px-3 py-1 text-xs text-zinc-400 backdrop-blur select-none pointer-events-none">
             <span>scroll or click to zoom</span>
             {isZoomed && (
@@ -150,7 +142,7 @@ export function BlogImage({ src, alt }: Props) {
             )}
           </div>
 
-          {/* Image wrapper -- stop propagation so clicking the image doesn't close */}
+          {/* stopPropagation so clicking the image itself doesn't close the lightbox */}
           <div
             className="relative flex items-center justify-center"
             style={{
@@ -192,7 +184,6 @@ export function BlogImage({ src, alt }: Props) {
             />
           </div>
 
-          {/* Caption */}
           {alt && (
             <div
               className="absolute bottom-5 left-1/2 -translate-x-1/2 max-w-lg text-center text-sm text-zinc-300 px-4 py-2 rounded-xl border border-white/10 bg-black/50 backdrop-blur pointer-events-none"

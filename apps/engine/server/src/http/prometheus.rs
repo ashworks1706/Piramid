@@ -1,11 +1,8 @@
 //! Prometheus scrape endpoint.
 //!
-//! Renders the same numbers `/api/metrics` returns as JSON into the text exposition format. The
-//! JSON endpoint stays as-is: it carries the full `AppConfig`, which is useful to a human and
-//! meaningless to a scraper.
-//!
-//! Served at `/metrics` — the conventional path, deliberately outside the `/api` prefix so a
-//! scrape config does not have to know Piramid's API layout.
+//! Renders the numbers `/api/metrics` returns as JSON into the text exposition format. The JSON
+//! endpoint stays as it is: it carries the full `AppConfig`, useful to a human and meaningless to
+//! a scraper. Served at `/metrics`, outside `/api` by convention.
 
 use piramid_observability::prometheus::{MetricType, Registry, CONTENT_TYPE};
 

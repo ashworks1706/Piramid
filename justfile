@@ -1,9 +1,6 @@
-# Contributor tasks for working on this repo. `just` lists them; `just <recipe>`.
+# Contributor tasks. Run `just` to list them.
 #
-# This is not the shipped CLI. `just` builds, tests and lints the workspace and is never needed to
-# run Piramid; `piramid` is the binary users install and knows nothing about any of this.
-# Everything first-party is under apps/: engine (the library crates, grouped as core,
-# observability, hardware, data, retrieval, inference, server), cli, website, sdk.
+# Not the shipped CLI. Nothing here is needed to run Piramid.
 
 set shell := ["bash", "-euo", "pipefail", "-c"]
 
@@ -20,7 +17,7 @@ doctor:
 env:
     @[ -f .env ] && echo ".env exists" || { cp .env.example .env && echo "created .env"; }
 
-# Install the pre-commit hook (runs the gate for touched crates)
+# Install the pre-commit hook
 hooks:
     git config core.hooksPath .githooks
     @echo "hooks installed: pre-commit, pre-push"
@@ -108,10 +105,7 @@ web:
 web-build:
     cd apps/website && npm run build
 
-# `just web` serves an uncompiled dev bundle, which hides prerender and font-loading problems.
-# This runs what actually deploys, so it is the one to check before pushing.
-
-# Build and serve the production bundle
+# Build and serve the production bundle. `just web` hides prerender and font problems.
 web-preview: web-build
     cd apps/website && npm run start
 
@@ -123,10 +117,7 @@ web-setup:
 web-frames:
     ./scripts/sync-ascii-frames.py
 
-# Reviewing the site by reading its markup does not work. This caught a stylesheet that never
-# loaded and an animation that silently froze on its first frame. Needs google-chrome installed.
-
-# Screenshot the production build into target/screenshots
+# Screenshot the production build into target/screenshots. Needs google-chrome.
 web-shots:
     #!/usr/bin/env bash
     set -euo pipefail

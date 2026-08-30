@@ -1,8 +1,7 @@
 //! Rayon-parallel CPU backend.
 //!
-//! Splits operands into chunks sized to the core count. Only worth selecting for very high
-//! dimensionality; for typical embedding widths the fan-out costs more than it saves, which is why
-//! [`ExecutionMode::Auto`] never resolves here.
+//! Chunks operands across cores. Only worth it at very high dimensionality; at typical embedding
+//! widths the fan-out costs more than it saves, so [`ExecutionMode::Auto`] never picks it.
 
 use rayon::prelude::*;
 

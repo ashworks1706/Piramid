@@ -1,7 +1,6 @@
 //! Compressed vector representations.
 //!
-//! Scalar int8 is the default. Product quantization splits a vector into blocks and stores a code
-//! per block, which trades more recall loss for a much smaller footprint.
+//! Scalar int8 by default. Product quantization stores a code per block: smaller, less accurate.
 
 use serde::{Deserialize, Serialize};
 

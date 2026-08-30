@@ -1,8 +1,8 @@
 //! Vector access abstraction.
 //!
-//! [`VectorReader`] is how indexes read vectors they do not own. Keeping it a trait is what allows
-//! the backing store to change — cache-backed today, slab-backed or mmap-backed later — without
-//! touching a single index implementation.
+//! [`VectorReader`] is how indexes read vectors they do not own. Keeping it a trait lets the
+//! backing store change — cache-backed today, slab- or mmap-backed later — without touching
+//! a single index.
 
 use std::collections::HashMap;
 

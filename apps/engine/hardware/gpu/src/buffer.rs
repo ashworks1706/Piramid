@@ -1,9 +1,7 @@
 //! Device memory.
 //!
-//! [`DeviceBuffer`] is the type that makes device-resident data possible. It exists so vectors and
-//! model weights can be uploaded **once** and reused across many kernel launches, instead of being
-//! copied host→device→host on every call. Any API that forces a per-call upload will be slower
-//! than the CPU path it replaces.
+//! [`DeviceBuffer`] exists so vectors and weights are uploaded once and reused across launches.
+//! An API that forces a per-call upload is slower than the CPU path it replaces.
 
 use std::marker::PhantomData;
 
@@ -14,12 +12,8 @@ use crate::stream::Stream;
 /// A typed allocation in device memory.
 ///
 /// Generic over the element type so the same abstraction serves `f32` vector slabs, `f16` model
-/// weights, and `u32` index structures.
-///
-/// # Implementing
-///
-/// The `handle` field is deliberately opaque. A backend stores its device pointer there; nothing
-/// above this module inspects it.
+/// weights, and `u32` index structures. `handle` is deliberately opaque: a backend stores its
+/// device pointer there and nothing above this module inspects it.
 #[derive(Debug)]
 pub struct DeviceBuffer<T> {
     device: Device,

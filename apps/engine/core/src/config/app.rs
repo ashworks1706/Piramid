@@ -48,10 +48,8 @@ impl Default for AppConfig {
 
 impl AppConfig {
     pub fn validate(&self) -> Result<(), String> {
-        // GPU mode is accepted whenever a GPU backend is compiled into `piramid-compute`. Asking
-        // the compute layer keeps the feature flag owned by the crate that defines it. If the
-        // backend is present but no device is found at runtime, dispatch warns and falls back to
-        // CPU rather than failing the request -- see `compute::backends::resolve_available`.
+        // Ask compute, so the feature flag stays owned by the crate that defines it. A missing
+        // device at runtime falls back to CPU with a warning rather than failing.
         if matches!(self.execution, ExecutionMode::Gpu)
             && piramid_compute::backends::for_mode(ExecutionMode::Gpu).is_err()
         {
@@ -379,7 +377,6 @@ impl AppConfig {
     }
 
     pub fn from_env() -> Self {
-        // Create a default configuration and then apply any overrides from environment variables.
         let mut cfg = AppConfig::default();
         cfg.apply_env_overrides()
             .expect("invalid application configuration environment override");

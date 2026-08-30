@@ -71,9 +71,8 @@ impl CollectionBuilder {
             Vec::new()
         };
 
-        // Replay into a temporary collection and checkpoint that, rather than mutating the live
-        // one: the WAL is only safe to clear once the replayed state is durable, so the
-        // checkpoint has to succeed before anything is discarded.
+        // Replay into a temporary collection: the WAL is only safe to clear once the replayed
+        // state is durable, so the checkpoint has to succeed first.
 
         if !wal_entries.is_empty() {
             let mut recovered_collection = Collection {

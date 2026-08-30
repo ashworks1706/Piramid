@@ -1,8 +1,7 @@
 //! Configuration loading: file, then environment overrides.
 //!
-//! Every entry point here returns a [`Result`]. A library must not decide that the process should
-//! die — it reports what is wrong and lets the binary choose. `apps/cli` is the only place that
-//! turns a [`ConfigError`] into a message and an exit code.
+//! Everything here returns a [`Result`]. A library must not decide the process should die;
+//! `apps/cli` is the only place that turns a [`ConfigError`] into a message and an exit code.
 
 use std::env;
 use std::fmt::{self, Display, Formatter};
@@ -44,15 +43,12 @@ impl std::error::Error for ConfigError {}
 /// Resolved runtime configuration: application settings plus process-level knobs.
 #[derive(Debug, Clone)]
 pub struct RuntimeConfig {
-    /// Application configuration.
     pub app: AppConfig,
     /// TCP port to bind.
     pub port: u16,
-    /// Directory holding collection data.
     pub data_dir: String,
     /// Queries slower than this are logged at `warn`.
     pub slow_query_ms: u128,
-    /// Embedding provider, when one is configured.
     pub embedding: Option<EmbeddingConfig>,
     /// Refuse writes below this much free disk, when set.
     pub disk_min_free_bytes: Option<u64>,

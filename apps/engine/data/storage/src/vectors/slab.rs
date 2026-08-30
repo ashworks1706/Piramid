@@ -1,23 +1,14 @@
 //! Contiguous vector storage.
 //!
-//! # Why this exists
+//! Vectors are held as `HashMap<Uuid, Vec<f32>>` in several places, which makes every row a
+//! separate allocation: the prefetcher cannot stride across candidates, and a device path has to
+//! gather rows into a staging buffer on every call, usually costing more than the kernel saves.
+//! A [`VectorSlab`] puts all rows in one `Vec<f32>` at a fixed stride, so a candidate set is a
+//! subslice and uploads in one transfer.
 //!
-//! Vectors are held as `HashMap<Uuid, Vec<f32>>` in several places. That layout makes every vector
-//! a separate heap allocation, which has two costs:
-//!
-//! - **SIMD**: rows are scattered, so the prefetcher cannot stride across candidates.
-//! - **Device transfer**: a scattered set cannot be uploaded. Any GPU path must first gather rows
-//!   into a contiguous staging buffer on *every call*, and that gather generally costs more than
-//!   the kernel saves.
-//!
-//! A [`VectorSlab`] stores all rows in one `Vec<f32>` with a fixed stride, so a candidate set is a
-//! subslice — directly SIMD-friendly, and uploadable in one transfer.
-//!
-//! # Status
-//!
-//! The type is complete; nothing is migrated onto it yet. Adopting it behind
-//! [`VectorReader::as_slab`](crate::vectors::VectorReader::as_slab) is the intended next
-//! step, and can happen one call site at a time because that method is optional.
+//! Nothing is migrated onto it yet. Adopting it behind
+//! [`VectorReader::as_slab`](crate::vectors::VectorReader::as_slab) can happen one call site at
+//! a time, since that method is optional.
 
 use std::collections::HashMap;
 
@@ -33,7 +24,6 @@ pub struct VectorSlab {
     data: Vec<f32>,
     /// Row width. Zero only while the slab is empty.
     dim: usize,
-    /// Ordinal for each id.
     ordinals: HashMap<Uuid, u32>,
     /// Id for each ordinal, parallel to the rows in `data`.
     ids: Vec<Uuid>,

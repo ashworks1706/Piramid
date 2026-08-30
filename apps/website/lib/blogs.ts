@@ -3,8 +3,7 @@ import fs from "fs";
 import path from "path";
 import GithubSlugger from "github-slugger";
 
-// Blog content lives inside this app so the site builds and deploys standalone. It used to be
-// read from the repo root, which meant the website could not be built on its own.
+// Blog content lives inside this app so the site builds and deploys standalone.
 const BLOGS_DIR = path.join(process.cwd(), "content", "blogs");
 const SIDEBAR_CONFIG = path.join(BLOGS_DIR, "_sidebar.json");
 
@@ -114,7 +113,7 @@ export function listBlogs(): BlogMeta[] {
         continue;
       }
       if (!isMarkdown(entry.name)) continue;
-      if (entry.name.startsWith("_")) continue; // skip meta files like _sidebar
+      if (entry.name.startsWith("_")) continue; // meta files like _sidebar, not posts
       const filePath = path.join(current, entry.name);
       results.push({
         slug: slugFromPath(filePath),
@@ -172,8 +171,7 @@ export function buildSidebar(): SidebarSection[] {
       const match = lookup.get(itemSlug);
       if (match && isFrontendVisibleBlog(match.slug)) items.push(match);
     }
-    // Skip sections whose items are all hidden, so a filtered-out group does not render as a
-    // heading with nothing beneath it.
+    // Skip sections left with no visible items, so a group doesn't render with an empty heading.
     if (items.length > 0) sections.push({ label: section.label, items });
   }
   return sections;
@@ -207,11 +205,11 @@ function stripFrontmatterAndMarkdown(raw: string): string {
       text = text.slice(end + 3);
     }
   }
-  text = text.replace(/```[\s\S]*?```/g, " "); // fenced code
-  text = text.replace(/`[^`]*`/g, " "); // inline code
-  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1"); // links
-  text = text.replace(/<[^>]+>/g, " "); // HTML / JSX tags
-  text = text.replace(/[#>*_`~\-\+]/g, " "); // markdown tokens
+  text = text.replace(/```[\s\S]*?```/g, " ");
+  text = text.replace(/`[^`]*`/g, " ");
+  text = text.replace(/\[([^\]]+)\]\([^)]+\)/g, "$1");
+  text = text.replace(/<[^>]+>/g, " ");
+  text = text.replace(/[#>*_`~\-\+]/g, " ");
   text = text.replace(/\s+/g, " ").trim();
   return text;
 }
@@ -225,15 +223,13 @@ export function buildSearchIndex(): BlogSearchEntry[] {
     if (!isFrontendVisibleBlog(blog.slug)) continue;
     const raw = fs.readFileSync(blog.filePath, "utf8");
 
-    // Strip frontmatter
     let body = raw;
     if (body.startsWith("---")) {
       const end = body.indexOf("---", 3);
       if (end !== -1) body = body.slice(end + 3);
     }
 
-    // Split body into sections by headings
-    // Each section = { headingText, headingId, rawContent }
+    // Body is split into sections, one per heading.
     type Section = { headingText: string; headingId: string; raw: string };
     const headingRe = /^(#{1,6})[ \t]+(.+)$/m;
     const sections: Section[] = [];
@@ -244,18 +240,15 @@ export function buildSearchIndex(): BlogSearchEntry[] {
     while (remaining.length > 0) {
       const match = headingRe.exec(remaining);
       if (!match) {
-        // No more headings -- rest is content of whatever came before
         if (sections.length > 0) {
           sections[sections.length - 1].raw += remaining;
         }
         break;
       }
-      // Content before first heading goes into a preamble (no headingId)
       const before = remaining.slice(0, match.index);
       if (sections.length > 0) {
         sections[sections.length - 1].raw += before;
       }
-      // Strip markdown from heading text for the display label
       const rawHeadingText = match[2]
         .replace(/\[([^\]]*?)\]\([^)]*\)/g, "$1")
         .replace(/`([^`]*)`/g, "$1")
@@ -267,10 +260,9 @@ export function buildSearchIndex(): BlogSearchEntry[] {
       remaining = remaining.slice(match.index + match[0].length);
     }
 
-    // Convert each section to a search entry
     for (const sec of sections) {
       const text = stripFrontmatterAndMarkdown(sec.raw).slice(0, 500);
-      if (!text && !sec.headingText) continue; // skip empty
+      if (!text && !sec.headingText) continue;
       entries.push({
         slug: blog.slug,
         pageTitle: blog.title,
@@ -280,7 +272,7 @@ export function buildSearchIndex(): BlogSearchEntry[] {
       });
     }
 
-    // Also add a page-level entry (no headingId) for title-based matching
+    // Page-level entry with no headingId, so title-only matches still resolve.
     entries.push({
       slug: blog.slug,
       pageTitle: blog.title,
@@ -309,15 +301,14 @@ export function extractHeadings(filePath: string): Heading[] {
     const match = /^(#{1,6})\s+(.*)$/.exec(line.trim());
     if (match) {
       const level = match[1].length;
-      // Strip markdown link syntax: [text](url) → text, also strip backticks and bold/italic markers
       const rawText = match[2].trim();
       const text = rawText
-        .replace(/\[([^\]]*?)\]\([^)]*\)/g, "$1") // [text](url) → text
-        .replace(/`([^`]*)`/g, "$1")               // `code` → code
-        .replace(/\*\*([^*]*)\*\*/g, "$1")         // **bold** → bold
-        .replace(/\*([^*]*)\*/g, "$1")             // *italic* → italic
+        .replace(/\[([^\]]*?)\]\([^)]*\)/g, "$1")
+        .replace(/`([^`]*)`/g, "$1")
+        .replace(/\*\*([^*]*)\*\*/g, "$1")
+        .replace(/\*([^*]*)\*/g, "$1")
         .trim();
-      // Slug from the plain text so it matches what rehype-slug generates
+      // Slugged from the plain text so it matches what rehype-slug generates for the same heading.
       const id = slugger.slug(text);
       headings.push({ id, text, level });
     }

@@ -1,25 +1,24 @@
 //! Embedding throughput counters.
 //!
-//! Atomics rather than a lock: these are written on every embed call and read only when metrics
-//! are scraped.
+//! Atomics rather than a lock: written on every embed call, read only when metrics are scraped.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;
 
 #[derive(Default)]
 pub struct EmbedMetrics {
-    requests: AtomicU64,         // Total number of embedding requests made
-    texts: AtomicU64, // Total number of texts embedded (sum of input texts across all requests)
-    total_tokens: AtomicU64, // Total number of tokens processed (if available from the embedding provider)
-    total_latency_ns: AtomicU64, // Total latency in nanoseconds across all embedding requests
+    requests: AtomicU64,
+    texts: AtomicU64,
+    total_tokens: AtomicU64,
+    total_latency_ns: AtomicU64,
 }
 
 #[derive(Debug, Clone, Copy)]
 pub struct EmbedMetricsSnapshot {
-    pub requests: u64,               // Total number of embedding requests made
-    pub texts: u64,                  // Total number of texts embedded
-    pub total_tokens: u64,           // Total number of tokens processed
-    pub avg_latency_ms: Option<f32>, // Average latency in milliseconds per request (if requests > 0)
+    pub requests: u64,
+    pub texts: u64,
+    pub total_tokens: u64,
+    pub avg_latency_ms: Option<f32>,
 }
 
 impl EmbedMetrics {
@@ -33,7 +32,7 @@ impl EmbedMetrics {
 
     pub fn snapshot(&self) -> EmbedMetricsSnapshot {
         let requests = self.requests.load(Ordering::Relaxed);
-        let total_latency_ns = self.total_latency_ns.load(Ordering::Relaxed); // Total latency in nanoseconds
+        let total_latency_ns = self.total_latency_ns.load(Ordering::Relaxed);
         let avg_latency_ms = if requests > 0 {
             Some((total_latency_ns as f64 / requests as f64 / 1_000_000.0) as f32)
         } else {

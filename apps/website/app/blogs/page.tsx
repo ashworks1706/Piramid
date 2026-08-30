@@ -25,9 +25,7 @@ export default async function BlogsIndex() {
   const blog = findBlog(["index"]);
   if (!blog) return null;
 
-  // The listing is generated from the sidebar config rather than hand-written in index.md, which
-  // is how the whole Architecture section came to be missing from this page while its posts were
-  // live.
+  // Generated from the sidebar config, so it cannot drift from what exists.
   const sections = buildSidebar();
 
   const source = await fs.promises.readFile(blog.filePath, "utf8");

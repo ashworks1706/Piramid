@@ -26,7 +26,7 @@ impl Default for WalConfig {
             enabled: true,
             checkpoint_frequency: 1000,
             checkpoint_interval_secs: None,
-            max_log_size: 100 * 1024 * 1024, // 100MB
+            max_log_size: 100 * 1024 * 1024,
             sync_on_write: false,
         }
     }
@@ -47,7 +47,7 @@ impl WalConfig {
         WalConfig {
             enabled: true,
             checkpoint_frequency: 100,
-            max_log_size: 50 * 1024 * 1024, // 50MB
+            max_log_size: 50 * 1024 * 1024,
             sync_on_write: true,
             checkpoint_interval_secs: Some(1),
         }
@@ -57,7 +57,7 @@ impl WalConfig {
         WalConfig {
             enabled: true,
             checkpoint_frequency: 10000,
-            max_log_size: 500 * 1024 * 1024, // 500MB
+            max_log_size: 500 * 1024 * 1024,
             sync_on_write: false,
             checkpoint_interval_secs: None,
         }

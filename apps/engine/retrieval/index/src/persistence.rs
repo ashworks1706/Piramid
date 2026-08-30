@@ -24,7 +24,6 @@ pub fn save_vector_index(collection_path: &str, index: &dyn VectorIndex) -> Resu
 
 /// Load a previously saved index, if one exists.
 pub fn load_vector_index(collection_path: &str) -> Result<Option<Box<dyn VectorIndex>>> {
-    // construct the expected file path for the index based on the collection path.
     let index_path = get_index_file_path(collection_path);
 
     if !Path::new(&index_path).exists() {

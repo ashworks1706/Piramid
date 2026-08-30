@@ -1,11 +1,9 @@
 //! Write-ahead log.
 //!
-//! One JSON entry per line after a version header, each carrying a monotonic sequence number.
-//! Line-delimited JSON is chosen for recoverability over compactness: a torn write costs the last
-//! line rather than the file.
-//!
-//! Replay returns entries above a given sequence number; checkpointing writes a marker so
-//! everything below it can be discarded, and rotation then truncates the file.
+//! One JSON entry per line after a version header, each with a monotonic sequence number.
+//! Line-delimited for recoverability over compactness: a torn write costs the last line, not the
+//! file. Replay returns entries above a sequence number; checkpointing writes a marker so
+//! everything below can be discarded, and rotation truncates.
 
 use std::fs::{File, OpenOptions};
 use std::io::{BufRead, BufReader, BufWriter, Write};

@@ -1,17 +1,11 @@
-//! NVIDIA CUDA backend, built on the `cudarc` crate.
+//! NVIDIA CUDA backend, built on `cudarc`. Compiled only under `gpu-cuda`.
 //!
-//! Compiled only under the `gpu-cuda` feature, so default builds need no CUDA toolkit.
+//! To fill in: add `cudarc` under that feature, have [`CudaRuntime`] own the `CudaContext` and
+//! populate [`DeviceCapabilities`] from a probe in [`open_default`], then implement the
+//! allocation, transfer, stream and module functions in [`super`] by delegating here.
 //!
-//! # Filling this in
-//!
-//! 1. Add `cudarc` to `Cargo.toml` under the `gpu-cuda` feature.
-//! 2. Have [`CudaRuntime`] own the `CudaContext`, and populate [`DeviceCapabilities`] from a
-//!    device probe in [`open_default`].
-//! 3. Implement the allocation, transfer, stream, and module functions in
-//!    [`super`] by delegating here.
-//!
-//! The `cudarc` types must not escape this file — that containment is what lets a second backend
-//! (ROCm, Metal) be added later without touching anything above `gpu/`.
+//! `cudarc` types must not escape this file. That containment is what lets a second backend
+//! (ROCm, Metal) land without touching anything above `gpu/`.
 
 use std::sync::Arc;
 

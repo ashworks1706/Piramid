@@ -1,9 +1,7 @@
 //! Conversions between the HTTP request/response shapes and domain types.
 //!
-//! Not a service. `services/vector/search.rs` holds the search *endpoints*; this holds the
-//! parsing, override resolution, and DTO mapping they share with the embedding and collection
-//! services. It was called `search.rs`, which made it indistinguishable from the endpoint module
-//! next to it; the metadata half was in `services/metadata.rs`, a third thing called "metadata".
+//! Not a service. `services/vector/search.rs` holds the search endpoints; this holds the parsing,
+//! override resolution and DTO mapping they share with the embedding and collection services.
 
 use crate::services::types::HitResponse;
 use piramid_compute::Metric;

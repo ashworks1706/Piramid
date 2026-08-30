@@ -1,20 +1,14 @@
 //! CUDA-backed distance kernels.
 //!
-//! This is the compute-layer *adapter*: it owns no CUDA types itself. Device handles, buffers,
-//! streams, and module loading all live in `piramid-gpu`, so that `piramid-inference` can share
-//! the same device runtime without depending on `compute/`.
+//! The compute-layer adapter; it owns no CUDA types. Devices, buffers, streams and modules live
+//! in `piramid-gpu` so `piramid-inference` can share the runtime without depending on `compute/`.
 //!
-//! Compiled only under the `gpu-cuda` feature. Until kernels land, [`CudaBackend::is_available`]
-//! reports `false`, so [`super::resolve_available`] transparently falls back to a CPU backend and
-//! nothing in the query path breaks.
+//! Built only under `gpu-cuda`. Until kernels land, [`CudaBackend::is_available`] is `false` and
+//! [`super::resolve_available`] falls back to CPU.
 //!
-//! # Filling this in
-//!
-//! 1. Give [`CudaBackend`] a `OnceLock<Device>` and probe it in `is_available`.
-//! 2. Override `cosine_batch` / `dot_batch` / `euclidean_batch` with real launches — those take a
-//!    contiguous slab precisely so they can be uploaded in one copy.
-//! 3. Leave the pairwise methods delegating to the CPU backend. A single-pair distance will never
-//!    be worth a kernel launch; the batch path is the one that pays.
+//! To fill in: give [`CudaBackend`] a `OnceLock<Device>` probed in `is_available`, override the
+//! `*_batch` methods with real launches, and leave the pairwise ones on CPU — a single-pair
+//! distance will never pay for a launch.
 
 use crate::backends::scalar::ScalarBackend;
 use crate::kernels::DistanceKernels;

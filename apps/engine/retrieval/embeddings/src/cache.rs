@@ -43,7 +43,7 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
             if let Some(embedding) = cache.get(text) {
                 return Ok(EmbeddingResponse {
                     embedding: embedding.clone(),
-                    tokens: None, // We don't track tokens for cached results
+                    tokens: None,
                     model: self.inner.model_name().to_string(),
                 });
             }
@@ -75,8 +75,8 @@ impl<E: Embedder> Embedder for CachedEmbedder<E> {
 /// Hit and miss counts for a [`CachedEmbedder`].
 #[derive(Debug, Clone)]
 pub struct CacheStats {
-    pub size: usize,     // Current number of cached items
-    pub capacity: usize, // Maximum capacity
+    pub size: usize,
+    pub capacity: usize,
 }
 
 impl CacheStats {

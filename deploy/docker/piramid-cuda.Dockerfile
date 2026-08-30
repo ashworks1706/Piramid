@@ -1,12 +1,9 @@
-# CUDA image: the CPU image plus a GPU-enabled build.
-#
-# Only worth pulling once `--features gpu-cuda` does something; until kernels land it behaves
-# exactly like the CPU image, falling back with a warning when no device is present.
-# Run with `--gpus all` and the NVIDIA container toolkit installed.
+# CUDA image. Run with --gpus all and the NVIDIA container toolkit.
+# Until kernels land this behaves like the CPU image, falling back when no device is present.
 
 FROM nvidia/cuda:12.6.2-devel-ubuntu22.04 AS builder
 
-ARG RUST_VERSION=1.87
+ARG RUST_VERSION=stable
 RUN apt-get update \
     && apt-get install -y --no-install-recommends build-essential curl ca-certificates pkg-config \
     && rm -rf /var/lib/apt/lists/*

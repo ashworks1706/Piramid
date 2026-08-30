@@ -1,7 +1,6 @@
 //! Build an index from its configuration.
 //!
-//! The configuration types live in `config/`; this is the only place that knows how to turn them
-//! into concrete index instances.
+//! Config types live in `config/`; this is the only place that turns them into instances.
 
 use crate::traits::VectorIndex;
 use crate::{FlatConfig, FlatIndex, HnswConfig, HnswIndex, IvfConfig, IvfIndex};

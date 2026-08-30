@@ -1,7 +1,10 @@
-*
-!Cargo.toml
-!Cargo.lock
-!src/**
-!benches/**
-!assets/**
-!Dockerfile
+# The image builds the Rust workspace and nothing else.
+target/
+**/node_modules/
+**/.next/
+.git/
+apps/website/
+apps/sdk/
+docs/
+deploy/
+.github/

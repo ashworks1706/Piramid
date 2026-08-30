@@ -1,7 +1,7 @@
 //! Similarity metrics.
 //!
-//! A [`Metric`] is *what* to measure; an [`ExecutionMode`] is *where* to measure it. Keeping the
-//! two orthogonal is what lets a new backend serve every metric without touching this file.
+//! A [`Metric`] is what to measure, an [`ExecutionMode`] is where. Keeping them orthogonal lets a
+//! new backend serve every metric without touching this file.
 
 use serde::{Deserialize, Serialize};
 

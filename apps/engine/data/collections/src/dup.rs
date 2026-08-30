@@ -1,4 +1,5 @@
-// a simple duplicate detection algorithm for a collection of vectors.
+//! Near-duplicate detection: search each vector against the collection and report hits above a
+//! similarity threshold.
 
 use std::collections::HashSet;
 use uuid::Uuid;

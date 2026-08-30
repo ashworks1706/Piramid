@@ -27,8 +27,7 @@ fn test_state_with_config(data_dir: &str, app_config: AppConfig) -> Arc<AppState
     Arc::new(AppState::new(data_dir, app_config, 500, None, true).unwrap())
 }
 
-// A shared assertion helper, not a `#[test]` itself, so clippy's allow-panic-in-tests does not
-// cover it. Failing an assertion is exactly what it is for.
+// Not a #[test] itself, so allow-panic-in-tests does not cover it.
 #[allow(clippy::panic)]
 fn assert_not_found<T>(result: ApiResult<T>) {
     match result {

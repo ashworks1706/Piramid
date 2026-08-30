@@ -1,10 +1,7 @@
-//! HTTP transport.
+//! HTTP transport: routes, handlers, request ids, error mapping, the scrape endpoint.
 //!
-//! Routes, handlers, request ids, error mapping, and the Prometheus scrape endpoint. Handlers stay
-//! thin: parse the request, call a service, serialize the result.
-//!
-//! DTOs live in `services::types`. The old `http::types` shim, which only re-exported them, is
-//! gone so there is one canonical path per type.
+//! Handlers stay thin — parse the request, call a service, serialize the result. DTOs live in
+//! `services::types`.
 
 pub mod error;
 pub mod handlers;

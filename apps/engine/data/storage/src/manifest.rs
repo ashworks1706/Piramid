@@ -1,11 +1,7 @@
-//! The collection manifest.
+//! The collection manifest: name, dimensionality, counts, timestamps.
 //!
-//! [`CollectionMetadata`] describes a *collection* — its name, vector dimensionality, counts, and
-//! timestamps. That is a different thing from `piramid_core::metadata::Metadata`, which is the
-//! key-value payload attached to a single document. This module is named `manifest` so the two
-//! are not both called "metadata" in the tree.
-
-// Collection metadata tracking (created_at, updated_at, dimensions)
+//! Named `manifest` so it isn't confused with `piramid_core::metadata::Metadata`, which is the
+//! key-value payload on a single document.
 
 use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};

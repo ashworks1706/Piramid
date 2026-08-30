@@ -1,8 +1,7 @@
 //! Execution-mode selection for compute kernels.
 //!
-//! [`ExecutionMode`] names *which backend* should run a kernel. It lives in `compute/` rather than
-//! `config/` so the kernel layer stays a leaf: `config/` re-exports this type for callers, but
-//! `compute/` never depends on application configuration.
+//! [`ExecutionMode`] names which backend runs a kernel. It lives here rather than in `config/` so
+//! the kernel layer stays a leaf; `config/` re-exports it.
 
 use serde::{Deserialize, Serialize};
 
@@ -17,10 +16,8 @@ pub enum ExecutionMode {
     Auto,
     /// Portable scalar reference implementation.
     Scalar,
-    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`).
-    ///
-    /// The `Jit` alias maps here: `Jit` was a dimension-specialized unrolling of this same code
-    /// path and was removed. The alias keeps previously persisted index sidecars loadable.
+    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`). `Jit` is an accepted alias, kept
+    /// so index sidecars persisted before the rename still deserialize.
     #[serde(alias = "Jit")]
     Simd,
     /// Rayon-parallel CPU path, for vectors large enough to amortize the fan-out.

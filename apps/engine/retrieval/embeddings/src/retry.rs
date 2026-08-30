@@ -1,10 +1,8 @@
 //! Retry wrapper for embedding providers.
 //!
-//! Retries only errors `EmbeddingError::is_recoverable` accepts, with exponential backoff. A
-//! permanent failure — a bad API key, a malformed request — returns immediately rather than
-//! burning the retry budget.
+//! Exponential backoff, but only for errors `EmbeddingError::is_recoverable` accepts. A bad API
+//! key or malformed request returns immediately instead of burning the budget.
 
-// wraps any Embedder implementation and adds retry logic with exponential backoff.
 use crate::{Embedder, EmbeddingError, EmbeddingResponse, EmbeddingResult};
 use async_trait::async_trait;
 use std::sync::Arc;
@@ -18,7 +16,6 @@ pub struct RetryEmbedder {
     max_delay_ms: u64,
 }
 
-// Configuration options for the RetryEmbedder
 #[derive(Clone, Debug)]
 pub struct RetryConfig {
     pub max_retries: u32,
@@ -26,7 +23,6 @@ pub struct RetryConfig {
     pub max_delay_ms: u64,
 }
 
-// Default: 3 retries, starting at 1 second, doubling each time, up to 30 seconds
 impl Default for RetryConfig {
     fn default() -> Self {
         Self {
@@ -37,7 +33,6 @@ impl Default for RetryConfig {
     }
 }
 
-// Implementation of the RetryEmbedder
 impl RetryEmbedder {
     pub fn new(embedder: Arc<dyn Embedder>) -> Self {
         Self::with_options(embedder, RetryConfig::default())
@@ -59,7 +54,6 @@ impl Embedder for RetryEmbedder {
         let mut attempts = 0;
         let mut delay_ms = self.initial_delay_ms;
 
-        // Loop to attempt embedding with retries
         loop {
             match self.inner.embed(text).await {
                 Ok(result) => return Ok(result),
@@ -98,7 +92,6 @@ impl Embedder for RetryEmbedder {
     }
 }
 
-// Determine if an error is retryable
 fn is_retryable_error(error: &EmbeddingError) -> bool {
     error.is_recoverable()
 }

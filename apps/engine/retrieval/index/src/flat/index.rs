@@ -1,8 +1,7 @@
 //! Brute-force index.
 //!
-//! Compares the query against every vector, so search is `O(N)` with perfect recall and no build
-//! cost. The right choice below roughly ten thousand vectors, where traversal overhead outweighs
-//! the scan.
+//! Compares the query against every vector: `O(N)`, perfect recall, no build cost. The right
+//! choice below roughly ten thousand vectors, where traversal overhead outweighs the scan.
 
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
@@ -14,7 +13,7 @@ use piramid_core::error::{IndexError, Result};
 #[derive(Clone, Serialize, Deserialize)]
 pub struct FlatIndex {
     config: FlatConfig,
-    vector_ids: Vec<Uuid>, // Track which vectors we've seen
+    vector_ids: Vec<Uuid>,
 }
 
 impl FlatIndex {

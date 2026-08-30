@@ -34,6 +34,10 @@ just up | down | logs   docker compose
 A change isn't done until `just check` passes. CI and the pre-commit hook run the same recipes, so
 local green means CI green.
 
+CI only runs what the diff touches: a website change skips the Rust matrix and a kernel change
+skips eslint. The `changes` job in `ci.yml` owns that mapping, so a new top-level directory needs
+a filter added there or nothing will run for it.
+
 ## Layout
 
 One repo, one binary. Everything we author is under `apps/`. The library crates are
