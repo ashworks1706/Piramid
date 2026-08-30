@@ -3,8 +3,8 @@
 use super::collection::Collection;
 use piramid_core::error::Result;
 use piramid_index::save_vector_index as save_vec_idx;
-use piramid_storage::persistence::SidecarManager;
 use piramid_storage::wal::Wal;
+use piramid_storage::SidecarManager;
 
 pub struct CheckpointManager {
     pub wal: Wal,

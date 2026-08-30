@@ -23,7 +23,7 @@ pub fn health() -> HealthResponse {
 }
 
 pub fn embeddings_available(state: &SharedState) -> bool {
-    state.embedder.is_some()
+    state.embeddings.is_configured()
 }
 
 pub fn config_status(state: &SharedState) -> Result<ConfigStatusResponse> {
@@ -125,7 +125,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         });
     }
 
-    let embed_metrics = state.embed_metrics.snapshot();
+    let embed_metrics = state.embeddings.metrics().snapshot();
     Ok(MetricsResponse {
         total_collections: state.collection_manager.len(),
         total_vectors,

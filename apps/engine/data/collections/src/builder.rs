@@ -11,9 +11,9 @@ use piramid_index::load_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
 use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::persistence::SidecarManager;
 use piramid_storage::record_store::RecordStore;
 use piramid_storage::wal::{Wal, WalEntry};
+use piramid_storage::SidecarManager;
 
 pub struct CollectionBuilder;
 

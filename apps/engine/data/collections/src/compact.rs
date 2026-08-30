@@ -7,8 +7,8 @@ use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::HashMapVectorReader;
 use piramid_storage::document::Document;
-use piramid_storage::persistence::SidecarManager;
 use piramid_storage::record_store::RecordStore;
+use piramid_storage::SidecarManager;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
 pub fn compact(collection: &mut Collection) -> Result<CompactStats> {

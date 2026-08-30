@@ -32,7 +32,17 @@ fn test_state(data_dir: &str) -> Arc<AppState> {
 
 fn test_state_with_config(data_dir: &str, app_config: AppConfig) -> Arc<AppState> {
     cleanup_dir(data_dir);
-    Arc::new(AppState::new(data_dir, app_config, 500, None, true).unwrap())
+    Arc::new(
+        AppState::new(
+            data_dir,
+            app_config,
+            500,
+            piramid_embeddings::EmbeddingsManager::disabled(),
+            None,
+            true,
+        )
+        .unwrap(),
+    )
 }
 
 // Not a #[test] itself, so allow-panic-in-tests does not cover it.

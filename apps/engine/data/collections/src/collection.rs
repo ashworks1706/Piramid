@@ -7,8 +7,9 @@ use piramid_core::error::Result;
 use piramid_index::save_vector_index;
 use piramid_index::{HashMapVectorReader, VectorIndex, VectorReader};
 use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::persistence::{warm_file, EntryPointer, SidecarManager};
+use piramid_storage::persistence::{warm_file, EntryPointer};
 use piramid_storage::record_store::RecordStore;
+use piramid_storage::SidecarManager;
 
 pub struct Collection {
     pub(super) record_store: RecordStore,

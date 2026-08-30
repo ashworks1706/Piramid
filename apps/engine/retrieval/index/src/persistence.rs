@@ -5,7 +5,7 @@ use piramid_core::error::Result;
 use std::fs;
 use std::path::Path;
 
-use piramid_storage::persistence::SidecarManager;
+use piramid_storage::SidecarManager;
 
 /// Sidecar path for a collection's index, owned by [`SidecarManager`].
 fn get_index_file_path(collection_path: &str) -> String {

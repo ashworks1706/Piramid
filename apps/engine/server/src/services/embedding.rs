@@ -11,6 +11,16 @@ use piramid_core::metadata::Metadata;
 use piramid_core::stats::{record_lock_read, record_lock_write};
 use piramid_storage::Document;
 
+/// The configured embedder, or the 503 both embed endpoints answer without one.
+fn require_embedder(
+    state: &SharedState,
+) -> Result<&std::sync::Arc<dyn piramid_embeddings::Embedder>> {
+    state
+        .embeddings
+        .embedder()
+        .ok_or_else(|| ServerError::ServiceUnavailable(EMBEDDING_NOT_CONFIGURED.to_string()).into())
+}
+
 fn ensure_available(state: &SharedState) -> Result<()> {
     if state
         .shutting_down
@@ -51,12 +61,7 @@ pub async fn embed_text(
     }
 
     let collection_handle = state.get_or_create_collection(&collection)?;
-    let embedder = state
-        .embedder
-        .as_ref()
-        .ok_or(ServerError::ServiceUnavailable(
-            EMBEDDING_NOT_CONFIGURED.to_string(),
-        ))?;
+    let embedder = require_embedder(state)?;
 
     tracing::info!(
         target: "piramid::inference",
@@ -93,7 +98,8 @@ pub async fn embed_text(
     let ids = collection_guard.insert_batch(entries)?;
     state.enforce_cache_budget();
     state
-        .embed_metrics
+        .embeddings
+        .metrics()
         .record(1, ids.len() as u64, total_tokens as u64, start.elapsed());
 
     Ok(EmbedResponse {
@@ -119,12 +125,7 @@ pub async fn search_by_text(
     ensure_available(state)?;
 
     let collection_handle = state.get_existing_collection(&collection)?;
-    let embedder = state
-        .embedder
-        .as_ref()
-        .ok_or(ServerError::ServiceUnavailable(
-            EMBEDDING_NOT_CONFIGURED.to_string(),
-        ))?;
+    let embedder = require_embedder(state)?;
 
     tracing::info!(
         target: "piramid::search",
@@ -135,7 +136,8 @@ pub async fn search_by_text(
     let response = embedder.embed(&req.query).await?;
     let embed_duration = start.elapsed();
     state
-        .embed_metrics
+        .embeddings
+        .metrics()
         .record(1, 1, response.tokens.unwrap_or(0) as u64, embed_duration);
 
     let metric = parse_metric(req.metric)?;

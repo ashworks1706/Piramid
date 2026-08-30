@@ -9,4 +9,5 @@ pub mod wal;
 
 pub use document::Document;
 pub use manifest::CollectionMetadata;
+pub use persistence::SidecarManager;
 pub use vectors::{HashMapVectorReader, SlabVectorReader, VectorReader, VectorSlab};

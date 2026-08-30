@@ -28,14 +28,24 @@ it would replace, and `AppState` stays `AppState` because it genuinely is shared
 - `GpuManager` (device acquisition, future multi-device policy) and `InferenceManager` (model,
   KV cache, batch queue, the retrieval hook) are scaffolded ahead of their code, per the house
   rule, so drivers get written against a surface instead of growing their own.
+- `EmbeddingsManager` owns the embedder stack and its throughput counters, which were two
+  separate `AppState` fields; building the stack from config moved out of the binary into
+  `EmbeddingsManager::from_config`, and the two duplicated `AppState` constructors collapsed
+  into one that takes the manager.
 
-A manager's code lives in its domain's `manager.rs` — never in `lib.rs`, which stays a
-re-exporting table of contents per the existing convention. The import path is the crate root
-either way; the file location is for readers.
+The rule is one manager per *crate with state*, in its `manager.rs`, importable from the crate
+root — never defined in `lib.rs`, which stays a re-exporting table of contents. Grouping folders
+(`hardware/`, `data/`, `retrieval/`) get nothing: they are navigation, not compilation units, and
+cannot own state. The thing that composes the retrieval crates at runtime is `Collection`.
 
 **Not done.** No manager for stateless modules — `compute`'s kernels, `validation`,
 `services::convert`. A struct with no fields is a place people hang state, and for `compute`
-specifically that is how the leaf property would erode. No generic cache abstraction over
+specifically that is how the leaf property would erode. No `MetricManager`: counters are
+decentralized plain atomics on purpose, so recording never takes a lock or links an exporter;
+the Prometheus `Registry` already centralizes at scrape time. No renaming `ObservabilityGuard`
+to a manager — a guard is held, not called, and the name carries the one contract that matters
+(drop it early and spans are lost), matching `tracing-appender`'s `WorkerGuard`. `AppState`
+is the composition root that holds the managers, which is a different job from being one. No generic cache abstraction over
 `piramid-cache`, `embeddings::CachedEmbedder`, and the future KV cache: they share a word, not a
 shape (different keys, values, bounds, and eviction rules).
 

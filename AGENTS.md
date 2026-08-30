@@ -151,7 +151,8 @@ retrieval stack.
 - Traits are named for the capability, not the implementation. Backends are named for the
   technology, one file each, so new hardware is a new file rather than a new match arm.
 - `mod.rs` and `lib.rs` re-export; they don't define types. A domain's manager lives in its
-  `manager.rs`, one predictable place per domain.
+  `manager.rs` and is importable from the crate root, one predictable place per domain. Managers
+  exist only for crates with state to own; grouping folders never get one.
 - One canonical path per item. No module re-exports another module's contents.
 - The tree is scaffolded ahead of the code. Fill a stub in place rather than creating a parallel
   file, and don't rename a stub without updating `docs/ARCHITECTURE.md`.

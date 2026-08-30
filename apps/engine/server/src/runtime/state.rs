@@ -12,8 +12,7 @@ use crate::cluster::{
 use piramid_collections::{CollectionHandle, CollectionManager};
 use piramid_core::config::AppConfig;
 use piramid_core::error::{Result, ServerError};
-use piramid_core::stats::EmbedMetrics;
-use piramid_embeddings::Embedder;
+use piramid_embeddings::EmbeddingsManager;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
 pub enum RebuildState {
@@ -36,10 +35,9 @@ pub struct AppState {
     pub collection_manager: CollectionManager,
     pub data_dir: String, // e.g. "./data"
     pub cluster_router: Arc<dyn ClusterRouter>,
-    pub embedder: Option<Arc<dyn Embedder>>,
+    pub embeddings: EmbeddingsManager,
     pub shutting_down: Arc<AtomicBool>, // set on shutdown to reject new requests
     pub read_only: Arc<AtomicBool>,     // disk-pressure read-only mode
-    pub embed_metrics: Arc<EmbedMetrics>,
     pub app_config: Arc<RwLock<AppConfig>>,
     pub slow_query_ms: u128,
     pub rebuild_jobs: Arc<DashMap<String, RebuildJobStatus>>,
@@ -53,6 +51,7 @@ impl AppState {
         data_dir: &str,
         app_config: AppConfig,
         slow_query_ms: u128,
+        embeddings: EmbeddingsManager,
         disk_min_free_bytes: Option<u64>,
         disk_readonly_on_low_space: bool,
     ) -> Result<Self> {
@@ -73,48 +72,9 @@ impl AppState {
             collection_manager: CollectionManager::new(data_dir.to_string(), app_config.clone()),
             data_dir: data_dir.to_string(),
             cluster_router,
-            embedder: None,
+            embeddings,
             shutting_down: Arc::new(AtomicBool::new(false)),
             read_only: Arc::new(AtomicBool::new(false)),
-            embed_metrics: Arc::new(EmbedMetrics::default()),
-            app_config,
-            slow_query_ms,
-            rebuild_jobs: Arc::new(DashMap::new()),
-            config_last_reload: Arc::new(AtomicU64::new(piramid_core::clock::unix_secs())),
-            disk_min_free_bytes,
-            disk_readonly_on_low_space,
-        })
-    }
-
-    pub fn with_embedder(
-        data_dir: &str,
-        app_config: AppConfig,
-        slow_query_ms: u128,
-        embedder: Arc<dyn Embedder>,
-        disk_min_free_bytes: Option<u64>,
-        disk_readonly_on_low_space: bool,
-    ) -> Result<Self> {
-        std::fs::create_dir_all(data_dir)?;
-        let cluster_router: Arc<dyn ClusterRouter> =
-            Arc::new(LocalClusterRouter::new(NodeRuntimeState {
-                id: NodeId::default(),
-                capabilities: NodeCapabilities {
-                    cpu_threads: app_config.hardware.cpu_threads,
-                    memory_budget_bytes: app_config.hardware.memory_budget_bytes,
-                    gpu_enabled: app_config.hardware.gpu_enabled,
-                },
-                healthy: true,
-            }));
-        let app_config = Arc::new(RwLock::new(app_config));
-
-        Ok(Self {
-            collection_manager: CollectionManager::new(data_dir.to_string(), app_config.clone()),
-            data_dir: data_dir.to_string(),
-            cluster_router,
-            embedder: Some(embedder),
-            shutting_down: Arc::new(AtomicBool::new(false)),
-            read_only: Arc::new(AtomicBool::new(false)),
-            embed_metrics: Arc::new(EmbedMetrics::default()),
             app_config,
             slow_query_ms,
             rebuild_jobs: Arc::new(DashMap::new()),

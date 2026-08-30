@@ -200,6 +200,7 @@ fn support_bundle(
             &runtime.data_dir,
             runtime.app.clone(),
             runtime.slow_query_ms,
+            embeddings::EmbeddingsManager::disabled(),
             runtime.disk_min_free_bytes,
             runtime.disk_readonly_on_low_space,
         )
@@ -235,6 +236,7 @@ fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {
             &data_dir,
             app_config,
             slow_query_ms,
+            embeddings::EmbeddingsManager::disabled(),
             disk_min_free_bytes,
             disk_readonly_on_low_space,
         )
@@ -318,40 +320,25 @@ fn start_server_inline() -> std::io::Result<()> {
             );
         }
 
-        let state = match embedding_config.clone() {
-            Some(config) => match embeddings::providers::create_embedder(&config) {
-                Ok(embedder) => {
-                    let retry_embedder =
-                        std::sync::Arc::new(embeddings::RetryEmbedder::new(embedder));
-                    std::sync::Arc::new(
-                        AppState::with_embedder(
-                            &data_dir,
-                            app_config.clone(),
-                            slow_query_ms,
-                            retry_embedder,
-                            disk_min_free_bytes,
-                            disk_readonly_on_low_space,
-                        )
-                        .map_err(std::io::Error::other)?,
-                    )
-                }
-                Err(e) => {
-                    return Err(std::io::Error::other(format!(
-                        "embedding provider configured but failed to initialize: {e}"
-                    )));
-                }
-            },
-            None => std::sync::Arc::new(
-                AppState::new(
-                    &data_dir,
-                    app_config.clone(),
-                    slow_query_ms,
-                    disk_min_free_bytes,
-                    disk_readonly_on_low_space,
-                )
-                .map_err(std::io::Error::other)?,
-            ),
+        let embeddings = match embedding_config.clone() {
+            Some(config) => embeddings::EmbeddingsManager::from_config(&config).map_err(|e| {
+                std::io::Error::other(format!(
+                    "embedding provider configured but failed to initialize: {e}"
+                ))
+            })?,
+            None => embeddings::EmbeddingsManager::disabled(),
         };
+        let state = std::sync::Arc::new(
+            AppState::new(
+                &data_dir,
+                app_config.clone(),
+                slow_query_ms,
+                embeddings,
+                disk_min_free_bytes,
+                disk_readonly_on_low_space,
+            )
+            .map_err(std::io::Error::other)?,
+        );
 
         let app = server::create_router(state);
         let addr = format!("0.0.0.0:{}", port);
