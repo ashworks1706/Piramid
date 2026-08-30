@@ -71,13 +71,13 @@ impl MetadataCache {
     }
 
     fn enforce_item_limit(&mut self) {
-        if self.config.max_size == 0 {
+        if self.config.metadata_entries == 0 {
             self.entries.clear();
             self.order.clear();
             return;
         }
 
-        while self.entries.len() > self.config.max_size {
+        while self.entries.len() > self.config.metadata_entries {
             match self.order.pop_front() {
                 Some(id) => {
                     self.entries.remove(&id);

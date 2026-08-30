@@ -24,7 +24,8 @@ pub fn compact(storage: &mut Collection) -> Result<CompactStats> {
     let mut temp_store = RecordStore::open(&temp_path, &storage.config, &HashMap::new())?;
     let mut new_index = HashMap::with_capacity(docs.len());
     let mut new_vectors = HashMap::with_capacity(docs.len());
-    let mut new_vector_index = piramid_index::create_index(&storage.config.index, docs.len());
+    let mut new_vector_index =
+        piramid_index::create_index(&storage.config.index, storage.config.execution, docs.len());
     let mut new_metadata = storage.metadata.clone();
     new_metadata.update_vector_count(0);
 

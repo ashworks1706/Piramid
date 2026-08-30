@@ -1229,6 +1229,7 @@ dependencies = [
  "piramid-search",
  "piramid-server",
  "piramid-storage",
+ "rayon",
  "serde",
  "serde_json",
  "serde_yaml",

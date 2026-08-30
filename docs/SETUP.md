@@ -69,10 +69,20 @@ Settings resolve in this order, with later winning:
 2. a YAML or JSON file named by `CONFIG_FILE`
 3. environment variables
 
-Every variable is documented in [`.env.example`](../.env.example), and `just env` copies it to
-`.env`. Both compose files read `.env` automatically.
+[`config.example.yaml`](../config.example.yaml) is the whole surface, every value at its default,
+and a test asserts it stays that way. `piramid show config` prints what actually resolved.
 
-Invalid configuration fails at startup with a message naming the variable, not at runtime.
+The file has two blocks and the split is by lifecycle: `startup:` is applied once at boot, so
+changing one of those needs a restart and `POST /config/reload` refuses a file whose startup block
+differs from the running one. `runtime:` is re-read on reload.
+
+Any key can also be set from the environment, spelled from its path — `runtime.cache.max_bytes`
+is `PIRAMID__RUNTIME__CACHE__MAX_BYTES`. Values parse as YAML, so `8`, `true` and `null` mean what
+they do in the file. `OPENAI_API_KEY` is the one setting that is environment-only, so a key never
+lands in a file that gets shared.
+
+An unknown key, a misspelled one, a setting in the wrong block, and a setting that is not
+implemented yet all fail at startup with a message naming the key. Nothing is silently ignored.
 
 ## Feature builds
 
@@ -82,9 +92,8 @@ just check-inference    # compile-check --features inference-candle
 just check-features     # both, plus --all-features
 ```
 
-Features are additive and off by default. `EXECUTION_MODE=gpu` on a build without `gpu-cuda` is
-rejected at startup. On a build with it but no device present, dispatch logs a warning and falls
-back to CPU.
+Features are additive and off by default. `runtime.execution: gpu` on a build without `gpu-cuda`
+is rejected at startup, and so is a build with the feature but no device present.
 
 ## Docs and benchmarks
 
@@ -97,9 +106,10 @@ just audit        # cargo-deny: advisories, bans, licences, sources
 
 ## Embeddings
 
-Every provider is an HTTP client; Piramid does not load a model. `EMBEDDING_PROVIDER=openai`
-speaks the OpenAI wire format, so it covers OpenAI itself and any server implementing it — TEI,
-vLLM, llama.cpp — by pointing `EMBEDDING_BASE_URL` at it and leaving `OPENAI_API_KEY` unset.
+Every provider is an HTTP client; Piramid does not load a model. `startup.embedding.provider:
+openai` speaks the OpenAI wire format, so it covers OpenAI itself and any server implementing
+it — TEI, vLLM, llama.cpp — by pointing `startup.embedding.base_url` at it and leaving
+`OPENAI_API_KEY` unset.
 `ollama` speaks Ollama's own format. "Local" therefore means the model runs on your machine in
 another process, not inside Piramid; an in-process provider is on the roadmap for v0.4.0.
 
@@ -134,6 +144,6 @@ commands directly. `just --list` shows what each recipe does.
 **Disk fills during builds** — the workspace `target/` directory grows quickly. `just clean`
 removes it along with `node_modules`.
 
-**Port 6333 already in use** — `PORT=7333 just serve`.
+**Port 6333 already in use** — `PIRAMID__STARTUP__BIND=0.0.0.0:7333 just serve`.
 
 **Where test data goes** — `target/tmp/`, via `CARGO_TARGET_TMPDIR`. Safe to delete.

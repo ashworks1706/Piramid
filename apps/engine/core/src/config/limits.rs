@@ -1,6 +1,7 @@
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(deny_unknown_fields, default)]
 pub struct LimitsConfig {
     /// Max number of vectors allowed in a collection (None = unlimited)
     pub max_vectors: Option<usize>,

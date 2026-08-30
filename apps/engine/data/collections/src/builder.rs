@@ -21,8 +21,6 @@ impl CollectionBuilder {
     pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
         let config = options.config;
 
-        Collection::init_rayon_pool(&config.parallelism);
-
         // Naming it "unknown" would put a collection on disk under a name that matches nothing
         // the caller asked for, and every later lookup by name would miss.
         let collection_name = std::path::Path::new(path)
@@ -50,8 +48,9 @@ impl CollectionBuilder {
 
         let loaded_vector_index = load_vector_index(path)?;
         let vector_index_missing = loaded_vector_index.is_none();
-        let mut vector_index = loaded_vector_index
-            .unwrap_or_else(|| piramid_index::create_index(&config.index, index.len()));
+        let mut vector_index = loaded_vector_index.unwrap_or_else(|| {
+            piramid_index::create_index(&config.index, config.execution, index.len())
+        });
 
         let min_seq = if config.wal.enabled {
             sidecars.load_wal_meta()?

@@ -4,6 +4,7 @@ use serde::{Deserialize, Serialize};
 
 /// Which compression a collection asks for.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "lowercase")]
 pub enum QuantizationLevel {
     /// Full-precision f32.
     #[default]
@@ -39,7 +40,7 @@ pub enum QuantizationStage {
 }
 
 /// Where and how aggressively vectors are compressed.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub struct QuantizationConfig {
     /// The encoding to use.
     pub level: QuantizationLevel,

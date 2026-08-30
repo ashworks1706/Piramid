@@ -86,7 +86,7 @@ cargo install piramid
 piramid serve --data-dir ./data
 ```
 
-Listens on `0.0.0.0:6333`. Data goes to `~/.piramid` unless `DATA_DIR` says otherwise. Every
+Listens on `0.0.0.0:6333`. Data goes to `~/.piramid` unless `startup.data_dir` says otherwise. Every
 setting is listed in [`.env.example`](.env.example).
 
 Or with Docker:
@@ -112,7 +112,7 @@ curl -X POST http://localhost:6333/api/collections/docs/vectors \
   -d '{"vectors": [[0.1, 0.2, 0.3, 0.4]], "texts": ["Hello world"],
        "metadata": [{"category": "greeting"}]}'
 
-# Embed and store text (needs EMBEDDING_PROVIDER set)
+# Embed and store text (needs startup.embedding set)
 curl -X POST http://localhost:6333/api/collections/docs/embed \
   -H "Content-Type: application/json" \
   -d '{"texts": ["hello", "bonjour"], "metadata": [{"lang": "en"}, {"lang": "fr"}]}'

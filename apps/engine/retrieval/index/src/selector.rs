@@ -4,20 +4,27 @@
 
 use crate::traits::VectorIndex;
 use crate::{FlatIndex, HnswIndex, IvfIndex};
-use piramid_core::config::{FlatConfig, HnswConfig, IndexConfig, IndexKind, IvfConfig};
+use piramid_core::config::{
+    ExecutionMode, FlatConfig, HnswConfig, IndexConfig, IndexKind, IvfConfig,
+};
 
 /// Construct the index `config` describes, sized for `num_vectors`.
-pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorIndex> {
-    let (metric, mode) = config.get_metric_and_mode();
+pub fn create_index(
+    config: &IndexConfig,
+    execution: ExecutionMode,
+    num_vectors: usize,
+) -> Box<dyn VectorIndex> {
+    let metric = config.metric();
+    let mode = execution;
     let auto = config.auto_config();
 
     match config.select_type(num_vectors) {
         IndexKind::Flat => Box::new(FlatIndex::new(match config {
-            IndexConfig::Flat { params, .. } => *params,
+            IndexConfig::Flat { params, .. } => FlatConfig { mode, ..*params },
             _ => FlatConfig { metric, mode },
         })),
         IndexKind::Hnsw => Box::new(HnswIndex::new(match config {
-            IndexConfig::Hnsw { params, .. } => *params,
+            IndexConfig::Hnsw { params, .. } => HnswConfig { mode, ..*params },
             // Auto-selected: graph shape from the auto thresholds, configured metric and mode.
             _ => HnswConfig {
                 metric,
@@ -26,7 +33,7 @@ pub fn create_index(config: &IndexConfig, num_vectors: usize) -> Box<dyn VectorI
             },
         })),
         IndexKind::Ivf => Box::new(IvfIndex::new(match config {
-            IndexConfig::Ivf { params, .. } => *params,
+            IndexConfig::Ivf { params, .. } => IvfConfig { mode, ..*params },
             // Auto-selected: cluster counts from collection size, with explicit overrides on top.
             _ => {
                 let sized = IvfConfig::auto(num_vectors);

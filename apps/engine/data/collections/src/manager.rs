@@ -5,7 +5,7 @@ use tokio::runtime::Handle;
 
 use crate::Collection;
 use crate::CollectionOpenOptions;
-use piramid_core::config::AppConfig;
+use piramid_core::config::Config;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::LatencyTracker;
 
@@ -15,11 +15,11 @@ pub struct CollectionManager {
     collections: DashMap<String, CollectionHandle>,
     latency_trackers: DashMap<String, LatencyTracker>,
     data_dir: String,
-    app_config: Arc<RwLock<AppConfig>>,
+    app_config: Arc<RwLock<Config>>,
 }
 
 impl CollectionManager {
-    pub fn new(data_dir: String, app_config: Arc<RwLock<AppConfig>>) -> Self {
+    pub fn new(data_dir: String, app_config: Arc<RwLock<Config>>) -> Self {
         Self {
             collections: DashMap::new(),
             latency_trackers: DashMap::new(),

@@ -1,0 +1,196 @@
+# Piramid configuration.
+#
+# Every value below is the default, so an empty file and this file behave identically. Point the
+# server at one with CONFIG_FILE=config.yaml, and check what actually resolved with
+# `piramid show config`.
+#
+# There are two blocks, split by when a setting takes effect:
+#
+#   startup:  applied once at boot. Changing one needs a restart, and POST /config/reload
+#             refuses a file whose startup block differs from the running one.
+#   runtime:  re-read on POST /config/reload. Takes effect for collections opened after the
+#             reload, and for each request that reads the value on its way through.
+#
+# Any key can also be set from the environment, spelled from its path:
+# `runtime.cache.max_bytes` is PIRAMID__RUNTIME__CACHE__MAX_BYTES. Values parse as YAML, so
+# `8`, `true` and `null` mean what they do here. Environment wins over the file.
+#
+# An unknown or misspelled key is a startup error, never a silent default. So is a setting that
+# is not implemented yet — the ones marked "not implemented" below exist so the shape is settled,
+# and turning one on fails loudly rather than being ignored.
+
+startup:
+  # address:port to listen on
+  bind: 0.0.0.0:6333
+
+  # root directory for collection data; each collection gets a subdirectory
+  data_dir: ./data
+
+  # worker threads for parallel search and indexing; null is one per core
+  threads: null
+
+  logging:
+    enabled: true
+    # error | warn | info | debug | trace. RUST_LOG overrides this entirely.
+    level: info
+    # per-subsystem switches, each one a tracing target
+    config: true
+    indexing: true
+    search: true
+    writes: true
+    inference: true
+    http: true
+    # structured JSON lines instead of human-readable console output
+    json: false
+    # queries slower than this are logged at warn
+    slow_query_ms: 500
+
+  telemetry:
+    # OTLP trace export; null disables it. Requires a build with the `otel` feature.
+    otlp: null
+    #   endpoint: http://localhost:4317
+    #   service_name: piramid
+    # log a line as each instrumented operation finishes, with its duration and fields
+    span_events: false
+
+  hardware:
+    # auto | cpu-only | gpu. This is the only GPU switch; `gpu` fails to start without a device.
+    profile: auto
+    # host memory the process will use; null is unbounded
+    memory_budget_bytes: null
+    # device memory to claim; null is unbounded
+    gpu_memory_budget_bytes: null
+
+  disk:
+    # refuse writes below this much free space; null never checks
+    min_free_bytes: null
+    # drop to read-only at the threshold instead of failing each write
+    readonly_on_low_space: true
+
+  # embedding provider, built once at boot; null disables server-side embedding.
+  # Set the key with OPENAI_API_KEY rather than writing it here.
+  embedding: null
+  #   provider: openai        # openai (or any server speaking that format) | ollama
+  #   model: text-embedding-3-small
+  #   base_url: null          # for self-hosted or proxied endpoints
+  #   timeout: null           # request timeout in seconds
+  #   options: {}             # passed through to the provider verbatim
+  #
+  # provider: piramid — an in-process encoder reusing the device retrieval holds.
+  # Not implemented (roadmap v0.4.0).
+
+runtime:
+  index:
+    # auto | flat | hnsw | ivf. `auto` picks a family from the collection's size; the others
+    # take that family's parameters inline (see the commented examples below).
+    type: auto
+    # cosine | euclidean | dotproduct
+    metric: cosine
+    auto:
+      # under this many vectors, scan exhaustively
+      flat_max_vectors: 10000
+      # under this many, use IVF; above it, HNSW
+      ivf_max_vectors: 100000
+      # IVF: null sizes clusters and probes from the collection
+      ivf_num_clusters: null
+      ivf_num_probes: null
+      ivf_max_iterations: 10
+      # HNSW shape used when auto-selected
+      hnsw_m: 16
+      hnsw_ef_construction: 200
+      hnsw_ef_search: 200
+  #
+  # type: hnsw
+  # metric: cosine
+  # m: 16                 # max connections per node above layer 0
+  # m_max: 32             # max connections at layer 0, conventionally 2 * m
+  # ef_construction: 200  # candidate width while linking a new node
+  # ef_search: 200        # candidate width while searching: the recall/speed dial
+  # ml: 0.36067376        # layer multiplier, conventionally 1 / ln(m)
+  #
+  # type: ivf
+  # metric: cosine
+  # num_clusters: 256     # partitions; sqrt(N) is a reasonable starting point
+  # num_probes: 8         # partitions scanned per query; higher is better recall and slower
+  # max_iterations: 10    # Lloyd's-algorithm cap when training centroids
+  #
+  # type: flat
+  # metric: cosine
+
+  search:
+    # per-query overrides; null uses the index's own ef_search / num_probes
+    ef: null
+    nprobe: null
+    # multiplier on k when a filter is present, since candidates get filtered out
+    filter_overfetch: 10
+    # fan a batch of queries across the worker threads
+    parallel: true
+
+  quantization:
+    # none | int8 | binary. int4 and float16 are not implemented.
+    level: none
+    # keep only the compressed form in memory
+    disk_only: false
+    # disabled | storage | index | query-pre-search | result-post-search
+    stage: disabled
+    # keep full-precision vectors alongside the codes, for reranking
+    preserve_raw_vectors: true
+
+  memory:
+    # byte ceiling per collection; null is unbounded
+    max_memory_per_collection: null
+    # size the data file is first mapped at; it grows from here
+    initial_mmap_size: 1048576
+    # map the data file; with this off, records go through ordinary file reads
+    use_mmap: true
+
+  wal:
+    enabled: true
+    # checkpoint after this many operations
+    checkpoint_frequency: 1000
+    # also checkpoint after this many seconds, if set
+    checkpoint_interval_secs: null
+    # rotate once the log passes this many bytes
+    max_log_size: 104857600
+    # fsync every write: durable across power loss, and much slower
+    sync_on_write: false
+
+  limits:
+    # per-collection ceilings; null is unlimited
+    max_vectors: null
+    max_bytes: null
+    max_vector_bytes: null
+
+  cache:
+    enabled: true
+    # entry ceiling for the metadata cache
+    metadata_entries: 10000
+    # entry lifetime in seconds; null never expires
+    ttl_seconds: null
+    # byte budget for resident vectors, shared across every loaded collection
+    max_bytes: null
+
+  # auto | scalar | simd | parallel | binary | gpu. The one place a distance strategy is chosen.
+  # `gpu` needs a build with the `gpu-cuda` feature.
+  execution: auto
+
+  # Model execution. Not implemented (roadmap v0.4.0); setting `enabled: true` or
+  # `augment.enabled: true` fails at startup rather than being ignored.
+  inference:
+    enabled: false
+    model_path: null
+    max_batch_size: 8
+    max_sequence_length: 4096
+    kv_cache:
+      # budget across every live sequence; null is unbounded
+      max_bytes: null
+      # tokens per page: the unit of allocation and eviction
+      page_size: 16
+    sampling:
+      temperature: 0.0  # 0.0 is greedy
+      top_p: null
+      top_k: null
+    augment:
+      # call the retrieval hook during generation
+      enabled: false
+      top_k: 8

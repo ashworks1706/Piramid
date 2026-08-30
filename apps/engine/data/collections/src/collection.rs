@@ -23,16 +23,6 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub(super) fn init_rayon_pool(config: &piramid_core::config::ParallelismConfig) {
-        let num_threads = config.num_threads();
-        if num_threads > 0 {
-            rayon::ThreadPoolBuilder::new()
-                .num_threads(num_threads)
-                .build_global()
-                .ok();
-        }
-    }
-
     pub(super) fn track_operation(&mut self) -> Result<()> {
         let interval_due = if let Some(last) = self.checkpoint.last_checkpoint() {
             if let Some(interval) = self.config.wal.checkpoint_interval_secs {
@@ -157,7 +147,11 @@ impl Collection {
             vectors.insert(*id, entry.vector().to_vec());
         }
 
-        let mut new_index = piramid_index::create_index(&self.config.index, self.index.len());
+        let mut new_index = piramid_index::create_index(
+            &self.config.index,
+            self.config.execution,
+            self.index.len(),
+        );
         let reader = HashMapVectorReader::new(&vectors);
         for (id, vec) in &vectors {
             new_index.insert(*id, vec, &reader)?;

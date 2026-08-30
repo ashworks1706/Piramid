@@ -9,10 +9,10 @@ use std::time::Duration;
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
 mod support;
-use piramid::config::{self, AppConfig, LogLevel, LoggingConfig};
+use piramid::config::{self, Config, LogLevel, StartupConfig};
 use piramid::state::AppState;
-use piramid::{config::loader::RuntimeConfig, embeddings, server};
-use piramid_observability::{ObservabilityConfig, ObservabilityGuard};
+use piramid::{embeddings, server};
+use piramid_observability::ObservabilityGuard;
 use tokio::runtime::Runtime;
 use tracing_subscriber::EnvFilter;
 
@@ -179,7 +179,7 @@ fn show_config(args: ShowConfigArgs) -> std::io::Result<()> {
     if let Some(path) = args.config {
         std::env::set_var("CONFIG_FILE", path);
     }
-    let cfg = config::loader::load_app_config().unwrap_or_else(exit_on_config_error);
+    let cfg = config::loader::load().unwrap_or_else(exit_on_config_error);
     print_serialized(&cfg, args.format)
 }
 
@@ -195,23 +195,15 @@ fn support_bundle(
         std::env::set_var("DATA_DIR", dir);
     }
 
-    let runtime =
-        piramid::config::loader::load_runtime_config().unwrap_or_else(exit_on_config_error);
+    let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
     let state = std::sync::Arc::new(
-        AppState::new(
-            &runtime.data_dir,
-            runtime.app.clone(),
-            runtime.slow_query_ms,
-            embeddings::EmbeddingsManager::disabled(),
-            runtime.disk_min_free_bytes,
-            runtime.disk_readonly_on_low_space,
-        )
-        .map_err(std::io::Error::other)?,
+        AppState::new(config.clone(), embeddings::EmbeddingsManager::disabled())
+            .map_err(std::io::Error::other)?,
     );
     // Best-effort: a broken collection shouldn't stop the bundle from being written.
     let _ = preload_collections_for_metrics(&state);
 
-    let path = support::write(&runtime, &state, Some(output))?;
+    let path = support::write(&config, &state, Some(output))?;
     println!("wrote {}", path.display());
     println!("Review it before sharing — it contains your configuration and collection names.");
     Ok(())
@@ -224,25 +216,10 @@ fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {
     if let Some(dir) = args.data_dir {
         std::env::set_var("DATA_DIR", dir);
     }
-    let RuntimeConfig {
-        app: app_config,
-        data_dir,
-        slow_query_ms,
-        disk_min_free_bytes,
-        disk_readonly_on_low_space,
-        ..
-    } = piramid::config::loader::load_runtime_config().unwrap_or_else(exit_on_config_error);
-
+    let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
     let state = std::sync::Arc::new(
-        AppState::new(
-            &data_dir,
-            app_config,
-            slow_query_ms,
-            embeddings::EmbeddingsManager::disabled(),
-            disk_min_free_bytes,
-            disk_readonly_on_low_space,
-        )
-        .map_err(std::io::Error::other)?,
+        AppState::new(config, embeddings::EmbeddingsManager::disabled())
+            .map_err(std::io::Error::other)?,
     );
     preload_collections_for_metrics(&state)?;
     let metrics = piramid::services::admin::metrics(&state).map_err(std::io::Error::other)?;
@@ -285,7 +262,7 @@ fn collection_name_from_base_db_filename(file_name: &str) -> Option<String> {
 }
 
 fn write_config_file(path: &Path, fmt: OutputFormat) -> std::io::Result<()> {
-    let cfg = AppConfig::default();
+    let cfg = Config::default();
     let contents = serialize_to_string(&cfg, fmt)?;
     if let Some(parent) = path.parent() {
         if !parent.as_os_str().is_empty() {
@@ -298,47 +275,34 @@ fn write_config_file(path: &Path, fmt: OutputFormat) -> std::io::Result<()> {
 fn start_server_inline() -> std::io::Result<()> {
     let rt = Runtime::new().map_err(std::io::Error::other)?;
     rt.block_on(async {
-        let RuntimeConfig {
-            app: app_config,
-            port,
-            data_dir,
-            slow_query_ms,
-            embedding: embedding_config,
-            disk_min_free_bytes,
-            disk_readonly_on_low_space,
-        } = piramid::config::loader::load_runtime_config().unwrap_or_else(exit_on_config_error);
+        let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
 
-        let _observability = init_tracing(app_config.logging)?;
-        if app_config.logging.config {
+        let _observability = init_tracing(&config.startup)?;
+        init_thread_pool(&config.startup);
+        if config.startup.logging.config {
             tracing::info!(
                 target: "piramid::config",
-                config = ?app_config,
+                config = ?config,
                 "using_configuration"
             );
         }
 
-        let embeddings = match embedding_config.clone() {
-            Some(config) => embeddings::EmbeddingsManager::from_config(&config).map_err(|e| {
-                std::io::Error::other(format!(
-                    "embedding provider configured but failed to initialize: {e}"
-                ))
-            })?,
+        let embeddings = match &config.startup.embedding {
+            Some(embedding) => {
+                embeddings::EmbeddingsManager::from_config(embedding).map_err(|e| {
+                    std::io::Error::other(format!(
+                        "embedding provider configured but failed to initialize: {e}"
+                    ))
+                })?
+            }
             None => embeddings::EmbeddingsManager::disabled(),
         };
-        let state = std::sync::Arc::new(
-            AppState::new(
-                &data_dir,
-                app_config.clone(),
-                slow_query_ms,
-                embeddings,
-                disk_min_free_bytes,
-                disk_readonly_on_low_space,
-            )
-            .map_err(std::io::Error::other)?,
-        );
+        let addr = config.startup.bind.clone();
+        let data_dir = config.startup.data_dir.clone();
+        let state =
+            std::sync::Arc::new(AppState::new(config, embeddings).map_err(std::io::Error::other)?);
 
         let app = server::create_router(state);
-        let addr = format!("0.0.0.0:{port}");
         tracing::info!(
             target: "piramid::config",
             address = addr.as_str(),
@@ -354,8 +318,20 @@ fn start_server_inline() -> std::io::Result<()> {
     })
 }
 
+/// Build the global rayon pool. Called once, before any collection opens.
+fn init_thread_pool(startup: &StartupConfig) {
+    let num_threads = startup.num_threads();
+    if let Err(error) = rayon::ThreadPoolBuilder::new()
+        .num_threads(num_threads)
+        .build_global()
+    {
+        tracing::warn!(target: "piramid::config", %error, "thread_pool_already_built");
+    }
+}
+
 /// Install tracing and any configured telemetry exporters; `None` if disabled or already run.
-fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard>> {
+fn init_tracing(startup: &StartupConfig) -> std::io::Result<Option<ObservabilityGuard>> {
+    let cfg = startup.logging;
     static TRACING_INIT: OnceLock<()> = OnceLock::new();
     if TRACING_INIT.get().is_some() {
         return Ok(None);
@@ -391,9 +367,7 @@ fn init_tracing(cfg: LoggingConfig) -> std::io::Result<Option<ObservabilityGuard
         env_filter = add_directive(env_filter, "piramid::http=off");
     }
 
-    // Exporters are opt-in per environment variable and no-ops when unset.
-    let observability = ObservabilityConfig::from_env().map_err(std::io::Error::other)?;
-    let guard = piramid_observability::init(&observability, env_filter, cfg.json);
+    let guard = piramid_observability::init(&startup.telemetry, env_filter, cfg.json);
     TRACING_INIT.set(()).ok();
     Ok(Some(guard))
 }

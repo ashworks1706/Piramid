@@ -7,6 +7,7 @@ use crate::pairwise::{cosine_similarity, dot_product, euclidean_distance};
 
 /// How similarity between two vectors is measured; [`Metric::calculate`] normalizes to "higher is closer".
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Default, Serialize, Deserialize)]
+#[serde(rename_all = "lowercase")]
 pub enum Metric {
     /// Angle between vectors, in `[-1, 1]`.
     #[default]

@@ -14,8 +14,8 @@ services:
       - path: ../.env
         required: false
     environment:
-      PORT: 6333
-      DATA_DIR: /data
+      PIRAMID__STARTUP__BIND: 0.0.0.0:6333
+      PIRAMID__STARTUP__DATA_DIR: /data
       RUST_LOG: ${RUST_LOG:-info}
     restart: unless-stopped
     healthcheck:

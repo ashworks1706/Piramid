@@ -32,10 +32,11 @@ COPY --from=builder /app/target/release/piramid /usr/local/bin/piramid
 RUN mkdir -p /data && chown piramid:piramid /data
 USER piramid
 
-ENV PORT=6333 \
-    DATA_DIR=/data \
+ENV PIRAMID__STARTUP__BIND=0.0.0.0:6333 \
+    PIRAMID__STARTUP__DATA_DIR=/data \
     RUST_LOG=info \
-    EXECUTION_MODE=gpu
+    PIRAMID__STARTUP__HARDWARE__PROFILE=gpu \
+    PIRAMID__RUNTIME__EXECUTION=gpu
 
 VOLUME ["/data"]
 EXPOSE 6333

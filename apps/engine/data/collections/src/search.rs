@@ -52,7 +52,7 @@ pub fn search_batch(
         k,
         metric,
         params,
-        storage.config().parallelism.parallel_search,
+        storage.config().search.parallel,
         &|id| storage.get(id),
     )
 }

@@ -12,22 +12,23 @@ pub enum LogLevel {
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
 pub struct LoggingConfig {
-    #[serde(default = "default_enabled")]
+    #[serde(default = "crate::config::default_true")]
     pub enabled: bool,
     #[serde(default)]
     pub level: LogLevel,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub config: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub indexing: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub search: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub writes: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub inference: bool,
-    #[serde(default = "default_true")]
+    #[serde(default = "crate::config::default_true")]
     pub http: bool,
     /// Emit structured JSON lines instead of human-readable console output.
     #[serde(default)]
@@ -39,7 +40,7 @@ pub struct LoggingConfig {
 impl Default for LoggingConfig {
     fn default() -> Self {
         Self {
-            enabled: default_enabled(),
+            enabled: true,
             level: LogLevel::Info,
             config: true,
             indexing: true,
@@ -51,12 +52,4 @@ impl Default for LoggingConfig {
             slow_query_ms: Some(500),
         }
     }
-}
-
-fn default_enabled() -> bool {
-    true
-}
-
-fn default_true() -> bool {
-    true
 }

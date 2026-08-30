@@ -2,8 +2,8 @@
 
 use serde::{Deserialize, Serialize};
 
-use crate::config::{FlatConfig, HnswConfig, IvfConfig, SearchConfig};
-use piramid_compute::{ExecutionMode, Metric};
+use crate::config::{FlatConfig, HnswConfig, IvfConfig};
+use piramid_compute::Metric;
 
 /// Which index family a configuration resolves to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
@@ -17,7 +17,8 @@ pub enum IndexKind {
 }
 
 /// Thresholds used by [`IndexConfig::Auto`] to pick a family by collection size.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
 pub struct AutoIndexConfig {
     #[serde(default = "default_flat_max_vectors")]
     pub flat_max_vectors: usize,
@@ -53,16 +54,13 @@ impl Default for AutoIndexConfig {
 }
 
 /// Index configuration for a collection.
-#[derive(Debug, Clone, Serialize, Deserialize)]
-#[serde(tag = "type")]
+#[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
+#[serde(tag = "type", rename_all = "lowercase")]
 pub enum IndexConfig {
     /// Pick a family from the collection's size.
     Auto {
+        #[serde(default)]
         metric: Metric,
-        #[serde(default)]
-        mode: ExecutionMode,
-        #[serde(default)]
-        search: SearchConfig,
         #[serde(default)]
         auto: AutoIndexConfig,
     },
@@ -71,27 +69,18 @@ pub enum IndexConfig {
         /// Scan parameters.
         #[serde(flatten)]
         params: FlatConfig,
-        /// Per-query recall/speed knobs.
-        #[serde(default)]
-        search: SearchConfig,
     },
     /// Graph index.
     Hnsw {
         /// Graph parameters.
         #[serde(flatten)]
         params: HnswConfig,
-        /// Per-query recall/speed knobs.
-        #[serde(default)]
-        search: SearchConfig,
     },
     /// Inverted-file index.
     Ivf {
         /// Partition parameters.
         #[serde(flatten)]
         params: IvfConfig,
-        /// Per-query recall/speed knobs.
-        #[serde(default)]
-        search: SearchConfig,
     },
 }
 
@@ -99,8 +88,6 @@ impl Default for IndexConfig {
     fn default() -> Self {
         IndexConfig::Auto {
             metric: Metric::Cosine,
-            mode: ExecutionMode::default(),
-            search: SearchConfig::default(),
             auto: AutoIndexConfig::default(),
         }
     }
@@ -125,23 +112,13 @@ impl IndexConfig {
         }
     }
 
-    /// Metric and execution mode shared by every variant.
-    pub fn get_metric_and_mode(&self) -> (Metric, ExecutionMode) {
+    /// The distance metric, whichever variant is configured.
+    pub fn metric(&self) -> Metric {
         match self {
-            IndexConfig::Auto { metric, mode, .. } => (*metric, *mode),
-            IndexConfig::Flat { params, .. } => (params.metric, params.mode),
-            IndexConfig::Hnsw { params, .. } => (params.metric, params.mode),
-            IndexConfig::Ivf { params, .. } => (params.metric, params.mode),
-        }
-    }
-
-    /// Per-query recall/speed knobs.
-    pub fn search_config(&self) -> SearchConfig {
-        match self {
-            IndexConfig::Auto { search, .. }
-            | IndexConfig::Flat { search, .. }
-            | IndexConfig::Hnsw { search, .. }
-            | IndexConfig::Ivf { search, .. } => *search,
+            IndexConfig::Auto { metric, .. } => *metric,
+            IndexConfig::Flat { params, .. } => params.metric,
+            IndexConfig::Hnsw { params, .. } => params.metric,
+            IndexConfig::Ivf { params, .. } => params.metric,
         }
     }
 
@@ -176,4 +153,65 @@ fn default_hnsw_ef_construction() -> usize {
 
 fn default_hnsw_ef_search() -> usize {
     200
+}
+
+impl IndexConfig {
+    /// Check the parameters of whichever variant is configured.
+    pub fn validate(&self) -> Result<(), String> {
+        match self {
+            IndexConfig::Auto { auto, .. } => {
+                if auto.flat_max_vectors == 0 || auto.ivf_max_vectors == 0 {
+                    return Err("runtime.index.auto: vector thresholds must be > 0".into());
+                }
+                if auto.flat_max_vectors > auto.ivf_max_vectors {
+                    return Err(
+                        "runtime.index.auto: flat_max_vectors must be <= ivf_max_vectors".into(),
+                    );
+                }
+                if auto.ivf_max_iterations == 0 || auto.hnsw_m == 0 {
+                    return Err(
+                        "runtime.index.auto: ivf_max_iterations and hnsw_m must be > 0".into(),
+                    );
+                }
+                if auto.hnsw_ef_construction == 0 || auto.hnsw_ef_search == 0 {
+                    return Err("runtime.index.auto: hnsw ef values must be > 0".into());
+                }
+                Ok(())
+            }
+            IndexConfig::Flat { .. } => Ok(()),
+            IndexConfig::Hnsw { params, .. } => {
+                if params.m == 0 || params.m_max == 0 {
+                    return Err("runtime.index: hnsw m and m_max must be > 0".into());
+                }
+                if params.m_max < params.m {
+                    return Err("runtime.index: hnsw m_max must be >= m".into());
+                }
+                if params.ef_construction == 0 || params.ef_search == 0 {
+                    return Err(
+                        "runtime.index: hnsw ef_construction and ef_search must be > 0".into(),
+                    );
+                }
+                // NaN fails this too, which is the point: it would poison every layer draw.
+                if !params.ml.is_finite() || params.ml <= 0.0 {
+                    return Err("runtime.index: hnsw ml must be a finite number > 0".into());
+                }
+                Ok(())
+            }
+            IndexConfig::Ivf { params, .. } => {
+                if params.num_clusters == 0 {
+                    return Err("runtime.index: ivf num_clusters must be > 0".into());
+                }
+                if params.num_probes == 0 {
+                    return Err("runtime.index: ivf num_probes must be > 0".into());
+                }
+                if params.num_probes > params.num_clusters {
+                    return Err("runtime.index: ivf num_probes must be <= num_clusters".into());
+                }
+                if params.max_iterations == 0 {
+                    return Err("runtime.index: ivf max_iterations must be > 0".into());
+                }
+                Ok(())
+            }
+        }
+    }
 }

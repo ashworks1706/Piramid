@@ -24,7 +24,7 @@ Piramid doesn't fit cleanly into either model, and that's intentional. Vectors a
 
 ### On-disk layout
 
-Every collection lives under a path you configure at startup (`DATA_DIR`). For a collection named `my_docs`, Piramid creates a set of files that together represent the complete state of that collection:
+Every collection lives under a path you configure at startup (`startup.data_dir`). For a collection named `my_docs`, Piramid creates a set of files that together represent the complete state of that collection:
 
 ```
 my_docs.db          -- the main data file (mmap'd raw byte store)

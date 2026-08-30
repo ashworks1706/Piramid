@@ -162,7 +162,7 @@ pub async fn search_by_text(
         },
     )?;
     let duration = start.elapsed();
-    if duration.as_millis() > state.slow_query_ms {
+    if duration.as_millis() > state.slow_query_ms() {
         tracing::warn!(
             target: "piramid::search",
             collection=%collection,

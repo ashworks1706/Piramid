@@ -8,7 +8,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
-pub use config::{ObservabilityConfig, ObservabilityError, ObservabilityResult, OtlpConfig};
+pub use config::{ObservabilityError, ObservabilityResult};
+pub use piramid_core::config::{OtlpConfig, TelemetryConfig};
 
 /// Holds exporters alive; dropping this flushes pending telemetry.
 #[must_use = "dropping the guard shuts down telemetry export"]
@@ -34,7 +35,7 @@ impl Drop for ObservabilityGuard {
 }
 
 /// Installs the tracing subscriber and any configured exporters; call once, early in `main`.
-pub fn init(config: &ObservabilityConfig, filter: EnvFilter, json: bool) -> ObservabilityGuard {
+pub fn init(config: &TelemetryConfig, filter: EnvFilter, json: bool) -> ObservabilityGuard {
     // One line per finished operation, so spans are visible without a collector.
     let span_events = if config.span_events {
         FmtSpan::CLOSE

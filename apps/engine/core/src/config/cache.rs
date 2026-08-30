@@ -2,17 +2,18 @@
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
 pub struct CacheConfig {
     pub enabled: bool,
 
-    /// Item ceiling for the metadata cache.
-    pub max_size: usize,
+    /// Entry ceiling for the metadata cache.
+    pub metadata_entries: usize,
 
     /// Entry lifetime in seconds. `None` never expires.
     pub ttl_seconds: Option<u64>,
 
-    /// Byte budget shared across every loaded collection. `None` is unbounded.
+    /// Byte budget for resident vectors, shared across every loaded collection. `None` is unbounded.
     #[serde(default)]
     pub max_bytes: Option<u64>,
 }
@@ -21,7 +22,7 @@ impl Default for CacheConfig {
     fn default() -> Self {
         CacheConfig {
             enabled: true,
-            max_size: 10_000,
+            metadata_entries: 10_000,
             ttl_seconds: None,
             max_bytes: None,
         }
@@ -32,7 +33,7 @@ impl CacheConfig {
     pub fn with_size(size: usize) -> Self {
         CacheConfig {
             enabled: true,
-            max_size: size,
+            metadata_entries: size,
             ttl_seconds: None,
             max_bytes: None,
         }

@@ -9,7 +9,7 @@ use axum::{
     Json,
 };
 use piramid_collections::Collection;
-use piramid_core::config::AppConfig;
+use piramid_core::config::Config;
 use piramid_core::error::{ErrorKind, PiramidError};
 use piramid_core::metadata::metadata;
 use piramid_server::http::handlers::{collections, vectors};
@@ -26,23 +26,13 @@ fn cleanup_dir(path: &str) {
 }
 
 fn test_state(data_dir: &str) -> Arc<AppState> {
-    cleanup_dir(data_dir);
-    test_state_with_config(data_dir, AppConfig::default())
+    test_state_with_config(data_dir, Config::default())
 }
 
-fn test_state_with_config(data_dir: &str, app_config: AppConfig) -> Arc<AppState> {
+fn test_state_with_config(data_dir: &str, mut config: Config) -> Arc<AppState> {
     cleanup_dir(data_dir);
-    Arc::new(
-        AppState::new(
-            data_dir,
-            app_config,
-            500,
-            piramid_embeddings::EmbeddingsManager::disabled(),
-            None,
-            true,
-        )
-        .unwrap(),
-    )
+    config.startup.data_dir = data_dir.to_string();
+    Arc::new(AppState::new(config, piramid_embeddings::EmbeddingsManager::disabled()).unwrap())
 }
 
 // Not a #[test] itself, so allow-panic-in-tests does not cover it.
@@ -96,8 +86,8 @@ async fn cache_budget_evicts_metadata_without_dropping_vectors() {
         env!("CARGO_TARGET_TMPDIR"),
         "/collection_manager_cache_budget"
     );
-    let mut app_config = AppConfig::default();
-    app_config.cache.max_bytes = Some(1);
+    let mut app_config = Config::default();
+    app_config.runtime.cache.max_bytes = Some(1);
     let state = test_state_with_config(data_dir, app_config);
     let collection = state
         .collection_manager

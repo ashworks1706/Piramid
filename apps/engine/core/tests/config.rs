@@ -6,64 +6,86 @@
 
 use piramid_compute::Metric;
 use piramid_core::config::{
-    AppConfig, AutoIndexConfig, HardwareProfile, IndexConfig, IndexKind, LogLevel,
-    QuantizationLevel, QuantizationStage,
+    AutoIndexConfig, Config, HardwareProfile, IndexConfig, IndexKind, LogLevel, QuantizationLevel,
+    QuantizationStage,
 };
 
 #[test]
-fn app_config_serializes_expanded_research_knobs() {
-    let cfg = AppConfig::default();
+fn the_default_config_round_trips_through_yaml() {
+    let cfg = Config::default();
     let yaml = serde_yaml::to_string(&cfg).unwrap();
+    let parsed: Config = serde_yaml::from_str(&yaml).unwrap();
 
-    assert!(yaml.contains("hardware:"));
-    assert!(yaml.contains("logging:"));
-    assert!(yaml.contains("preserve_raw_vectors: true"));
+    assert_eq!(cfg, parsed);
+    assert!(yaml.contains("startup:"));
+    assert!(yaml.contains("runtime:"));
 }
 
 #[test]
-fn minimal_config_files_receive_defaults_for_new_knobs() {
-    let yaml = r"
-index:
-  type: Auto
-  metric: Cosine
-quantization:
-  level: None
-  disk_only: false
-memory:
-  initial_mmap_size: 1048576
-  use_mmap: true
-wal:
-  enabled: true
-  checkpoint_frequency: 1000
-  max_log_size: 1048576
-  sync_on_write: false
-parallelism:
-  mode: Auto
-  parallel_search: true
-execution: Auto
-search:
-  filter_overfetch: 10
-limits: {}
-";
+fn an_empty_file_is_all_defaults() {
+    let cfg: Config = serde_yaml::from_str("{}").unwrap();
 
-    let cfg: AppConfig = serde_yaml::from_str(yaml).unwrap();
-    assert_eq!(cfg.hardware.profile, HardwareProfile::Auto);
-    assert_eq!(cfg.logging.level, LogLevel::Info);
-    assert_eq!(cfg.quantization.stage, QuantizationStage::Disabled);
-    assert!(cfg.quantization.preserve_raw_vectors);
-    assert_eq!(cfg.search.filter_overfetch, 10);
+    assert_eq!(cfg, Config::default());
+    assert_eq!(cfg.startup.bind, "0.0.0.0:6333");
+    assert_eq!(cfg.startup.hardware.profile, HardwareProfile::Auto);
+    assert_eq!(cfg.startup.logging.level, LogLevel::Info);
+    assert_eq!(cfg.runtime.quantization.stage, QuantizationStage::Disabled);
+    assert_eq!(cfg.runtime.search.filter_overfetch, 10);
     cfg.validate().unwrap();
+}
+
+#[test]
+fn a_partial_file_defaults_the_rest() {
+    let yaml = r"
+startup:
+  bind: 127.0.0.1:7000
+runtime:
+  search:
+    filter_overfetch: 3
+";
+    let cfg: Config = serde_yaml::from_str(yaml).unwrap();
+
+    assert_eq!(cfg.startup.bind, "127.0.0.1:7000");
+    assert_eq!(cfg.runtime.search.filter_overfetch, 3);
+    assert!(cfg.runtime.search.parallel);
+    assert_eq!(cfg.startup.logging.level, LogLevel::Info);
+    cfg.validate().unwrap();
+}
+
+#[test]
+fn a_misspelled_key_is_an_error_rather_than_a_silent_default() {
+    let yaml = r"
+runtime:
+  search:
+    filter_overfech: 3
+";
+    let err = serde_yaml::from_str::<Config>(yaml)
+        .unwrap_err()
+        .to_string();
+    assert!(err.contains("filter_overfech"), "{err}");
+}
+
+#[test]
+fn a_setting_in_the_wrong_block_is_an_error() {
+    let yaml = r"
+runtime:
+  bind: 127.0.0.1:7000
+";
+    assert!(serde_yaml::from_str::<Config>(yaml).is_err());
 }
 
 #[test]
 fn quantization_can_express_pre_and_post_search_experiments() {
-    let mut cfg = AppConfig::default();
-    cfg.quantization.level = QuantizationLevel::Int8;
-    cfg.quantization.stage = QuantizationStage::QueryPreSearch;
+    let mut cfg = Config::default();
+    cfg.runtime.quantization.level = QuantizationLevel::Int8;
+    cfg.runtime.quantization.stage = QuantizationStage::QueryPreSearch;
     cfg.validate().unwrap();
 
-    cfg.quantization = cfg.quantization.post_search();
-    assert_eq!(cfg.quantization.stage, QuantizationStage::ResultPostSearch);
+    cfg.runtime.quantization = cfg.runtime.quantization.post_search();
+    assert_eq!(
+        cfg.runtime.quantization.stage,
+        QuantizationStage::ResultPostSearch
+    );
     cfg.validate().unwrap();
 }
 
@@ -71,8 +93,6 @@ fn quantization_can_express_pre_and_post_search_experiments() {
 fn auto_index_thresholds_are_configurable() {
     let cfg = IndexConfig::Auto {
         metric: Metric::Cosine,
-        mode: piramid_core::config::ExecutionMode::Auto,
-        search: piramid_core::config::SearchConfig::default(),
         auto: AutoIndexConfig {
             flat_max_vectors: 5,
             ivf_max_vectors: 10,
@@ -91,11 +111,27 @@ fn auto_index_thresholds_are_configurable() {
 }
 
 #[test]
-fn unimplemented_quantization_levels_fail_validation() {
-    let mut cfg = AppConfig::default();
-    cfg.quantization.level = QuantizationLevel::Int4;
+fn unimplemented_settings_are_rejected_rather_than_ignored() {
+    let mut cfg = Config::default();
+
+    cfg.runtime.quantization.level = QuantizationLevel::Int4;
+    assert!(cfg.validate().is_err());
+    cfg.runtime.quantization.level = QuantizationLevel::Float16;
     assert!(cfg.validate().is_err());
 
-    cfg.quantization.level = QuantizationLevel::Float16;
-    assert!(cfg.validate().is_err());
+    let mut cfg = Config::default();
+    cfg.runtime.inference.enabled = true;
+    let err = cfg.validate().unwrap_err();
+    assert!(err.contains("not implemented"), "{err}");
+
+    let mut cfg = Config::default();
+    cfg.runtime.inference.augment.enabled = true;
+    assert!(cfg.validate().unwrap_err().contains("not implemented"));
+}
+
+#[test]
+fn a_bad_bind_address_is_rejected() {
+    let mut cfg = Config::default();
+    cfg.startup.bind = "6333".to_string();
+    assert!(cfg.validate().unwrap_err().contains("address:port"));
 }

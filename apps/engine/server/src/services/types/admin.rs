@@ -11,7 +11,7 @@ pub struct MetricsResponse {
     pub total_collections: usize,
     pub total_vectors: usize,
     pub collections: Vec<CollectionMetrics>,
-    pub app_config: piramid_core::config::AppConfig,
+    pub app_config: piramid_core::config::Config,
     pub wal_stats: Vec<WalStats>,
     pub embedding: EmbeddingMetricsResponse,
 }
@@ -50,7 +50,7 @@ pub struct EmbeddingMetricsResponse {
 
 #[derive(Serialize)]
 pub struct ConfigStatusResponse {
-    pub app_config: piramid_core::config::AppConfig,
+    pub app_config: piramid_core::config::Config,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reloaded_at: Option<u64>,
 }
@@ -60,7 +60,7 @@ pub struct ConfigReloadResponse {
     pub success: bool,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub reloaded_at: Option<u64>,
-    pub app_config: piramid_core::config::AppConfig,
+    pub app_config: piramid_core::config::Config,
 }
 
 #[derive(Serialize)]

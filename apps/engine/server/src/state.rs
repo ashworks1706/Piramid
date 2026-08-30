@@ -10,7 +10,7 @@ use crate::cluster::{
     ClusterRouter, LocalClusterRouter, NodeCapabilities, NodeId, NodeRuntimeState, RouteDecision,
 };
 use piramid_collections::{CollectionHandle, CollectionManager};
-use piramid_core::config::AppConfig;
+use piramid_core::config::{Config, StartupConfig};
 use piramid_core::error::{Result, ServerError};
 use piramid_embeddings::EmbeddingsManager;
 
@@ -38,50 +38,57 @@ pub struct AppState {
     pub embeddings: EmbeddingsManager,
     pub shutting_down: Arc<AtomicBool>, // set on shutdown to reject new requests
     pub read_only: Arc<AtomicBool>,     // disk-pressure read-only mode
-    pub app_config: Arc<RwLock<AppConfig>>,
-    pub slow_query_ms: u128,
+    pub app_config: Arc<RwLock<Config>>,
+    /// The startup block the process booted with. A reload that changes it is refused, because
+    /// nothing re-reads these after boot and accepting them would report a success that did
+    /// nothing.
+    booted_with: StartupConfig,
     pub rebuild_jobs: Arc<DashMap<String, RebuildJobStatus>>,
     pub config_last_reload: Arc<AtomicU64>, // used to invalidate caches on reload
-    pub disk_min_free_bytes: Option<u64>,
-    pub disk_readonly_on_low_space: bool,
 }
 
 impl AppState {
-    pub fn new(
-        data_dir: &str,
-        app_config: AppConfig,
-        slow_query_ms: u128,
-        embeddings: EmbeddingsManager,
-        disk_min_free_bytes: Option<u64>,
-        disk_readonly_on_low_space: bool,
-    ) -> Result<Self> {
-        std::fs::create_dir_all(data_dir)?;
+    pub fn new(config: Config, embeddings: EmbeddingsManager) -> Result<Self> {
+        let data_dir = config.startup.data_dir.clone();
+        std::fs::create_dir_all(&data_dir)?;
+        let booted_with = config.startup.clone();
         let cluster_router: Arc<dyn ClusterRouter> =
             Arc::new(LocalClusterRouter::new(NodeRuntimeState {
                 id: NodeId::default(),
                 capabilities: NodeCapabilities {
-                    cpu_threads: app_config.hardware.cpu_threads,
-                    memory_budget_bytes: app_config.hardware.memory_budget_bytes,
-                    gpu_enabled: app_config.hardware.gpu_enabled,
+                    cpu_threads: config.startup.threads,
+                    memory_budget_bytes: config.startup.hardware.memory_budget_bytes,
+                    gpu_enabled: config.startup.hardware.gpu_enabled(),
                 },
                 healthy: true,
             }));
-        let app_config = Arc::new(RwLock::new(app_config));
+        let app_config = Arc::new(RwLock::new(config));
 
         Ok(Self {
-            collection_manager: CollectionManager::new(data_dir.to_string(), app_config.clone()),
-            data_dir: data_dir.to_string(),
+            collection_manager: CollectionManager::new(data_dir.clone(), app_config.clone()),
+            data_dir,
             cluster_router,
             embeddings,
             shutting_down: Arc::new(AtomicBool::new(false)),
             read_only: Arc::new(AtomicBool::new(false)),
             app_config,
-            slow_query_ms,
+            booted_with,
             rebuild_jobs: Arc::new(DashMap::new()),
             config_last_reload: Arc::new(AtomicU64::new(piramid_core::clock::unix_secs())),
-            disk_min_free_bytes,
-            disk_readonly_on_low_space,
         })
+    }
+
+    /// Milliseconds above which a query is logged at `warn`.
+    pub fn slow_query_ms(&self) -> u128 {
+        u128::from(self.booted_with.logging.slow_query_ms.unwrap_or(500))
+    }
+
+    pub fn disk_min_free_bytes(&self) -> Option<u64> {
+        self.booted_with.disk.min_free_bytes
+    }
+
+    pub fn disk_readonly_on_low_space(&self) -> bool {
+        self.booted_with.disk.readonly_on_low_space
     }
 
     pub fn ensure_available(&self) -> Result<()> {
@@ -122,9 +129,19 @@ impl AppState {
     }
 
     /// Re-read configuration from disk and environment, swapping it in atomically.
-    pub fn reload_config(&self) -> Result<AppConfig> {
-        let new_cfg = piramid_core::config::loader::load_app_config()
+    ///
+    /// Only the runtime block is swapped. A changed startup block is an error rather than a
+    /// silently ignored edit, so a 200 here always means the file on disk is what is running.
+    pub fn reload_config(&self) -> Result<Config> {
+        let new_cfg = piramid_core::config::loader::load()
             .map_err(|e| ServerError::InvalidRequest(e.to_string()))?;
+        if new_cfg.startup != self.booted_with {
+            return Err(ServerError::InvalidRequest(
+                "the startup block changed; those settings are applied at boot, so this needs a restart"
+                    .to_string(),
+            )
+            .into());
+        }
         {
             let mut guard = self.app_config.write();
             *guard = new_cfg.clone();
@@ -134,7 +151,7 @@ impl AppState {
         Ok(new_cfg)
     }
 
-    pub fn current_config(&self) -> AppConfig {
+    pub fn current_config(&self) -> Config {
         self.app_config.read().clone()
     }
 
@@ -155,7 +172,7 @@ impl AppState {
             .into());
         }
 
-        let Some(min_free) = self.disk_min_free_bytes else {
+        let Some(min_free) = self.disk_min_free_bytes() else {
             return Ok(());
         };
         let Some(free) = self.disk_free_bytes()? else {
@@ -164,7 +181,7 @@ impl AppState {
         if free >= min_free {
             return Ok(());
         }
-        if !self.disk_readonly_on_low_space {
+        if !self.disk_readonly_on_low_space() {
             tracing::warn!(free_bytes = free, min_free = min_free, "disk_space_low");
             return Ok(());
         }
@@ -176,7 +193,7 @@ impl AppState {
     }
 
     pub fn enforce_cache_budget(&self) {
-        let cache_config = self.current_config().cache;
+        let cache_config = self.current_config().runtime.cache;
         if !cache_config.enabled {
             return;
         }

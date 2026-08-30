@@ -53,5 +53,5 @@ The server runs as uid 10001 rather than root, and data lives on the `piramid-da
 `/data`. Health is `GET /api/health`, readiness is `GET /api/readyz`, and `GET /metrics` is the
 Prometheus endpoint.
 
-The CUDA image sets `EXECUTION_MODE=gpu`. With no device present, dispatch logs a warning and
-falls back to CPU rather than failing requests.
+The CUDA image sets `PIRAMID__RUNTIME__EXECUTION=gpu`. With no device present the server fails
+to start, rather than quietly serving CPU results under a GPU configuration.

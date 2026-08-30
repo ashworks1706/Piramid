@@ -9,12 +9,14 @@ use serde::{Deserialize, Serialize};
 use piramid_compute::{ExecutionMode, Metric};
 
 /// Brute-force scan parameters.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct FlatConfig {
     /// What to measure.
     pub metric: Metric,
-    /// Which strategy runs the math.
-    #[serde(default)]
+
+    /// Which strategy runs the math. Set from `runtime.execution` when the index is built, so
+    /// the file has one place to ask for a strategy rather than one per index family.
+    #[serde(skip)]
     pub mode: ExecutionMode,
 }
 
@@ -28,7 +30,7 @@ impl Default for FlatConfig {
 }
 
 /// Graph index parameters.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct HnswConfig {
     /// Max connections per node above layer 0.
     pub m: usize,
@@ -42,8 +44,10 @@ pub struct HnswConfig {
     pub ml: f32,
     /// What to measure.
     pub metric: Metric,
-    /// Which strategy runs the math.
-    #[serde(default)]
+
+    /// Which strategy runs the math. Set from `runtime.execution` when the index is built, so
+    /// the file has one place to ask for a strategy rather than one per index family.
+    #[serde(skip)]
     pub mode: ExecutionMode,
 }
 
@@ -75,7 +79,7 @@ impl HnswConfig {
 }
 
 /// Inverted-file index parameters.
-#[derive(Debug, Clone, Copy, Serialize, Deserialize)]
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub struct IvfConfig {
     /// Partition count; `sqrt(N)` is a reasonable default.
     pub num_clusters: usize,
@@ -85,8 +89,10 @@ pub struct IvfConfig {
     pub max_iterations: usize,
     /// What to measure.
     pub metric: Metric,
-    /// Which strategy runs the math.
-    #[serde(default)]
+
+    /// Which strategy runs the math. Set from `runtime.execution` when the index is built, so
+    /// the file has one place to ask for a strategy rather than one per index family.
+    #[serde(skip)]
     pub mode: ExecutionMode,
 }
 

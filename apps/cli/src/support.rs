@@ -5,7 +5,7 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::sync::Arc;
 
-use piramid::config::loader::RuntimeConfig;
+use piramid::config::Config;
 use piramid::state::AppState;
 
 /// Substrings matched case-insensitively against env var names to redact their values.
@@ -21,6 +21,7 @@ const SECRET_MARKERS: &[&str] = &[
 
 /// Environment variables worth reporting, beyond the resolved config.
 const REPORTED_PREFIXES: &[&str] = &[
+    "PIRAMID__",
     "PIRAMID_",
     "EMBEDDING_",
     "OPENAI_",
@@ -43,12 +44,24 @@ const REPORTED_PREFIXES: &[&str] = &[
     "PARALLEL_SEARCH",
 ];
 
+/// The bundle is written to be pasted into a public issue tracker, so the one secret the config
+/// can hold never reaches it.
+fn redacted(config: &Config) -> Config {
+    let mut config = config.clone();
+    if let Some(embedding) = config.startup.embedding.as_mut() {
+        if embedding.api_key.is_some() {
+            embedding.api_key = Some("<redacted>".to_string());
+        }
+    }
+    config
+}
+
 fn is_secret(name: &str) -> bool {
     let upper = name.to_ascii_uppercase();
     SECRET_MARKERS.iter().any(|marker| upper.contains(marker))
 }
 
-pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
+pub fn render(config: &Config, state: &Arc<AppState>) -> String {
     let mut out = String::new();
 
     let _ = writeln!(out, "# Piramid support bundle");
@@ -96,13 +109,17 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
 
     let _ = writeln!(out, "## Runtime");
     let _ = writeln!(out);
-    let _ = writeln!(out, "port                {}", config.port);
-    let _ = writeln!(out, "data_dir            {}", config.data_dir);
-    let _ = writeln!(out, "slow_query_ms       {}", config.slow_query_ms);
+    let _ = writeln!(out, "bind                {}", config.startup.bind);
+    let _ = writeln!(out, "data_dir            {}", config.startup.data_dir);
+    let _ = writeln!(
+        out,
+        "slow_query_ms       {}",
+        config.startup.logging.slow_query_ms.unwrap_or(500)
+    );
     let _ = writeln!(
         out,
         "embedding_provider  {}",
-        config.embedding.as_ref().map_or_else(
+        config.startup.embedding.as_ref().map_or_else(
             || "none".to_string(),
             |e| format!("{} ({})", e.provider, e.model)
         )
@@ -111,7 +128,9 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
         out,
         "disk_min_free       {}",
         config
-            .disk_min_free_bytes
+            .startup
+            .disk
+            .min_free_bytes
             .map_or_else(|| "unset".to_string(), |b| b.to_string())
     );
     let _ = writeln!(out);
@@ -186,7 +205,7 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
 
     let _ = writeln!(out, "## Resolved configuration");
     let _ = writeln!(out);
-    match serde_yaml::to_string(&config.app) {
+    match serde_yaml::to_string(&redacted(config)) {
         Ok(yaml) => {
             let _ = writeln!(out, "```yaml");
             let _ = write!(out, "{yaml}");
@@ -202,7 +221,7 @@ pub fn render(config: &RuntimeConfig, state: &Arc<AppState>) -> String {
 
 /// Write the bundle to `path`, defaulting to `piramid-support-bundle.md` in the working directory.
 pub fn write(
-    config: &RuntimeConfig,
+    config: &Config,
     state: &Arc<AppState>,
     path: Option<PathBuf>,
 ) -> std::io::Result<PathBuf> {

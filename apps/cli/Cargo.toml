@@ -28,6 +28,7 @@ inference-candle = ["piramid-inference/inference-candle"]
 otel = ["piramid-observability/otel"]
 
 [dependencies]
+rayon.workspace = true
 piramid-core.workspace = true
 piramid-compute.workspace = true
 piramid-gpu.workspace = true
