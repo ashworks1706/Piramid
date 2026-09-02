@@ -4,7 +4,7 @@
     reason = "assertions in tests"
 )]
 
-use piramid_hardware::quantization::{
+use piramid_hardware::compute::quantization::{
     ProductQuantizedVector, QuantizationConfig, QuantizationKind, QuantizedVector,
 };
 
@@ -53,7 +53,7 @@ fn quantization_pq_roundtrip() {
 #[test]
 fn unimplemented_level_is_an_error_not_a_downgrade() {
     let mut cfg = QuantizationConfig::int8();
-    cfg.level = piramid_hardware::quantization::QuantizationLevel::Int4;
+    cfg.level = piramid_hardware::compute::quantization::QuantizationLevel::Int4;
     assert!(QuantizedVector::from_f32(&[1.0, 2.0], &cfg).is_err());
 }
 

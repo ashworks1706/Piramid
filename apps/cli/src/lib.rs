@@ -6,7 +6,7 @@ pub use piramid_core::{config, error, metadata, observability, stats, validation
 pub use piramid_collections as collections;
 pub use piramid_collections::cache;
 pub use piramid_database::storage;
-pub use piramid_hardware::quantization;
+pub use piramid_hardware::compute::quantization;
 pub use piramid_hardware::{compute, gpu};
 pub use piramid_model::{embeddings, fusion, inference};
 pub use piramid_retrieval::{index, search};

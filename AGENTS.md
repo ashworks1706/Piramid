@@ -130,7 +130,8 @@ retrieval stack.
 - Dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
 - Errors are `thiserror` enums with a `Result` alias per layer. `unwrap_used` and `expect_used`
   are denied; test files opt back in with a module-level `#![allow]` and a reason.
-- Logging is `tracing` with structured fields and a `target:`, never `println!`.
+- Logging is `tracing` with structured fields and a `target:`, never `println!`. Subscriber and
+  filter construction lives in `core::observability`; the binary calls `install` and nothing else.
 - Feature flags are additive and off by default. `cargo build` has to work with no CUDA toolkit.
 - One way to do a thing. No fallback that answers when the thing asked for is unavailable, no
   second spelling of a name, no singular form of a plural request. If it cannot do what was asked,

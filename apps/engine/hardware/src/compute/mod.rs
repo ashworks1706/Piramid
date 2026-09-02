@@ -5,6 +5,7 @@ pub mod kernels;
 pub mod metric;
 pub mod mode;
 pub mod pairwise;
+pub mod quantization;
 pub mod strategies;
 
 pub use error::{ComputeError, ComputeResult};
