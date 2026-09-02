@@ -2,7 +2,7 @@ use memmap2::MmapMut;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::storage::persistence::{
+use crate::storage::sidecars::{
     create_mmap, ensure_file_size, grow_mmap_if_needed, warm_mmap, EntryPointer,
 };
 use piramid_core::config::CollectionConfig;
@@ -94,7 +94,7 @@ impl RecordStore {
 
     pub fn mapped_len(&self) -> Result<usize> {
         let len =
-            crate::storage::persistence::mapped_or_file_len(self.mmap.as_deref(), &self.data_file)?;
+            crate::storage::sidecars::mapped_or_file_len(self.mmap.as_deref(), &self.data_file)?;
         Ok(len as usize)
     }
 

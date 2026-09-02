@@ -160,7 +160,7 @@ fn replay_wal(collection: &mut Collection, entries: Vec<WalEntry>) -> Result<()>
 
 fn rebuild_vector_index(
     vector_index: &mut Box<dyn piramid_retrieval::index::VectorIndex>,
-    index: &HashMap<Uuid, piramid_database::storage::persistence::EntryPointer>,
+    index: &HashMap<Uuid, piramid_database::storage::sidecars::EntryPointer>,
     record_store: &RecordStore,
 ) -> Result<()> {
     // Read every live record through the offset index and re-insert it, which is what makes

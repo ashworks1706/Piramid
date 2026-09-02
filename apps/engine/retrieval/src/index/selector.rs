@@ -2,7 +2,7 @@
 //!
 //! Config types live in `core::config`; this is the only place that turns them into instances.
 
-use crate::index::traits::VectorIndex;
+use crate::index::VectorIndex;
 use crate::index::{FlatIndex, HnswIndex, IvfIndex};
 use piramid_core::config::{
     ExecutionMode, FlatConfig, HnswConfig, IndexConfig, IndexKind, IvfConfig,

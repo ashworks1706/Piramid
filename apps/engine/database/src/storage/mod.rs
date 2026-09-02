@@ -1,11 +1,11 @@
 //! Persistence primitives: records, WAL, sidecars, mmap, and vector layout.
 
 pub mod manifest;
-pub mod persistence;
 pub mod record_store;
+pub mod sidecars;
 pub mod vectors;
 pub mod wal;
 
 pub use manifest::CollectionMetadata;
-pub use persistence::SidecarManager;
+pub use sidecars::SidecarManager;
 pub use vectors::{HashMapVectorReader, VectorReader};

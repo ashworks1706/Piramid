@@ -4,7 +4,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::{HashMap, HashSet};
 use uuid::Uuid;
 
-use crate::index::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
+use crate::index::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
 use piramid_core::config::IvfConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_hardware::compute::{strategies::for_mode, DistanceKernels};

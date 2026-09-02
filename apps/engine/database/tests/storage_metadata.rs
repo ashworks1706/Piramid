@@ -44,7 +44,7 @@ fn metadata_touch_and_counts() {
 fn corrupt_pointer_index_fails_to_load() {
     let path = concat!(env!("CARGO_TARGET_TMPDIR"), "/corrupt_pointer_index.db");
     std::fs::create_dir_all(env!("CARGO_TARGET_TMPDIR")).unwrap();
-    let sidecars = piramid_database::storage::persistence::SidecarManager::at(path);
+    let sidecars = piramid_database::storage::sidecars::SidecarManager::at(path);
     let index_path = sidecars.offsets_path();
     let _ = std::fs::remove_file(&index_path);
     std::fs::write(&index_path, b"not bincode").unwrap();

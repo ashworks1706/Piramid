@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::index::traits::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
+use crate::index::{IndexDetails, IndexStats, IndexType, VectorIndex, VectorReader};
 use piramid_core::config::FlatConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_hardware::compute::strategies::for_mode;
