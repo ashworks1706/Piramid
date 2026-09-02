@@ -22,15 +22,20 @@ mod startup;
 mod telemetry;
 mod wal;
 
-pub use cache::CacheConfig;
+pub use cache::{
+    CacheConfig, EmbeddingCacheConfig, EvictionPolicy, MetadataCacheConfig, VectorCacheConfig,
+};
 pub use collection::CollectionConfig;
 pub use disk::DiskConfig;
 pub use embedding::EmbeddingConfig;
 pub use file::Config;
-pub use hardware::{HardwareConfig, HardwareProfile};
+pub use hardware::{GpuConfig, HardwareConfig, HardwareProfile, VramSplit};
 pub use index::{AutoIndexConfig, IndexConfig, IndexKind};
 pub use index_params::{FlatConfig, HnswConfig, IvfConfig};
-pub use inference::{AugmentConfig, InferenceConfig, KvCacheConfig, SamplingConfig};
+pub use inference::{
+    BatchingConfig, DeadlineMiss, DocumentKvConfig, DocumentKvStorage, Dtype, FusionConfig,
+    InferenceConfig, KvCacheConfig, Preemption, RetrievalPointKind, SamplingConfig,
+};
 pub use limits::LimitsConfig;
 pub use logging::{LogLevel, LoggingConfig};
 pub use memory::MemoryConfig;

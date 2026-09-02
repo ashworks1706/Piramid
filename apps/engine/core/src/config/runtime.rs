@@ -58,6 +58,7 @@ impl RuntimeConfig {
         if self.memory.use_mmap && self.memory.initial_mmap_size == 0 {
             return Err("runtime.memory.initial_mmap_size: must be > 0 when mmap is on".into());
         }
+        self.cache.validate()?;
         self.index.validate()?;
         self.inference.validate()
     }

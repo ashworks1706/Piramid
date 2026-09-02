@@ -1,41 +1,168 @@
-//! Cache limits, applied per collection and across the process.
+//! What is held in memory, and what gives when the budget is reached.
+//!
+//! Piramid keeps several caches with different jobs, and they are configured separately because
+//! the right answer differs for each: dropping a metadata entry costs a disk read, dropping a
+//! resident vector breaks search until it is rebuilt, and dropping a KV page costs a recompute of
+//! the tokens behind it.
 
 use serde::{Deserialize, Serialize};
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+/// Every cache in the process.
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields, default)]
 pub struct CacheConfig {
+    pub vectors: VectorCacheConfig,
+    pub metadata: MetadataCacheConfig,
+    pub embeddings: EmbeddingCacheConfig,
+
+    /// Byte budget for resident vectors, shared across every loaded collection. `None` is
+    /// unbounded.
+    pub max_bytes: Option<u64>,
+}
+
+impl CacheConfig {
+    /// A metadata cache of `size` entries, everything else default. Used by tests and by callers
+    /// that only care about the metadata bound.
+    pub fn with_size(size: usize) -> Self {
+        CacheConfig {
+            metadata: MetadataCacheConfig {
+                entries: size,
+                ..MetadataCacheConfig::default()
+            },
+            ..CacheConfig::default()
+        }
+    }
+
+    /// Reject anything the build cannot honour.
+    pub fn validate(&self) -> Result<(), String> {
+        self.vectors.validate()?;
+        self.metadata.validate()?;
+        self.embeddings.validate()
+    }
+}
+
+/// Vectors held resident for search.
+///
+/// Not a cache in the usual sense: an evicted vector is not a slower read, it is a document search
+/// cannot score until the store is rebuilt. That is why eviction is off by default.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct VectorCacheConfig {
+    /// Entry ceiling. `None` keeps every vector of every loaded collection resident.
+    pub entries: Option<usize>,
+
+    /// Byte ceiling per collection. `None` is unbounded.
+    pub max_bytes_per_collection: Option<u64>,
+
+    /// What to drop when a bound is reached.
+    pub eviction: EvictionPolicy,
+}
+
+impl Default for VectorCacheConfig {
+    fn default() -> Self {
+        VectorCacheConfig {
+            entries: None,
+            max_bytes_per_collection: None,
+            eviction: EvictionPolicy::None,
+        }
+    }
+}
+
+impl VectorCacheConfig {
+    fn validate(&self) -> Result<(), String> {
+        if self.entries.is_some() || self.max_bytes_per_collection.is_some() {
+            return Err(
+                "runtime.cache.vectors: bounds are not enforced yet; the resident store is \
+                 unbounded by design until the contiguous slab lands"
+                    .into(),
+            );
+        }
+        if self.eviction != EvictionPolicy::None {
+            return Err("runtime.cache.vectors.eviction: not implemented yet".into());
+        }
+        Ok(())
+    }
+}
+
+/// Document metadata held for filter evaluation.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct MetadataCacheConfig {
     pub enabled: bool,
 
-    /// Entry ceiling for the metadata cache.
-    pub metadata_entries: usize,
+    /// Entry ceiling.
+    pub entries: usize,
 
     /// Entry lifetime in seconds. `None` never expires.
     pub ttl_seconds: Option<u64>,
 
-    /// Byte budget for resident vectors, shared across every loaded collection. `None` is unbounded.
-    #[serde(default)]
-    pub max_bytes: Option<u64>,
+    /// What to drop when the ceiling is reached.
+    pub eviction: EvictionPolicy,
 }
 
-impl Default for CacheConfig {
+impl Default for MetadataCacheConfig {
     fn default() -> Self {
-        CacheConfig {
+        MetadataCacheConfig {
             enabled: true,
-            metadata_entries: 10_000,
+            entries: 10_000,
             ttl_seconds: None,
-            max_bytes: None,
+            eviction: EvictionPolicy::Oldest,
         }
     }
 }
 
-impl CacheConfig {
-    pub fn with_size(size: usize) -> Self {
-        CacheConfig {
+impl MetadataCacheConfig {
+    fn validate(&self) -> Result<(), String> {
+        if self.ttl_seconds.is_some() {
+            return Err("runtime.cache.metadata.ttl_seconds: not implemented yet".into());
+        }
+        if self.eviction != EvictionPolicy::Oldest {
+            return Err("runtime.cache.metadata.eviction: only 'oldest' is implemented".into());
+        }
+        Ok(())
+    }
+}
+
+/// Embeddings kept so identical text is not sent to a provider twice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields, default)]
+pub struct EmbeddingCacheConfig {
+    pub enabled: bool,
+
+    /// Entry ceiling. A fixed corpus wants this above its document count, or the tail is
+    /// re-embedded on every pass.
+    pub entries: usize,
+}
+
+impl Default for EmbeddingCacheConfig {
+    fn default() -> Self {
+        EmbeddingCacheConfig {
             enabled: true,
-            metadata_entries: size,
-            ttl_seconds: None,
-            max_bytes: None,
+            entries: 10_000,
         }
     }
+}
+
+impl EmbeddingCacheConfig {
+    fn validate(&self) -> Result<(), String> {
+        if self.enabled && self.entries == 0 {
+            return Err(
+                "runtime.cache.embeddings.entries: must be >= 1, or set enabled: false".into(),
+            );
+        }
+        Ok(())
+    }
+}
+
+/// What a cache drops first.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
+#[serde(rename_all = "kebab-case")]
+pub enum EvictionPolicy {
+    /// Never evict.
+    #[default]
+    None,
+    /// Oldest insertion first.
+    Oldest,
+    /// Least recently used.
+    Lru,
 }

@@ -33,7 +33,7 @@ impl MetadataCache {
 
     /// Cache metadata for `id`, evicting oldest entries past the bound.
     pub fn put(&mut self, id: Uuid, metadata: Metadata) {
-        if !self.config.enabled {
+        if !self.config.metadata.enabled {
             return;
         }
         self.order.retain(|cached_id| cached_id != &id);
@@ -71,13 +71,13 @@ impl MetadataCache {
     }
 
     fn enforce_item_limit(&mut self) {
-        if self.config.metadata_entries == 0 {
+        if self.config.metadata.entries == 0 {
             self.entries.clear();
             self.order.clear();
             return;
         }
 
-        while self.entries.len() > self.config.metadata_entries {
+        while self.entries.len() > self.config.metadata.entries {
             match self.order.pop_front() {
                 Some(id) => {
                     self.entries.remove(&id);

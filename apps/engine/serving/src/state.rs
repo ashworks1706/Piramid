@@ -194,7 +194,7 @@ impl AppState {
 
     pub fn enforce_cache_budget(&self) {
         let cache_config = self.current_config().runtime.cache;
-        if !cache_config.enabled {
+        if !cache_config.metadata.enabled {
             return;
         }
 

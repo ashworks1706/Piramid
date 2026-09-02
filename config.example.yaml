@@ -61,6 +61,26 @@ startup:
     # device memory to claim; null is unbounded
     gpu_memory_budget_bytes: null
 
+    gpu:
+      # Which device to open when the host has more than one.
+      device_ordinal: 0
+      # Threads per block for distance kernels. Must be a multiple of 32.
+      distance_block_size: 256
+      # Retrieval and the forward pass each want one, so they overlap rather than serialise.
+      streams: 2
+      # Held back for fragmentation and library workspaces.
+      reserve_bytes: 1073741824
+    vram:
+      # Divide device memory between weights, KV and the index instead of first-come-first-served.
+      # Not implemented (roadmap v0.6.0).
+      enabled: false
+      weights_ratio: 0.6
+      kv_ratio: 0.15
+      index_ratio: 0.25
+      # Bandwidth retrieval may take while a pass is decoding. Decode reads every weight per
+      # token, so a search kernel streaming the slab contends with it.
+      retrieval_bandwidth_share: 0.25
+
   disk:
     # refuse writes below this much free space; null never checks
     min_free_bytes: null
@@ -161,13 +181,30 @@ runtime:
     max_bytes: null
     max_vector_bytes: null
 
+  # Three caches with different jobs, configured separately because the cost of a miss differs:
+  # a dropped metadata entry is a disk read, a dropped resident vector is a document search cannot
+  # score, and a dropped embedding is a paid API call.
   cache:
-    enabled: true
-    # entry ceiling for the metadata cache
-    metadata_entries: 10000
-    # entry lifetime in seconds; null never expires
-    ttl_seconds: null
-    # byte budget for resident vectors, shared across every loaded collection
+    vectors:
+      # Vectors held resident for search. Not really a cache — an evicted vector is missing from
+      # results, not just slower. Bounds are not enforced yet, so setting one is an error.
+      entries: null
+      max_bytes_per_collection: null
+      # none | oldest | lru. Not implemented for this store.
+      eviction: none
+    metadata:
+      enabled: true
+      entries: 10000
+      # Entry lifetime in seconds. Not implemented yet.
+      ttl_seconds: null
+      # none | oldest | lru. Only `oldest` is implemented.
+      eviction: oldest
+    embeddings:
+      # Identical text is not sent to a provider twice. Size this above your corpus, or the tail
+      # is re-embedded on every pass.
+      enabled: true
+      entries: 10000
+    # Byte budget for resident vectors, shared across every loaded collection.
     max_bytes: null
 
   # auto | scalar | simd | parallel | binary | gpu. The one place a distance strategy is chosen.
@@ -176,21 +213,105 @@ runtime:
 
   # Model execution. Not implemented (roadmap v0.4.0); setting `enabled: true` or
   # `augment.enabled: true` fails at startup rather than being ignored.
+  # Model execution. None of this is implemented — the shape is settled so the forward-pass work
+  # lands into a surface that already exists, and every switch below fails at startup rather than
+  # parsing and doing nothing.
   inference:
+    # Not implemented (roadmap v0.4.0).
     enabled: false
     model_path: null
-    max_batch_size: 8
+    # Only needed when the tokenizer does not sit beside the weights.
+    tokenizer_path: null
+    # Which forked model file drives the pass. null reads it from the checkpoint.
+    architecture: null
+    # cuda:0, or null to follow startup.hardware.
+    device: null
+    # auto | fp32 | fp16 | bf16. Weight precision at load.
+    dtype: auto
     max_sequence_length: 4096
+    # A throwaway pass at boot, so the first real request does not pay for allocation.
+    warmup: true
+
+    batching:
+      # Sequences in one forward pass.
+      max_batch_size: 8
+      # Sequences admitted and waiting, across all passes.
+      max_queue_depth: 256
+      # Token ceiling per step, so one long prefill cannot crowd out every decode.
+      max_batched_tokens: 8192
+      # Keep admitting into a running batch instead of draining it first.
+      continuous: false
+      # Split a long prefill across steps so decode is not starved.
+      chunked_prefill: false
+      prefill_chunk_tokens: 2048
+      # How long a request may wait for a slot. null waits forever.
+      queue_timeout_ms: 30000
+
     kv_cache:
-      # budget across every live sequence; null is unbounded
+      # Budget across every live sequence; null is unbounded.
       max_bytes: null
-      # tokens per page: the unit of allocation and eviction
+      # Tokens per page: the unit of allocation and eviction.
       page_size: 16
+      # The largest single lever on cache size. A 7B model's 8k cache is ~2 GB at fp16.
+      dtype: fp16
+      # Fraction of what device memory remains after weights.
+      device_fraction: 0.9
+      # Share pages between sequences with an identical prefix, such as a common system prompt.
+      prefix_sharing: true
+      # recompute | swap. What a preempted sequence does with its pages.
+      preemption: recompute
+
     sampling:
       temperature: 0.0  # 0.0 is greedy
       top_p: null
       top_k: null
-    augment:
-      # call the retrieval hook during generation
+      # 1.0 is no penalty.
+      repetition_penalty: 1.0
+      repetition_window: 64
+      # Default completion length when a request does not say.
+      max_new_tokens: 512
+      stop: []
+      # Fixed seed, so a benchmark's control arm is reproducible.
+      seed: null
+
+    # Where retrieval enters the forward pass. Not implemented (roadmap v0.6.0).
+    fusion:
       enabled: false
+      # Which hook implementation to install, by registered name.
+      hook: null
+      # Which collection it queries. null uses the request's.
+      collection: null
+      # sequence-start | chunk-boundary | layer-entry.
+      point: sequence-start
       top_k: 8
+      # Candidates fetched before filtering, as a multiple of top_k.
+      overfetch: 1
+      score_threshold: null
+      # Tokens between calls at chunk-boundary. ~16 calls in a 512-token generation.
+      chunk_tokens: 32
+      # Fire every Nth decoder layer at layer-entry.
+      layer_stride: 1
+      max_calls_per_sequence: null
+      # Abandon a retrieval that misses this budget rather than stalling the pass.
+      deadline_us: 100
+      # skip | stall | error.
+      on_deadline_miss: skip
+      # Run retrieval on its own device stream so it overlaps the pass beside it.
+      own_stream: true
+      dedupe_across_calls: true
+      # Tokens the prompt-stuffed control arm may spend, so a comparison is at equal budget.
+      token_budget: null
+      # Store token ids for retrieved documents, so the hot path skips tokenization.
+      pretokenize_documents: true
+      # Trained adapter weights, for architectures that have not been forked.
+      adapter_path: null
+
+    # Precomputed KV for retrieved documents, reused at prefill. Not context-independent —
+    # position and preceding context change it — so a fraction is recomputed on reuse.
+    # Not implemented (roadmap v0.6.0).
+    document_kv:
+      enabled: false
+      max_bytes: null
+      # device | host | disk.
+      storage: host
+      recompute_ratio: 0.15
