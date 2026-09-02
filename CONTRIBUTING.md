@@ -40,9 +40,9 @@ a design conversation, so open an issue first.
 |---|---|
 | HTTP-specific | `apps/engine/serving/src/http` |
 | A user-facing operation | `apps/engine/serving/src/services` |
-| One collection's state | `apps/engine/collections` |
-| Bytes, mmap, WAL, sidecars | `apps/engine/database` |
-| An ANN implementation detail | `apps/engine/retrieval` |
+| One collection's state | `apps/engine/database` |
+| Bytes, mmap, WAL, sidecars | `apps/engine/database/src/storage` |
+| An ANN implementation detail | `apps/engine/database/src/index` |
 | Distance math or backend dispatch | `apps/engine/hardware` |
 | Device memory, streams, kernels | `apps/engine/hardware/src/gpu` |
 | Model execution | `apps/engine/model` |
@@ -67,9 +67,13 @@ self-contained.
 
 ## Commits and PRs
 
+`main` is protected: it takes no direct pushes, so every change arrives as a pull request. Branch
+from `main`, push the branch, open a PR. Force-pushing and deleting `main` are blocked, and review
+threads must be resolved before merge.
+
 Imperative subject under 72 characters. The body explains why, not what the diff already shows.
 One logical change per PR, and new behaviour comes with a test. A change that moves a boundary or
-forecloses an option gets an ADR in `docs/decisions/`.
+forecloses an option gets a numbered record in `docs/decisions/`.
 
 ## Reporting bugs
 

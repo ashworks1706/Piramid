@@ -7,7 +7,7 @@ use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
 use piramid_database::storage::SidecarManager;
 
-fn collection_info(name: String, collection: &piramid_collections::Collection) -> CollectionInfo {
+fn collection_info(name: String, collection: &piramid_database::Collection) -> CollectionInfo {
     let meta = collection.manifest();
     CollectionInfo {
         name,
@@ -215,7 +215,7 @@ pub fn find_duplicates(
     );
 
     let metric = crate::services::convert::parse_metric(req.metric)?;
-    let hits = piramid_collections::find_duplicates(
+    let hits = piramid_database::find_duplicates(
         &collection_guard,
         metric,
         req.threshold,
@@ -250,7 +250,7 @@ pub fn compact_collection(state: &SharedState, collection: String) -> Result<Reb
     let collection_handle = state.get_existing_collection(&collection)?;
     let mut collection_guard = collection_handle.write();
     let start = Instant::now();
-    let stats = piramid_collections::compact(&mut collection_guard)?;
+    let stats = piramid_database::compact(&mut collection_guard)?;
     let duration = start.elapsed();
     tracing::info!(
         target: "piramid::indexing",

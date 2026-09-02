@@ -47,21 +47,18 @@ One repo, one binary. Everything we author is under `apps/`. The library crates 
 folder and neither is hardware.
 
 ```
-apps/engine/core            errors (every one the app wraps), config (the whole surface: each
-                            index family's parameters, and telemetry), metadata and the filters
-                            over it, validation, stats, observability (subscriber, OTLP,
-                            Prometheus)
-apps/engine/hardware        compute (distance kernels, strategy registry), gpu (device, buffer,
-                            stream, module, kernels), quantization (the encodings both score over)
-apps/engine/database        records, WAL, SidecarManager, mmap, VectorReader
-apps/engine/retrieval       index (flat, hnsw, ivf traversal, selector, sidecar persistence) and
-                            search (query planning, filtering, scoring, ranking)
-apps/engine/collections     the Collection object, checkpoint, compact, cache/ (VectorStore
-                            resident + MetadataCache bounded)
+apps/engine/core            errors (every one the app wraps), config (the whole surface), the
+                            document and hit shapes, metadata and its filters, validation, stats,
+                            observability (subscriber, OTLP, Prometheus)
+apps/engine/hardware        compute (distance kernels, strategy registry, quantization) and
+                            gpu (device, buffer, stream, module, kernels)
+apps/engine/database        storage (records, WAL, sidecars, mmap), index (flat, hnsw, ivf),
+                            search (planning, filtering, ranking, near-duplicates), and the
+                            Collection that composes them with its caches and checkpoint policy
 apps/engine/model           inference (forward pass, kv_cache, batching, sampling), fusion (the
                             RetrievalHook seam), embeddings (openai wire format; ollama)
-apps/engine/serving         http (axum only), services (locks, metrics, DTOs), state, disk,
-                            cluster
+apps/engine/serving         http (axum only), services (locks, metrics, DTOs), api (wire shapes),
+                            state, disk, cluster
 apps/cli                    the piramid binary and the umbrella piramid facade crate
 apps/website                piramiddb.com, blog content and images included
 apps/sdk                    npm and python clients
@@ -77,9 +74,8 @@ One folder per crate, no grouping folders. The layering is the dependency rule b
 A crate may depend on one listed below it. The reverse is a layering violation.
 
 ```
-hardware ─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
-                  │                                          ├─→ serving ─→ cli
-                  └─→ model ────────────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ serving ─→ cli
+                  └─→ model ────┘
 ```
 
 `scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.
@@ -88,8 +84,8 @@ Adding an edge means editing that script and `docs/ARCHITECTURE.md` in the same 
 `hardware` depends on nothing in the workspace, `core` included. That's what lets kernels be
 benchmarked on their own.
 
-`model` never depends on the retrieval stack, which is what keeps a collection queryable with no
-model loaded. A hook implementation is its own crate depending on both.
+`model` never depends on `database`, which is what keeps a collection queryable with no model
+loaded. A hook implementation is its own crate depending on both.
 
 ## The three seams
 
@@ -126,7 +122,7 @@ retrieval stack.
 - Vendor SDK types stay inside their backend module, `gpu/backends/` and `inference/backends/`.
   Nothing above imports `cudarc` or `candle`.
 - Telemetry speaks open standards only. Prometheus and OTLP are protocols; a vendor's product is
-  not. See ADR 0011.
+  not. See `docs/decisions`.
 - Dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
 - Errors are `thiserror` enums with a `Result` alias per layer. `unwrap_used` and `expect_used`
   are denied; test files opt back in with a module-level `#![allow]` and a reason.
@@ -147,7 +143,7 @@ retrieval stack.
 - Comments explain why, never what. If a comment restates the line below it, delete it.
 - One name, one meaning. Before naming a module, check the word isn't already used for something
   else in the tree. Repeating a word is fine when it means the same thing at each layer, as with
-  `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See ADR 0010.
+  `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See `docs/decisions`.
 - Traits are named for the capability, not the implementation. Strategies and backends are named
   for the technology, one file each, so new hardware is a new file rather than a new match arm.
 - `mod.rs` and `lib.rs` re-export; they don't define types. A domain's manager lives in its

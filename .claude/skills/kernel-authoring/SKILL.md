@@ -7,9 +7,8 @@ description: Add a compute strategy or GPU kernel to Piramid. Use when implement
 
 How to add compute strategies and kernels without breaking the boundaries that make them swappable.
 
-Read `docs/decisions/0003-backend-first-compute-dispatch.md`,
-`0004-gpu-owns-device-compute-owns-math.md`, and `0005-contiguous-vector-layout.md` first. They
-explain why the shapes below are what they are.
+Read `docs/decisions/README.md` first — the compute dispatch, device/math split and vector
+layout decisions are summarised there, and they explain why the shapes below are what they are.
 
 ## The boundary
 

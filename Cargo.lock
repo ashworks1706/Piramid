@@ -1218,12 +1218,10 @@ version = "0.2.0"
 dependencies = [
  "axum",
  "clap",
- "piramid-collections",
  "piramid-core",
  "piramid-database",
  "piramid-hardware",
  "piramid-model",
- "piramid-retrieval",
  "piramid-serving",
  "rayon",
  "serde",
@@ -1231,24 +1229,6 @@ dependencies = [
  "serde_yaml",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "piramid-collections"
-version = "0.2.0"
-dependencies = [
- "dashmap",
- "parking_lot",
- "piramid-core",
- "piramid-database",
- "piramid-hardware",
- "piramid-retrieval",
- "rayon",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "uuid",
 ]
 
 [[package]]
@@ -1277,10 +1257,17 @@ name = "piramid-database"
 version = "0.2.0"
 dependencies = [
  "bincode",
+ "criterion",
+ "dashmap",
  "memmap2",
+ "parking_lot",
  "piramid-core",
+ "piramid-hardware",
+ "rand 0.8.8",
+ "rayon",
  "serde",
  "serde_json",
+ "tokio",
  "tracing",
  "uuid",
 ]
@@ -1316,21 +1303,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "piramid-retrieval"
-version = "0.2.0"
-dependencies = [
- "bincode",
- "criterion",
- "piramid-core",
- "piramid-database",
- "piramid-hardware",
- "rand 0.8.8",
- "rayon",
- "serde",
- "uuid",
-]
-
-[[package]]
 name = "piramid-serving"
 version = "0.2.0"
 dependencies = [
@@ -1339,12 +1311,10 @@ dependencies = [
  "libc",
  "num_cpus",
  "parking_lot",
- "piramid-collections",
  "piramid-core",
  "piramid-database",
  "piramid-hardware",
  "piramid-model",
- "piramid-retrieval",
  "serde",
  "serde_json",
  "tokio",

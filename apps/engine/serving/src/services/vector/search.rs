@@ -75,7 +75,7 @@ pub fn search_vectors(
         span.record("nprobe", nprobe);
     }
 
-    let params = piramid_retrieval::search::SearchParams {
+    let params = piramid_database::search::SearchParams {
         mode: collection_guard.config().execution,
         filter: filter.as_ref(),
         filter_overfetch_override: tuning.filter_overfetch,
@@ -160,7 +160,7 @@ pub fn range_search_vectors(
     );
 
     let effective_search = apply_search_overrides(collection_guard.config().search, &tuning)?;
-    let params = piramid_retrieval::search::SearchParams {
+    let params = piramid_database::search::SearchParams {
         mode: collection_guard.config().execution,
         filter: filter.as_ref(),
         filter_overfetch_override: tuning.filter_overfetch,

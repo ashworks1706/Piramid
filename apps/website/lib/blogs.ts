@@ -90,16 +90,6 @@ function slugFromPath(filePath: string): string[] {
 let cachedBlogs: BlogMeta[] | null = null;
 let cachedSearch: BlogSearchEntry[] | null = null;
 
-/**
- * Whether a post is ready to show in navigation.
- *
- * The architecture series is written but held back; its pages still render if you know the URL.
- * Delete the check to publish them.
- */
-function isFrontendVisibleBlog(slug: string[]): boolean {
-  return slug[0] !== "architecture";
-}
-
 export function listBlogs(): BlogMeta[] {
   if (cachedBlogs) return cachedBlogs;
   const results: BlogMeta[] = [];
@@ -156,9 +146,7 @@ export function buildSidebar(): SidebarSection[] {
     return [
       {
         label: "Blog",
-        items: blogs.filter(
-          (d) => d.slug.join("/") !== "index" && isFrontendVisibleBlog(d.slug),
-        ),
+        items: blogs.filter((d) => d.slug.join("/") !== "index"),
       },
     ];
   }
@@ -169,7 +157,7 @@ export function buildSidebar(): SidebarSection[] {
     const items: BlogMeta[] = [];
     for (const itemSlug of section.items) {
       const match = lookup.get(itemSlug);
-      if (match && isFrontendVisibleBlog(match.slug)) items.push(match);
+      if (match) items.push(match);
     }
     // Skip sections left with no visible items, so a group doesn't render with an empty heading.
     if (items.length > 0) sections.push({ label: section.label, items });
@@ -220,7 +208,6 @@ export function buildSearchIndex(): BlogSearchEntry[] {
   const entries: BlogSearchEntry[] = [];
 
   for (const blog of listBlogs()) {
-    if (!isFrontendVisibleBlog(blog.slug)) continue;
     const raw = fs.readFileSync(blog.filePath, "utf8");
 
     let body = raw;

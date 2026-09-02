@@ -21,11 +21,9 @@ that isn't in the rule below.
 ```text
 apps/                     everything we author
   engine/                 the library crates, one folder each
-    core/                 errors, config, metadata, validation, stats, observability
+    core/                 errors, config, document, metadata, validation, stats, observability
     hardware/             compute, gpu, quantization
-    database/             records, WAL, sidecars, mmap
-    retrieval/            index, search
-    collections/          the Collection object, its cache, checkpoint, compaction
+    database/             storage, index, search, and the Collection over them
     model/                inference, fusion, embeddings
     serving/              how the outside world reaches it
   cli/                    the piramid binary, which links the engine into one artifact
@@ -74,41 +72,30 @@ depends on `compute` for the `ExecutionMode` and `Metric` types that configurati
 ```mermaid
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
-    Serving[serving<br/>http · services · state · cluster]
+    Serving[serving<br/>http · services · api · state · cluster]
     Model[model<br/>inference · fusion · embeddings]
-    Collections[collections<br/>Collection · cache · checkpoint · compact]
-    Retrieval[retrieval<br/>index · search]
-    Database[database<br/>records · WAL · sidecars · mmap]
-    Core[core<br/>error · config · metadata · validation · stats · observability]
+    Database[database<br/>storage · index · search · Collection]
+    Core[core<br/>error · config · document · metadata · stats · observability]
     Hardware[hardware<br/>compute · gpu · quantization]
 
     CLI --> Serving
-    Serving --> Collections
-    Serving --> Model
-    Serving --> Retrieval
     Serving --> Database
+    Serving --> Model
     Serving --> Core
-    Collections --> Retrieval
-    Collections --> Database
-    Collections --> Core
-    Retrieval --> Database
-    Retrieval --> Core
-    Retrieval --> Hardware
+    Database --> Core
+    Database --> Hardware
     Model --> Core
     Model --> Hardware
-    Database --> Core
     Core --> Hardware
 ```
 
 | Crate | Owns | Must not |
 |---|---|---|
-| `core` | Every error the app wraps, all configuration, metadata and its filters, validation, `stats`, and the telemetry export those feed | Know about HTTP or end the process |
+| `core` | Every error the app wraps, all configuration, the document and hit shapes, metadata and its filters, validation, `stats`, and the telemetry export those feed | Know about HTTP or end the process |
 | `hardware` | Distance math and strategy dispatch, the device runtime, quantization encodings | Depend on anything in the workspace, or let vendor types escape `gpu::backends` |
-| `database` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
-| `retrieval` | ANN traversal and the sidecar format; overfetch planning, scoring, filtering, ranking | Own the vectors, or know what a `Collection` is |
-| `collections` | The `Collection` object, its `cache` (resident `VectorStore` + bounded `MetadataCache`), checkpoint, compaction | Serve HTTP, or evict a vector |
-| `model` | Model execution, KV cache, batching, sampling; the `RetrievalHook` seam; embedding providers | Depend on the retrieval stack, or be required for retrieval to work |
-| `serving` | Routes, handlers, services (admission, locks, metrics, DTOs), `AppState`, routing | Touch file formats or index internals |
+| `database` | Records, WAL, sidecars, mmap; ANN traversal and the sidecar format; query planning, filtering, scoring, ranking; the `Collection`, its caches, checkpoint and compaction | Serve HTTP |
+| `model` | Model execution, KV cache, batching, sampling; the `RetrievalHook` seam; embedding providers | Depend on `database`, or be required for retrieval to work |
+| `serving` | Routes, handlers, services, wire shapes, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
 ## What it's built on
@@ -126,7 +113,7 @@ engine, the indexes and the HTTP server are all in-process.
 | Parallelism | `rayon` | Work-stealing for the batch kernels, kept out of the hot single-pair path |
 | Storage | `memmap2` | Reads records without copying them into the heap first |
 | Concurrency | `dashmap`, `parking_lot`, `lru` | Sharded map so unrelated collections don't contend, smaller and faster locks, bounded caches |
-| Telemetry | `tracing`, OpenTelemetry, OTLP | Open standards only, no vendor SDK. See ADR 0011 |
+| Telemetry | `tracing`, OpenTelemetry, OTLP | Open standards only, no vendor SDK |
 | CLI | `clap` | Derive API, so the parser and the help text cannot drift apart |
 | Benchmarks | `criterion` | Statistical comparison, which matters when a kernel change is worth single-digit percent |
 
@@ -151,9 +138,8 @@ MDX through `next-mdx-remote` with KaTeX for the maths in the blog posts.
 A crate may depend on one listed below it. The reverse is a violation.
 
 ```
-hardware ─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
-                  │                                          ├─→ serving ─→ cli
-                  └─→ model ────────────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ serving ─→ cli
+                  └─→ model ────┘
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
@@ -377,9 +363,9 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 
 1. HTTP-specific goes in `apps/engine/serving/src/http`.
 2. Something that coordinates a user-facing operation goes in `apps/engine/serving/src/services`.
-3. Something that changes one collection's state goes in `apps/engine/collections`.
+3. Something that changes one collection's state goes in `apps/engine/database`.
 4. Bytes, mmap, WAL, and sidecars go in `apps/engine/database`.
-5. An ANN implementation detail goes in `apps/engine/retrieval`.
+5. An ANN implementation detail goes in `apps/engine/database/src/index`.
 6. Distance math or backend dispatch goes in `apps/engine/hardware`.
 7. Device memory, streams, and kernels go in `apps/engine/hardware/src/gpu`.
 8. Model execution goes in `apps/engine/model`.

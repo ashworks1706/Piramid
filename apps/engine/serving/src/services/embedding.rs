@@ -154,7 +154,7 @@ pub async fn search_by_text(
         &response.embedding,
         req.k,
         metric,
-        piramid_retrieval::search::SearchParams {
+        piramid_database::search::SearchParams {
             mode: collection_guard.config().execution,
             filter: filter.as_ref(),
             filter_overfetch_override: req.tuning.filter_overfetch,

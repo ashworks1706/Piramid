@@ -146,10 +146,10 @@ Qwen is forked and hooked; other architectures use prompt-stuffing until adapter
 
 - a managed cloud service
 - non-NVIDIA GPU backends until the CUDA path is real
-- a second deployable process — [ADR 0001](decisions/0001-single-binary.md)
+- a second deployable process — see [decisions](decisions/README.md)
 - distributed placement, and `cluster` beyond the local no-op router, until the single-device
   numbers exist
-- vendor telemetry integrations — [ADR 0011](decisions/0011-open-standards-only.md)
+- vendor telemetry integrations — see [decisions](decisions/README.md)
 - the npm and python SDKs, to be unpublished. They predate the one-shape request bodies and
   nothing depends on them
 - growing the vector database past what the device path uses. Storage, the WAL and collections

@@ -75,14 +75,10 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         total_vectors += count;
         let filter_overfetch = Some(collection_guard.config.search.filter_overfetch);
         let (hnsw_ef_search, ivf_nprobe) = match &collection_guard.config.index {
-            piramid_retrieval::index::IndexConfig::Auto { .. }
-            | piramid_retrieval::index::IndexConfig::Flat { .. } => (None, None),
-            piramid_retrieval::index::IndexConfig::Hnsw { params } => {
-                (Some(params.ef_search), None)
-            }
-            piramid_retrieval::index::IndexConfig::Ivf { params } => {
-                (None, Some(params.num_probes))
-            }
+            piramid_database::index::IndexConfig::Auto { .. }
+            | piramid_database::index::IndexConfig::Flat { .. } => (None, None),
+            piramid_database::index::IndexConfig::Hnsw { params } => (Some(params.ef_search), None),
+            piramid_database::index::IndexConfig::Ivf { params } => (None, Some(params.num_probes)),
         };
 
         collection_metrics.push(CollectionMetrics {

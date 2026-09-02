@@ -14,7 +14,7 @@ itself and any server implementing it, and Ollama. LRU-cached and retried.
 
 This crate depends on nothing in the retrieval stack, which is what keeps a collection queryable
 with no model loaded. A hook implementation that queries an index is a separate crate depending on
-both this one and `piramid-retrieval`.
+both this one and `piramid-database`.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
 [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.

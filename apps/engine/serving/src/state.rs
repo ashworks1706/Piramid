@@ -9,9 +9,9 @@ use std::sync::{
 use crate::cluster::{
     ClusterRouter, LocalClusterRouter, NodeCapabilities, NodeId, NodeRuntimeState, RouteDecision,
 };
-use piramid_collections::{CollectionHandle, CollectionManager};
 use piramid_core::config::{Config, StartupConfig};
 use piramid_core::error::{Result, ServerError};
+use piramid_database::{CollectionHandle, CollectionManager};
 use piramid_model::embeddings::EmbeddingsManager;
 
 #[derive(Clone, Copy, PartialEq, Eq)]
