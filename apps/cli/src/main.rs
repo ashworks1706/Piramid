@@ -224,38 +224,12 @@ fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {
 }
 
 fn preload_collections_for_metrics(state: &std::sync::Arc<AppState>) -> std::io::Result<()> {
-    let entries = fs::read_dir(&state.data_dir)?;
-    for entry in entries {
-        let entry = entry?;
-        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
-            continue;
-        };
-        let Some(collection_name) = collection_name_from_base_db_filename(&file_name) else {
-            continue;
-        };
+    for collection_name in state.collection_manager.discover_on_disk() {
         if let Err(error) = state.get_existing_collection(&collection_name) {
             eprintln!("Skipping collection '{collection_name}' while building metrics: {error}");
         }
     }
     Ok(())
-}
-
-fn collection_name_from_base_db_filename(file_name: &str) -> Option<String> {
-    if !file_name.ends_with(".db") {
-        return None;
-    }
-    if file_name.ends_with(".index.db")
-        || file_name.ends_with(".vecindex.db")
-        || file_name.ends_with(".metadata.db")
-        || file_name.ends_with(".wal.db")
-    {
-        return None;
-    }
-    let name = file_name.strip_suffix(".db")?;
-    if name.is_empty() {
-        return None;
-    }
-    Some(name.to_string())
 }
 
 fn write_config_file(path: &Path, fmt: OutputFormat) -> std::io::Result<()> {

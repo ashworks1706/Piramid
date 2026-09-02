@@ -71,6 +71,23 @@ impl CollectionManager {
         self.collections.remove(name).map(|(_, handle)| handle)
     }
 
+    /// Collection names present in the data directory, loaded or not.
+    ///
+    /// A collection is the base `{name}.db`; every other `.db` beside it is a sidecar this crate
+    /// wrote. Callers that scan the directory themselves invent collections named after sidecars.
+    pub fn discover_on_disk(&self) -> Vec<String> {
+        let Ok(entries) = std::fs::read_dir(&self.data_dir) else {
+            return Vec::new();
+        };
+        let mut names: Vec<String> = entries
+            .flatten()
+            .filter_map(|entry| collection_name_of(entry.file_name().to_str()?))
+            .collect();
+        names.sort();
+        names.dedup();
+        names
+    }
+
     pub fn contains_loaded(&self, name: &str) -> bool {
         self.collections.contains_key(name)
     }
@@ -107,5 +124,41 @@ impl CollectionManager {
             let guard = handle.read();
             guard.warm_page_cache();
         });
+    }
+}
+
+/// The collection a data file belongs to, or `None` if it is a sidecar or not ours.
+fn collection_name_of(file_name: &str) -> Option<String> {
+    const SIDECARS: [&str; 4] = [".index.db", ".vecindex.db", ".metadata.db", ".wal.db"];
+    if SIDECARS.iter().any(|suffix| file_name.ends_with(suffix)) {
+        return None;
+    }
+    let name = file_name.strip_suffix(".db")?;
+    (!name.is_empty()).then(|| name.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::collection_name_of;
+
+    #[test]
+    fn sidecars_are_not_collections() {
+        assert_eq!(collection_name_of("docs.db").as_deref(), Some("docs"));
+        for sidecar in [
+            "docs.db.wal.db",
+            "docs.db.index.db",
+            "docs.db.vecindex.db",
+            "docs.db.metadata.db",
+        ] {
+            assert_eq!(collection_name_of(sidecar), None, "{sidecar} is a sidecar");
+        }
+    }
+
+    #[test]
+    fn unrelated_files_are_ignored() {
+        assert_eq!(collection_name_of("notes.txt"), None);
+        assert_eq!(collection_name_of(".db"), None);
+        assert_eq!(collection_name_of("docs.db.wal.meta"), None);
+        assert_eq!(collection_name_of("docs.db.compact"), None);
     }
 }

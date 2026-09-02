@@ -162,39 +162,29 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
         });
     }
 
-    if let Ok(entries) = std::fs::read_dir(&state.data_dir) {
-        for entry in entries.flatten() {
-            if entry.path().extension().is_some_and(|ext| ext == "db") {
-                let name = entry
-                    .path()
-                    .file_stem()
-                    .and_then(|stem| stem.to_str())
-                    .unwrap_or("")
-                    .to_string();
-                if state.collection_manager.contains_loaded(&name) {
-                    continue;
-                }
-                collections.push(CollectionHealth {
-                    name,
-                    loaded: false,
-                    count: None,
-                    index_type: None,
-                    last_checkpoint: None,
-                    checkpoint_age_secs: None,
-                    wal_size_bytes: None,
-                    schema_version: None,
-                    integrity_ok: false,
-                    error: Some("not loaded".to_string()),
-                });
-            }
+    // Collections load lazily, so one present on disk but not yet opened is normal rather than
+    // unhealthy — and readiness is what gates the traffic that would open it.
+    for name in state.collection_manager.discover_on_disk() {
+        if state.collection_manager.contains_loaded(&name) {
+            continue;
         }
+        collections.push(CollectionHealth {
+            name,
+            loaded: false,
+            count: None,
+            index_type: None,
+            last_checkpoint: None,
+            checkpoint_age_secs: None,
+            wal_size_bytes: None,
+            schema_version: None,
+            integrity_ok: true,
+            error: None,
+        });
     }
 
     let loaded_collections = state.collection_manager.len();
     let (disk_total_bytes, disk_available_bytes) = crate::disk::stats(&state.data_dir)?;
-    let ok = collections
-        .iter()
-        .all(|collection| collection.integrity_ok && collection.loaded);
+    let ok = collections.iter().all(|collection| collection.integrity_ok);
 
     Ok(ReadyzResponse {
         ok,
