@@ -138,11 +138,9 @@ Knowledge does not have to live in a model's weights, and it does not have to li
 either. Retrieval that reaches the model directly costs no context window, and it can happen
 during generation rather than once before it.
 
-That last part is the whole reason for the design. Retrieving once before prefill saves a service
-hop worth milliseconds against seconds of generation — real, but small, and a separate vector
-store gets you most of it. Retrieving repeatedly *inside* a single generation, overlapped with
-compute, against state that never leaves the device, cannot be done across a service boundary at
-all. The index lives in-process because it has to, not because Piramid is a database.
+Retrieval inside a generation — repeated, overlapped with compute, against state that never leaves
+the device — is what the single process is for. Retrieval before prefill costs one service hop and
+does not need one.
 
 Piramid commits to the seam for that rather than to a particular mechanism.
 `inference::augment::RetrievalHook` says when retrieval may happen and what it may touch, not how

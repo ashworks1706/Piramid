@@ -5,13 +5,11 @@ How the workspace is cut, why each boundary sits where it does, and what has to 
 ## The problem this shape solves
 
 Piramid runs retrieval and, eventually, transformer inference in one process, on one device, so
-that retrieval can happen *during* generation rather than once before it. Retrieving before prefill
-saves a service hop worth milliseconds against seconds of generation, which a separate vector store
-gets you most of; retrieving repeatedly inside a generation, overlapped with compute against
-device-resident state, cannot cross a service boundary at all. That is what the single process buys,
-and everything below is shaped by it.
+that retrieval can happen during generation rather than once before it. Retrieval inside a
+generation — repeated, overlapped with compute, against device-resident state — does not cross a
+service boundary; retrieval before prefill costs one hop and does not need one.
 
-Which is also exactly why internal boundaries matter: with no network between the layers, nothing
+That single-process goal is why internal boundaries matter: with no network between the layers, nothing
 keeps them from growing into each other except discipline, and discipline that nothing checks tends
 not to survive.
 

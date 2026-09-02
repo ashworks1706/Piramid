@@ -12,8 +12,7 @@ that shape uploads to a device in one copy. A slice of `Vec`s can't, and forces 
 that costs more than the kernel saves.
 
 Dispatch never panics and never substitutes. A requested strategy that isn't available on this
-machine or in this build is a `ComputeError::StrategyUnavailable`, not a quiet fall back to CPU —
-asking for `gpu` and silently getting scalar numbers is the same bug as returning wrong ones.
+machine or in this build returns `ComputeError::StrategyUnavailable`.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
 [`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.
