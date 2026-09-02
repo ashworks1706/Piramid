@@ -1,6 +1,5 @@
 //! Telemetry export: tracing subscriber, optional OTLP spans, and Prometheus metrics.
 
-pub mod config;
 pub mod prometheus;
 
 use std::sync::OnceLock;
@@ -11,7 +10,6 @@ use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
 pub use crate::config::{LogLevel, LoggingConfig, OtlpConfig, TelemetryConfig};
-pub use config::{ObservabilityError, ObservabilityResult};
 
 /// Holds exporters alive; dropping this flushes pending telemetry.
 #[must_use = "dropping the guard shuts down telemetry export"]

@@ -367,11 +367,12 @@ impl HnswIndex {
         result.into_iter().map(|c| c.id).collect()
     }
 
-    // No filter, or no metadata for `id`, or a match: any of the three lets a candidate through.
+    // Optimistic on purpose: `metadatas` is a bounded cache, so a miss is not proof of a
+    // non-match. `search::engine` settles it against the resolved document.
     fn passes_filter(&self, id: &Uuid, context: &SearchContext<'_>) -> bool {
         context
             .filter
-            .is_none_or(|f| context.metadatas.get(id).is_none_or(|md| f.matches(md)))
+            .is_none_or(|filter| filter.may_match(context.metadatas.get(id)))
     }
 
     /// Pick the `m` closest candidates by distance only (no diversity heuristic).

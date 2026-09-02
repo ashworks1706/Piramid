@@ -29,7 +29,7 @@ pub async fn prometheus_metrics(
     Ok((
         [(
             axum::http::header::CONTENT_TYPE,
-            crate::http::prometheus::SCRAPE_CONTENT_TYPE,
+            piramid_core::observability::prometheus::CONTENT_TYPE,
         )],
         crate::http::prometheus::render(&snapshot),
     ))

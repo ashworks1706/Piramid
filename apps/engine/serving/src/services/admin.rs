@@ -1,5 +1,3 @@
-use std::time::{SystemTime, UNIX_EPOCH};
-
 use crate::services::types::*;
 use crate::state::SharedState;
 use piramid_core::error::Result;
@@ -104,7 +102,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         let checkpoint_age_secs = collection_guard
             .checkpoint
             .last_checkpoint()
-            .and_then(|timestamp| current_unix_secs().ok()?.checked_sub(timestamp));
+            .and_then(|timestamp| piramid_core::clock::unix_secs().checked_sub(timestamp));
         wal_stats.push(WalStats {
             collection: collection_guard.path.clone(),
             last_checkpoint: collection_guard.checkpoint.last_checkpoint(),
@@ -146,8 +144,8 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
         let count = collection_guard.count();
         total_vectors += count;
         let last_checkpoint = collection_guard.checkpoint.last_checkpoint();
-        let checkpoint_age_secs =
-            last_checkpoint.and_then(|timestamp| current_unix_secs().ok()?.checked_sub(timestamp));
+        let checkpoint_age_secs = last_checkpoint
+            .and_then(|timestamp| piramid_core::clock::unix_secs().checked_sub(timestamp));
         let wal_size_bytes = optional_file_size(&format!("{}.wal.db", collection_guard.path))?;
 
         collections.push(CollectionHealth {
@@ -217,11 +215,4 @@ fn optional_file_size(path: &str) -> Result<Option<u64>> {
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
         Err(error) => Err(error.into()),
     }
-}
-
-fn current_unix_secs() -> Result<u64> {
-    Ok(SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map_err(|e| piramid_core::error::PiramidError::other(format!("system clock error: {e}")))?
-        .as_secs())
 }

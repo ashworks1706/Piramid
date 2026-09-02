@@ -1,6 +1,6 @@
 //! Renders `/api/metrics` JSON into the Prometheus text exposition format.
 
-use piramid_core::observability::prometheus::{MetricType, Registry, CONTENT_TYPE};
+use piramid_core::observability::prometheus::{MetricType, Registry};
 
 use crate::services::types::MetricsResponse;
 
@@ -142,6 +142,3 @@ pub fn render(metrics: &MetricsResponse) -> String {
 
     registry.render()
 }
-
-/// `Content-Type` for the scrape response.
-pub const SCRAPE_CONTENT_TYPE: &str = CONTENT_TYPE;

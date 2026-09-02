@@ -80,7 +80,7 @@ impl AppState {
 
     /// Milliseconds above which a query is logged at `warn`.
     pub fn slow_query_ms(&self) -> u128 {
-        u128::from(self.booted_with.logging.slow_query_ms.unwrap_or(500))
+        u128::from(self.booted_with.logging.slow_query_ms())
     }
 
     pub fn disk_min_free_bytes(&self) -> Option<u64> {

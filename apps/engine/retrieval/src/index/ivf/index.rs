@@ -9,6 +9,9 @@ use piramid_core::config::IvfConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_hardware::compute::{strategies::for_mode, DistanceKernels};
 
+/// Centroids at least this similar between iterations count as settled.
+const CONVERGENCE_SIMILARITY: f32 = 0.99;
+
 #[derive(Clone, Serialize, Deserialize)]
 pub struct IvfIndex {
     config: IvfConfig,
@@ -71,11 +74,15 @@ impl IvfIndex {
 
                 let new_centroid = self.compute_centroid(cluster);
 
-                let distance =
+                // `Metric::calculate` normalises to higher-is-closer, so this is a similarity
+                // rather than a distance. The threshold is only meaningful for a bounded metric:
+                // `DotProduct` is unbounded, so convergence there is decided by magnitude rather
+                // than by centroid movement.
+                let similarity =
                     self.config
                         .metric
                         .calculate(&self.centroids[i], &new_centroid, kernels);
-                if distance < 0.99 {
+                if similarity < CONVERGENCE_SIMILARITY {
                     converged = false;
                 }
 

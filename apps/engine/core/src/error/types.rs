@@ -44,6 +44,8 @@ pub enum PiramidError {
 
     #[error("Compute error: {0}")]
     Compute(#[from] piramid_hardware::compute::ComputeError),
+    #[error("Device error: {0}")]
+    Gpu(#[from] piramid_hardware::gpu::GpuError),
 
     #[error("IO error: {0}")]
     Io(#[from] io::Error),
@@ -68,7 +70,7 @@ impl PiramidError {
         match self {
             Self::Server(e) => e.kind(),
             Self::Embedding(_) => ErrorKind::Upstream,
-            Self::Compute(_) => ErrorKind::Unavailable,
+            Self::Compute(_) | Self::Gpu(_) => ErrorKind::Unavailable,
             Self::Storage(_)
             | Self::Index(_)
             | Self::Io(_)
