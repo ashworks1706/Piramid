@@ -1,0 +1,29 @@
+[package]
+name = "piramid-model"
+description = "Model execution and the embedding providers that feed it."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+piramid-hardware.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+async-trait.workspace = true
+reqwest.workspace = true
+lru.workspace = true
+parking_lot.workspace = true
+tokio.workspace = true
+tracing.workspace = true
+
+[features]
+default = []
+inference-candle = []
+
+[lints]
+workspace = true

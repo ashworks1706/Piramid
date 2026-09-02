@@ -32,7 +32,7 @@ impl RuntimeConfig {
     pub fn validate(&self) -> Result<(), String> {
         // Ask compute, so the feature flag stays owned by the crate that defines it.
         if matches!(self.execution, ExecutionMode::Gpu)
-            && piramid_compute::strategies::for_mode(ExecutionMode::Gpu).is_err()
+            && piramid_hardware::compute::strategies::for_mode(ExecutionMode::Gpu).is_err()
         {
             return Err(
                 "runtime.execution: 'gpu' requires a build with the `gpu-cuda` feature".into(),
@@ -58,6 +58,7 @@ impl RuntimeConfig {
         if self.memory.use_mmap && self.memory.initial_mmap_size == 0 {
             return Err("runtime.memory.initial_mmap_size: must be > 0 when mmap is on".into());
         }
+        self.cache.validate()?;
         self.index.validate()?;
         self.inference.validate()
     }

@@ -32,9 +32,8 @@ a different crate, or the boundary genuinely needs to move, in which case update
 a library, return a `Result`. In a test the allow is already configured in `clippy.toml`; if clippy
 still complains, your helper isn't marked `#[test]` and needs a narrowly scoped allow.
 
-**`unsafe_code` denied.** `apps/engine/hardware/gpu` allows it. Everywhere else, two sites are
-documented in SECURITY.md and a third fails the security workflow. Needing `unsafe` is a design
-conversation first.
+**`unsafe_code` denied.** Four sites allow it, all documented in SECURITY.md; a fifth fails the
+security workflow. Needing `unsafe` is a design conversation first.
 
 **MSRV failure.** You used a std API newer than `rust-version` in the root `Cargo.toml`. Either
 avoid it or bump the MSRV in `Cargo.toml` and `clippy.toml` together.

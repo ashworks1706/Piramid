@@ -64,6 +64,8 @@ impl StartupConfig {
         if let Some(embedding) = &self.embedding {
             embedding.validate()?;
         }
+        self.hardware.gpu.validate()?;
+        self.hardware.vram.validate()?;
         Ok(())
     }
 }

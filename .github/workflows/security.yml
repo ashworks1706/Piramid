@@ -64,7 +64,7 @@ jobs:
           while IFS= read -r f; do
             [ -z "$f" ] && continue
             case "$f" in
-              apps/engine/hardware/gpu/*|apps/engine/data/storage/src/persistence/mmap.rs|apps/engine/server/src/disk.rs)
+              apps/engine/hardware/src/gpu/*|apps/engine/database/src/storage/sidecars/mmap.rs|apps/engine/serving/src/disk.rs)
                 echo "  ok   $f" ;;
               *)
                 echo "  FAIL $f — unreviewed unsafe_code allowance"

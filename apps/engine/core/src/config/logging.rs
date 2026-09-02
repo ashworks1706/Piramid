@@ -37,6 +37,16 @@ pub struct LoggingConfig {
     pub slow_query_ms: Option<u64>,
 }
 
+impl LoggingConfig {
+    /// Threshold above which a query is logged at `warn`.
+    pub fn slow_query_ms(&self) -> u64 {
+        self.slow_query_ms.unwrap_or(DEFAULT_SLOW_QUERY_MS)
+    }
+}
+
+/// Used both as the serde default and as the fallback for an explicit `null`.
+const DEFAULT_SLOW_QUERY_MS: u64 = 500;
+
 impl Default for LoggingConfig {
     fn default() -> Self {
         Self {
@@ -49,7 +59,7 @@ impl Default for LoggingConfig {
             inference: true,
             http: true,
             json: false,
-            slow_query_ms: Some(500),
+            slow_query_ms: Some(DEFAULT_SLOW_QUERY_MS),
         }
     }
 }

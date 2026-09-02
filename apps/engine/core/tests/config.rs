@@ -4,11 +4,11 @@
     reason = "assertions in tests"
 )]
 
-use piramid_compute::Metric;
 use piramid_core::config::{
     AutoIndexConfig, Config, HardwareProfile, IndexConfig, IndexKind, LogLevel, QuantizationLevel,
     QuantizationStage,
 };
+use piramid_hardware::compute::Metric;
 
 #[test]
 fn the_default_config_round_trips_through_yaml() {
@@ -125,7 +125,7 @@ fn unimplemented_settings_are_rejected_rather_than_ignored() {
     assert!(err.contains("not implemented"), "{err}");
 
     let mut cfg = Config::default();
-    cfg.runtime.inference.augment.enabled = true;
+    cfg.runtime.inference.fusion.enabled = true;
     assert!(cfg.validate().unwrap_err().contains("not implemented"));
 }
 
@@ -134,4 +134,86 @@ fn a_bad_bind_address_is_rejected() {
     let mut cfg = Config::default();
     cfg.startup.bind = "6333".to_string();
     assert!(cfg.validate().unwrap_err().contains("address:port"));
+}
+
+// The config surface is scaffolded ahead of the code, which only works if a setting the build
+// cannot honour is a startup error. Five settings once shipped with no reader at all — one of
+// them the WAL's durability switch — so this is the rule the tree has broken most often.
+#[test]
+fn every_unimplemented_subsystem_refuses_to_start() {
+    for (name, mutate) in [
+        (
+            "inference",
+            Box::new(|c: &mut Config| c.runtime.inference.enabled = true)
+                as Box<dyn Fn(&mut Config)>,
+        ),
+        (
+            "fusion",
+            Box::new(|c: &mut Config| c.runtime.inference.fusion.enabled = true),
+        ),
+        (
+            "document_kv",
+            Box::new(|c: &mut Config| c.runtime.inference.document_kv.enabled = true),
+        ),
+        (
+            "vram split",
+            Box::new(|c: &mut Config| c.startup.hardware.vram.enabled = true),
+        ),
+        (
+            "vector cache bounds",
+            Box::new(|c: &mut Config| c.runtime.cache.vectors.entries = Some(100)),
+        ),
+        (
+            "metadata ttl",
+            Box::new(|c: &mut Config| c.runtime.cache.metadata.ttl_seconds = Some(60)),
+        ),
+    ] {
+        let mut cfg = Config::default();
+        mutate(&mut cfg);
+        let error = cfg
+            .validate()
+            .expect_err(&format!("{name} was accepted but nothing implements it"));
+        assert!(
+            error.contains("not implemented") || error.contains("not enforced"),
+            "{name}: error should say so plainly, got {error}"
+        );
+    }
+}
+
+#[test]
+fn a_memory_class_profile_supplies_the_memory_budget() {
+    use piramid_core::config::HardwareProfile;
+
+    let mut cfg = Config::default();
+    cfg.startup.hardware.profile = HardwareProfile::Memory16Gb;
+    assert_eq!(
+        cfg.startup.hardware.memory_budget(),
+        Some(16 * 1024 * 1024 * 1024)
+    );
+
+    // An explicit budget wins over what the class would choose.
+    cfg.startup.hardware.memory_budget_bytes = Some(4_000_000_000);
+    assert_eq!(cfg.startup.hardware.memory_budget(), Some(4_000_000_000));
+
+    // The profiles that name which hardware rather than how much imply no budget.
+    cfg.startup.hardware.memory_budget_bytes = None;
+    cfg.startup.hardware.profile = HardwareProfile::CpuOnly;
+    assert_eq!(cfg.startup.hardware.memory_budget(), None);
+}
+
+#[test]
+fn memory_class_profiles_round_trip_through_yaml() {
+    for name in ["auto", "cpu-only", "gpu", "8gb", "16gb", "32gb"] {
+        let yaml = format!("startup:\n  hardware:\n    profile: {name}\n");
+        let cfg: Config = serde_yaml::from_str(&yaml).unwrap();
+        assert_eq!(cfg.startup.hardware.profile.as_str(), name);
+    }
+}
+
+#[test]
+fn a_gpu_block_size_that_is_not_a_warp_multiple_is_rejected() {
+    let mut cfg = Config::default();
+    cfg.startup.hardware.gpu.distance_block_size = 100;
+    let error = cfg.validate().unwrap_err();
+    assert!(error.contains("distance_block_size"), "{error}");
 }

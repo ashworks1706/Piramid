@@ -6,7 +6,7 @@
 
 use serde::{Deserialize, Serialize};
 
-use piramid_compute::{ExecutionMode, Metric};
+use piramid_hardware::compute::{ExecutionMode, Metric};
 
 /// Brute-force scan parameters.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]

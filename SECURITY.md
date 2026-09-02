@@ -34,7 +34,7 @@ Specifically:
 ## Telemetry
 
 Nothing is transmitted to this project under any configuration. The exporters in
-`piramid-observability` point at endpoints you supply, and `PIRAMID_LOG_SPANS` only writes to your
+`core::observability` points at endpoints you supply, and `PIRAMID_LOG_SPANS` only writes to your
 own logs.
 
 Span fields carry collection names and request ids. They never carry vector contents, document
@@ -62,7 +62,8 @@ as `just audit`. Dependabot proposes updates weekly.
 
 ## Unsafe code
 
-`unsafe_code` is denied workspace-wide. It's permitted in `apps/engine/hardware/gpu` for device
-memory, and at two audited sites: `storage::persistence::mmap::create_mmap` and
-`server::disk`. Each carries a `// SAFETY:` comment stating its precondition. A PR
-introducing `unsafe` anywhere else fails CI.
+`unsafe_code` is denied workspace-wide, and permitted at four audited sites: `as_bytes` and
+`as_bytes_mut` in `apps/engine/hardware/src/gpu/buffer.rs`, which reinterpret a typed slice as
+bytes for device transfer; `database::storage::sidecars::mmap::create_mmap`; and
+`serving::disk`. Each carries a `// SAFETY:` comment stating its precondition. A PR introducing
+`unsafe` anywhere else fails CI.

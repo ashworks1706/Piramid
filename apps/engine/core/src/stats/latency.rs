@@ -2,7 +2,7 @@
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 #[derive(Debug, Clone, Default)]
 pub struct LatencyTracker {
@@ -99,26 +99,4 @@ impl LatencyTracker {
             avg.store(new_avg, Ordering::Relaxed);
         }
     }
-}
-
-/// Run an async operation, returning its result alongside how long it took.
-pub async fn time_operation<F, T>(operation: F) -> (T, Duration)
-where
-    F: std::future::Future<Output = T>,
-{
-    let start = Instant::now();
-    let result = operation.await;
-    let duration = start.elapsed();
-    (result, duration)
-}
-
-/// Synchronous counterpart to [`time_operation`].
-pub fn time_operation_sync<F, T>(operation: F) -> (T, Duration)
-where
-    F: FnOnce() -> T,
-{
-    let start = Instant::now();
-    let result = operation();
-    let duration = start.elapsed();
-    (result, duration)
 }

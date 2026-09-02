@@ -30,3 +30,35 @@ fn filter_numeric_comparisons_work() {
     assert!(Filter::new().lte("score", 75i64).matches(&meta));
     assert!(!Filter::new().gt("score", 80i64).matches(&meta));
 }
+
+// `matches` and `may_match` deliberately disagree on absent metadata. An index traversing a
+// bounded cache cannot tell "no metadata" from "evicted", so it asks the optimistic question and
+// the search engine settles it against the resolved document.
+#[test]
+fn may_match_admits_absent_metadata_where_matches_rejects_it() {
+    let filter = Filter::new().eq("lang", "rust");
+
+    assert!(
+        !filter.matches(&metadata([])),
+        "an empty document cannot satisfy eq"
+    );
+    assert!(
+        filter.may_match(None),
+        "absent metadata must stay a candidate, or an evicted document is lost"
+    );
+    assert!(filter.may_match(Some(&metadata([("lang", "rust".into())]))));
+    assert!(!filter.may_match(Some(&metadata([("lang", "go".into())]))));
+}
+
+#[test]
+fn may_match_with_present_metadata_is_exactly_matches() {
+    let filter = Filter::new().gt("score", 10i64);
+    for md in [
+        metadata([]),
+        metadata([("score", 5i64.into())]),
+        metadata([("score", 50i64.into())]),
+        metadata([("other", "x".into())]),
+    ] {
+        assert_eq!(filter.may_match(Some(&md)), filter.matches(&md));
+    }
+}

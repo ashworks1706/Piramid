@@ -22,24 +22,18 @@ path = "src/main.rs"
 
 [features]
 default = []
-gpu-cuda = ["piramid-compute/gpu-cuda", "piramid-gpu/gpu-cuda"]
-inference-candle = ["piramid-inference/inference-candle"]
+gpu-cuda = ["piramid-hardware/gpu-cuda"]
+inference-candle = ["piramid-model/inference-candle"]
 # Export traces over OTLP to any collector (Axiom, Tempo, Honeycomb, Jaeger).
-otel = ["piramid-observability/otel"]
+otel = ["piramid-core/otel"]
 
 [dependencies]
 rayon.workspace = true
 piramid-core.workspace = true
-piramid-compute.workspace = true
-piramid-gpu.workspace = true
-piramid-storage.workspace = true
-piramid-index.workspace = true
-piramid-search.workspace = true
-piramid-collections.workspace = true
-piramid-embeddings.workspace = true
-piramid-inference.workspace = true
-piramid-observability.workspace = true
-piramid-server.workspace = true
+piramid-hardware.workspace = true
+piramid-database.workspace = true
+piramid-model.workspace = true
+piramid-serving.workspace = true
 axum.workspace = true
 clap.workspace = true
 serde.workspace = true
@@ -47,7 +41,6 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 tokio.workspace = true
 tracing.workspace = true
-tracing-subscriber.workspace = true
 
 # Restates the workspace lints (Cargo forbids partial overrides) with one change: the CLI is the
 # one place that talks to a terminal, so `println!`/`eprintln!` are allowed here.

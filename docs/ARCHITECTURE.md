@@ -4,10 +4,18 @@ How the workspace is cut, why each boundary sits where it does, and what has to 
 
 ## The problem this shape solves
 
-Piramid runs retrieval and, eventually, transformer inference in one process. That single-process
-goal is exactly why internal boundaries matter: with no network between the layers, nothing keeps
-them from growing into each other except discipline, and discipline that nothing checks tends not
-to survive.
+Piramid runs retrieval and, eventually, transformer inference in one process, on one device, so
+that retrieval can happen during generation rather than once before it. Retrieval inside a
+generation — repeated, overlapped with compute, against device-resident state — does not cross a
+service boundary; retrieval before prefill costs one hop and does not need one.
+
+Colocating a vector database and an inference server on one host removes the network, and the
+candidate set still travels to reach the weights. The slab sitting in device memory beside them is
+what makes a retrieval cheap enough to repeat, and that needs one address space.
+
+That single-process goal is why internal boundaries matter: with no network between the layers, nothing
+keeps them from growing into each other except discipline, and discipline that nothing checks tends
+not to survive.
 
 So the layering is physical. Each layer is a crate, and `scripts/check-deps.sh` fails CI on an edge
 that isn't in the rule below.
@@ -16,17 +24,12 @@ that isn't in the rule below.
 
 ```text
 apps/                     everything we author
-  engine/                 the library crates
-    core/                 errors, config, metadata, validation, stats
-    observability/        where measurements go: subscriber, OTLP, Prometheus
-    hardware/             code that changes when the machine changes
-      compute  gpu
-    data/                 where vectors live and who owns them
-      storage  collections
-    retrieval/            how you find them
-      index  search  embeddings
-    inference/            how you run a model over them
-    server/               how the outside world reaches it
+  engine/                 the library crates, one folder each
+    core/                 errors, config, document, metadata, validation, stats, observability
+    hardware/             compute, gpu, quantization
+    database/             storage, index, search, and the Collection over them
+    model/                inference, fusion, embeddings
+    serving/              how the outside world reaches it
   cli/                    the piramid binary, which links the engine into one artifact
   website/                piramiddb.com, with blog content and images inside it
   sdk/                    npm and python clients
@@ -38,92 +41,65 @@ Two things the naming is doing. `engine/` says what the thing is; "crates" descr
 compilation model, not the product. And one binary doesn't mean one folder: the engine is eleven
 crates and `apps/cli` is what links them into an artifact.
 
-The groups answer "what is this for", and each cut is a real one.
+Each cut is a real one.
 
-`hardware/` is the code that changes when the machine changes. `compute` owns what cosine means
-and which backend runs it; `gpu` owns the device, meaning contexts, buffers, streams, and modules.
-They're separate because two subsystems need a device — `compute` for distance kernels and
-`inference` for model execution — and neither should have to depend on the other to allocate
-memory.
+`hardware` is the code that changes when the machine changes. `compute` owns what cosine means and
+which strategy runs it, `gpu` owns the device — contexts, buffers, streams, modules — and
+`quantization` owns the encodings both score over. It is a leaf, so kernels can be benchmarked on
+their own and `model` can get a device without reaching through retrieval math.
 
-`data/` is where vectors live and who owns them. `storage` is bytes: records, WAL, mmap, layout.
-`collections` is the object that owns a store, a cache, a checkpoint policy, and an index. A
-collection is acted on by search rather than being a way of finding things itself.
+`database` is where vectors live: records, WAL, mmap, sidecars. It decides nothing about API
+behaviour or collection lifecycle — a `RecordStore` does not know what a collection is.
 
-`retrieval/` is how you find them: `index` for the ANN structure, `search` for planning and
-scoring, `embeddings` for turning text into a vector to search with.
+`retrieval` is how they are found: `index` for the ANN structure, `search` for planning and
+scoring. `collections` is the object that owns a store, a cache, a checkpoint policy and an index;
+a collection is acted on by search rather than being a way of finding things itself.
 
-`core` and `observability` sit flat because they're used from everywhere rather than at one level.
-`core` is the vocabulary everything shares. `observability` is used by `server`, which renders
-metrics, and directly by `apps/cli`, which installs the tracing subscriber before any server
-exists. `server` and `inference` are flat because each is one crate, and a group of one buys
-nothing.
+`model` is the forward pass, the `fusion` seam retrieval enters it through, and the `embeddings`
+providers that turn text into a vector. It depends on nothing in the retrieval stack, which is what
+keeps a collection queryable with no model loaded.
 
-`core::stats` and `observability` split a concern that's easy to read as two names for one thing.
-`stats` is what the engine measures about itself: latency, lock contention, embedding throughput,
-held as plain atomics with no dependency on `tracing` or any exporter, so `collections` and
-`server` can record into it freely. `observability` is where those numbers go, and it carries
-`tracing-subscriber` and OpenTelemetry. Merging them would link an exporter stack into every crate
-that times a lock.
+`core` is the vocabulary everything shares: errors, the whole configuration surface, document
+metadata and its filters, validation, and the counters the engine keeps about itself.
 
-Folder groups are for finding your way around. They deliberately don't line up with the dependency
-order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types that
-configuration carries.
+`core::stats` and `core::observability` split a concern that is easy to read as two names for one
+thing. `stats` is what the engine measures: latency, lock contention, embedding throughput, held as
+plain atomics with no dependency on an exporter, so any crate can record into it freely.
+`observability` is where those numbers go, and it carries `tracing-subscriber` and OpenTelemetry.
+
+One folder per crate, no grouping folders. The tree carries names; the layering is the
+dependency rule, enforced by `scripts/check-deps.sh`. Folder order is not dependency order — `core`
+depends on `compute` for the `ExecutionMode` and `Metric` types that configuration carries.
 
 ## Crates
 
 ```mermaid
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
-    Server[server<br/>http · services · state · cluster]
-    Inference[inference<br/>forward pass · kv_cache · augment seam]
-    Collections[collections<br/>Collection · cache · checkpoint · compact]
-    Embeddings[embeddings<br/>openai · ollama]
-    Search[search<br/>planning · filtering · ranking]
-    Index[index<br/>flat · hnsw · ivf]
-    Storage[storage<br/>records · WAL · sidecars · mmap · readers]
-    Core[core<br/>error · config · metadata · validation · stats]
-    Compute[compute<br/>distance kernels · dispatch · quantization]
-    Gpu[gpu<br/>device · buffer · stream · module]
+    Serving[serving<br/>http · services · api · state · cluster]
+    Model[model<br/>inference · fusion · embeddings]
+    Database[database<br/>storage · index · search · Collection]
+    Core[core<br/>error · config · document · metadata · stats · observability]
+    Hardware[hardware<br/>compute · gpu · quantization]
 
-    CLI --> Server
-    CLI --> Inference
-    Server --> Collections
-    Server --> Embeddings
-    Server --> Search
-    Server --> Index
-    Server --> Storage
-    Server --> Core
-    Inference --> Gpu
-    Inference --> Core
-    Collections --> Search
-    Collections --> Index
-    Collections --> Storage
-    Collections --> Core
-    Embeddings --> Core
-    Search --> Index
-    Search --> Storage
-    Search --> Core
-    Index --> Storage
-    Index --> Core
-    Index --> Compute
-    Storage --> Core
-    Core --> Compute
+    CLI --> Serving
+    Serving --> Database
+    Serving --> Model
+    Serving --> Core
+    Database --> Core
+    Database --> Hardware
+    Model --> Core
+    Model --> Hardware
+    Core --> Hardware
 ```
 
 | Crate | Owns | Must not |
 |---|---|---|
-| `core` | Every error the app wraps, all configuration (including per-index-family parameters), metadata and filters, validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
-| `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product, or own its own settings — those are `core::config::TelemetryConfig` |
-| `compute` | Distance math, backend selection, quantization encodings | Depend on anything in the workspace |
-| `gpu` | Device runtime: contexts, buffers, streams, modules, kernels | Contain math semantics or leak vendor types |
-| `storage` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
-| `index` | ANN traversal and the sidecar format | Own collection storage, the vectors, or a second copy of its own config |
-| `search` | Overfetch planning, scoring, filtering, ranking | Know what a `Collection` is |
-| `collections` | The `Collection` object, its `cache` (resident `VectorStore` + bounded `MetadataCache`), checkpoint, compaction | Serve HTTP, or evict a vector |
-| `embeddings` | Provider adapters, caching, retries, `EmbeddingsManager` | Know about collections, or depend on `inference` |
-| `inference` | Model execution, KV cache, batching, sampling, the `RetrievalHook` seam | Depend on the retrieval stack, or be required for retrieval to work |
-| `server` | Routes, handlers, services (admission, locks, metrics, DTOs), `AppState`, routing | Touch file formats or index internals |
+| `core` | Every error the app wraps, all configuration, the document and hit shapes, metadata and its filters, validation, `stats`, and the telemetry export those feed | Know about HTTP or end the process |
+| `hardware` | Distance math and strategy dispatch, the device runtime, quantization encodings | Depend on anything in the workspace, or let vendor types escape `gpu::backends` |
+| `database` | Records, WAL, sidecars, mmap; ANN traversal and the sidecar format; query planning, filtering, scoring, ranking; the `Collection`, its caches, checkpoint and compaction | Serve HTTP |
+| `model` | Model execution, KV cache, batching, sampling; the `RetrievalHook` seam; embedding providers | Depend on `database`, or be required for retrieval to work |
+| `serving` | Routes, handlers, services, wire shapes, `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
 ## What it's built on
@@ -141,7 +117,7 @@ engine, the indexes and the HTTP server are all in-process.
 | Parallelism | `rayon` | Work-stealing for the batch kernels, kept out of the hot single-pair path |
 | Storage | `memmap2` | Reads records without copying them into the heap first |
 | Concurrency | `dashmap`, `parking_lot`, `lru` | Sharded map so unrelated collections don't contend, smaller and faster locks, bounded caches |
-| Telemetry | `tracing`, OpenTelemetry, OTLP | Open standards only, no vendor SDK. See ADR 0011 |
+| Telemetry | `tracing`, OpenTelemetry, OTLP | Open standards only, no vendor SDK |
 | CLI | `clap` | Derive API, so the parser and the help text cannot drift apart |
 | Benchmarks | `criterion` | Statistical comparison, which matters when a kernel change is worth single-digit percent |
 
@@ -152,7 +128,7 @@ pretending:
 
 | Feature | Intended crate | For |
 |---|---|---|
-| `gpu-cuda` | `cudarc` | Device runtime in `hardware/gpu`, confined to `gpu/backends/` |
+| `gpu-cuda` | `cudarc` | Device runtime in `gpu`, confined to `gpu/backends/` |
 | `inference-candle` | `candle` | Model execution in `inference`, confined to `inference/backends/` |
 
 When those land, the vendor types stay inside those backend modules. Nothing above them imports
@@ -166,11 +142,8 @@ MDX through `next-mdx-remote` with KaTeX for the maths in the blog posts.
 A crate may depend on one listed below it. The reverse is a violation.
 
 ```
-compute ─┐                    gpu ─┐
-         │                         ├─→ inference ─┐
-core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         │        └────────→ cache ───────────┘   │
-         └─→ embeddings ──────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ serving ─→ cli
+                  └─→ model ────┘
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this
@@ -203,8 +176,7 @@ Everything else exists to make these cheap to implement and swap.
 ### compute::DistanceKernels
 
 One strategy per file in `compute/strategies/`, one arm in the registry. Nothing else changes.
-"Backends" means the vendor layer — `gpu/backends/`, `inference/backends/` — and nothing else; see
-[ADR 0013](decisions/0013-strategies-are-not-backends.md).
+"Backends" means the vendor layer — `gpu/backends/`, `inference/backends/` — and nothing else.
 
 ```rust
 fn cosine_batch(&self, query: &[f32], candidates: &[f32], dim: usize, out: &mut [f32])
@@ -239,23 +211,30 @@ structures hold a 4-byte handle instead of a 16-byte key — is what makes `as_s
 It does not exist yet: making `cache::VectorStore` contiguous is a v0.3.0 roadmap item, and
 because `as_slab` is optional it can land one reader at a time.
 
-### inference::augment::RetrievalHook
+### model::fusion::RetrievalHook
 
 Where retrieval enters the forward pass.
 
 ```rust
 fn wants(&self, point: RetrievalPoint) -> bool;
-fn on_retrieval_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
+fn launch(&self, request: &RetrievalRequest<'_>) -> Result<Box<dyn PendingRetrieval>>;
+// ... the driver does model work here ...
+fn join(self: Box<Self>, ctx: &mut ForwardContext<'_>) -> Result<()>;
 ```
 
 Mechanism-agnostic on purpose: it says when retrieval may occur and what it may touch, not how
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait.
 
+Two things in that signature are load-bearing. `ForwardContext` carries a `HiddenState` that is either a host slice or a `DeviceBuffer`, because a
+host-only seam would force a device-to-host-to-device copy per invocation — per layer, at
+`LayerEntry` — which is exactly the data movement co-locating retrieval and inference exists to
+remove. And the split into `launch` and `join` is what lets search overlap model compute on its own
+stream; a single fused call serializes them no matter how it is implemented.
+
 It exists before anything calls it because a forward-pass driver written without the seam is hard
-to retrofit with one, and a driver written with it costs nothing extra. `ForwardContext` is a
-named struct rather than a parameter list so adding state later doesn't break every
-implementation.
+to retrofit with one, and a driver written with it costs nothing extra. `RetrievalRequest` withholds
+the hidden state so launching cannot block on the pass it is meant to overlap.
 
 A strategy that actually queries an index depends on `search`, so it belongs in its own crate
 depending on both that and `inference`. That's what keeps `inference` free of the retrieval stack.
@@ -322,7 +301,7 @@ An index owns its own sidecar format, so save and load live in `index::persisten
 ## Configuration
 
 One file, two blocks, split by *when a setting takes effect* rather than by which subsystem owns
-it ([ADR 0014](decisions/0014-config-splits-by-lifecycle.md)):
+it:
 
 ```yaml
 startup:   # applied once at boot; changing one needs a restart
@@ -375,33 +354,28 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 2. No library crate calls `std::process::exit`. Configuration loading returns a `Result`.
 3. `core` never names an HTTP type.
 4. Vendor SDK types, `cudarc` and `candle`, never escape their backend module.
-5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a
-   `// SAFETY:` comment.
+5. `unsafe` appears at four audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
-7. Retrieval works with no model loaded, and `inference` depends on nothing in the retrieval
-   stack. `inference::augment` holds only the trait; a strategy that queries an index is a
+7. Retrieval works with no model loaded, and `model` depends on nothing in the retrieval
+   stack. `model::fusion` holds only the trait; a strategy that queries an index is a
    separate crate depending on both. Enforced by `scripts/check-deps.sh`.
 8. Default builds are CPU-only and need no vendor toolchain.
 9. Telemetry speaks protocols, not products. Nothing is sent to this project under any
    configuration.
-10. No setting is accepted that nothing reads. An unknown key, a key in the wrong lifecycle block,
-    and a feature that isn't implemented all fail at startup naming the key.
 
 ## Where new code goes
 
-1. HTTP-specific goes in `apps/engine/server/src/http`.
-2. Something that coordinates a user-facing operation goes in `apps/engine/server/src/services`.
-3. Something that changes one collection's state goes in `apps/engine/data/collections`.
-4. Bytes, mmap, WAL, and sidecars go in `apps/engine/data/storage`.
-5. An ANN implementation detail goes in `apps/engine/retrieval/index`.
-6. Distance math or backend dispatch goes in `apps/engine/hardware/compute`.
-7. Device memory, streams, and kernels go in `apps/engine/hardware/gpu`.
-8. Model execution goes in `apps/engine/inference`.
-9. Retrieval inside the forward pass goes in `apps/engine/inference/src/augment`.
+1. HTTP-specific goes in `apps/engine/serving/src/http`.
+2. Something that coordinates a user-facing operation goes in `apps/engine/serving/src/services`.
+3. Something that changes one collection's state goes in `apps/engine/database`.
+4. Bytes, mmap, WAL, and sidecars go in `apps/engine/database`.
+5. An ANN implementation detail goes in `apps/engine/database/src/index`.
+6. Distance math or backend dispatch goes in `apps/engine/hardware`.
+7. Device memory, streams, and kernels go in `apps/engine/hardware/src/gpu`.
+8. Model execution goes in `apps/engine/model`.
+9. Retrieval inside the forward pass goes in `apps/engine/model/src/fusion`.
 10. Shared vocabulary — error, config, metadata — goes in `apps/engine/core`.
-11. A new setting goes in `startup` if it is read once at boot and in `runtime` if it is re-read,
-    with a matching entry in `config.example.yaml`; the tests fail otherwise.
-12. A deployable, a site, or a client library goes in `apps/`.
+11. A deployable, a site, or a client library goes in `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow
 explicit before writing anything.

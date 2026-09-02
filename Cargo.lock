@@ -1218,56 +1218,17 @@ version = "0.2.0"
 dependencies = [
  "axum",
  "clap",
- "piramid-collections",
- "piramid-compute",
  "piramid-core",
- "piramid-embeddings",
- "piramid-gpu",
- "piramid-index",
- "piramid-inference",
- "piramid-observability",
- "piramid-search",
- "piramid-server",
- "piramid-storage",
+ "piramid-database",
+ "piramid-hardware",
+ "piramid-model",
+ "piramid-serving",
  "rayon",
  "serde",
  "serde_json",
  "serde_yaml",
  "tokio",
  "tracing",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "piramid-collections"
-version = "0.2.0"
-dependencies = [
- "dashmap",
- "parking_lot",
- "piramid-compute",
- "piramid-core",
- "piramid-index",
- "piramid-search",
- "piramid-storage",
- "rayon",
- "serde",
- "serde_json",
- "tokio",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "piramid-compute"
-version = "0.2.0"
-dependencies = [
- "criterion",
- "num_cpus",
- "rayon",
- "serde",
- "thiserror 1.0.69",
- "tracing",
- "wide",
 ]
 
 [[package]]
@@ -1276,23 +1237,64 @@ version = "0.2.0"
 dependencies = [
  "bincode",
  "num_cpus",
- "piramid-compute",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk",
+ "piramid-hardware",
  "serde",
  "serde_json",
  "serde_yaml",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
  "uuid",
 ]
 
 [[package]]
-name = "piramid-embeddings"
+name = "piramid-database"
+version = "0.2.0"
+dependencies = [
+ "bincode",
+ "criterion",
+ "dashmap",
+ "memmap2",
+ "parking_lot",
+ "piramid-core",
+ "piramid-hardware",
+ "rand 0.8.8",
+ "rayon",
+ "serde",
+ "serde_json",
+ "tokio",
+ "tracing",
+ "uuid",
+]
+
+[[package]]
+name = "piramid-hardware"
+version = "0.2.0"
+dependencies = [
+ "criterion",
+ "num_cpus",
+ "rayon",
+ "serde",
+ "serde_json",
+ "thiserror 1.0.69",
+ "tracing",
+ "wide",
+]
+
+[[package]]
+name = "piramid-model"
 version = "0.2.0"
 dependencies = [
  "async-trait",
  "lru",
  "parking_lot",
  "piramid-core",
+ "piramid-hardware",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
@@ -1301,62 +1303,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "piramid-gpu"
-version = "0.2.0"
-dependencies = [
- "thiserror 1.0.69",
-]
-
-[[package]]
-name = "piramid-index"
-version = "0.2.0"
-dependencies = [
- "bincode",
- "criterion",
- "piramid-compute",
- "piramid-core",
- "piramid-storage",
- "rand 0.8.8",
- "serde",
- "uuid",
-]
-
-[[package]]
-name = "piramid-inference"
-version = "0.2.0"
-dependencies = [
- "piramid-core",
- "piramid-gpu",
-]
-
-[[package]]
-name = "piramid-observability"
-version = "0.2.0"
-dependencies = [
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_sdk",
- "piramid-core",
- "thiserror 1.0.69",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
-]
-
-[[package]]
-name = "piramid-search"
-version = "0.2.0"
-dependencies = [
- "piramid-compute",
- "piramid-core",
- "piramid-index",
- "piramid-storage",
- "rayon",
- "uuid",
-]
-
-[[package]]
-name = "piramid-server"
+name = "piramid-serving"
 version = "0.2.0"
 dependencies = [
  "axum",
@@ -1364,31 +1311,14 @@ dependencies = [
  "libc",
  "num_cpus",
  "parking_lot",
- "piramid-collections",
- "piramid-compute",
  "piramid-core",
- "piramid-embeddings",
- "piramid-index",
- "piramid-observability",
- "piramid-search",
- "piramid-storage",
+ "piramid-database",
+ "piramid-hardware",
+ "piramid-model",
  "serde",
  "serde_json",
  "tokio",
  "tower-http",
- "tracing",
- "uuid",
-]
-
-[[package]]
-name = "piramid-storage"
-version = "0.2.0"
-dependencies = [
- "bincode",
- "memmap2",
- "piramid-core",
- "serde",
- "serde_json",
  "tracing",
  "uuid",
 ]

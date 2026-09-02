@@ -2,16 +2,10 @@
 resolver = "2"
 members = [
     "apps/engine/core",
-    "apps/engine/observability",
-    "apps/engine/hardware/compute",
-    "apps/engine/hardware/gpu",
-    "apps/engine/data/storage",
-    "apps/engine/data/collections",
-    "apps/engine/retrieval/index",
-    "apps/engine/retrieval/search",
-    "apps/engine/retrieval/embeddings",
-    "apps/engine/inference",
-    "apps/engine/server",
+    "apps/engine/hardware",
+    "apps/engine/database",
+    "apps/engine/model",
+    "apps/engine/serving",
     "apps/cli",
 ]
 
@@ -27,16 +21,10 @@ rust-version = "1.87"  # `usize::is_multiple_of` / `next_multiple_of`, used by c
 [workspace.dependencies]
 # in-repo crates, so versions stay in lockstep
 piramid-core = { path = "apps/engine/core", version = "0.2.0" }
-piramid-compute = { path = "apps/engine/hardware/compute", version = "0.2.0" }
-piramid-gpu = { path = "apps/engine/hardware/gpu", version = "0.2.0" }
-piramid-storage = { path = "apps/engine/data/storage", version = "0.2.0" }
-piramid-index = { path = "apps/engine/retrieval/index", version = "0.2.0" }
-piramid-search = { path = "apps/engine/retrieval/search", version = "0.2.0" }
-piramid-collections = { path = "apps/engine/data/collections", version = "0.2.0" }
-piramid-embeddings = { path = "apps/engine/retrieval/embeddings", version = "0.2.0" }
-piramid-inference = { path = "apps/engine/inference", version = "0.2.0" }
-piramid-observability = { path = "apps/engine/observability", version = "0.2.0" }
-piramid-server = { path = "apps/engine/server", version = "0.2.0" }
+piramid-hardware = { path = "apps/engine/hardware", version = "0.2.0" }
+piramid-database = { path = "apps/engine/database", version = "0.2.0" }
+piramid-model = { path = "apps/engine/model", version = "0.2.0" }
+piramid-serving = { path = "apps/engine/serving", version = "0.2.0" }
 
 # serialization
 serde = { version = "1.0", features = ["derive"] }

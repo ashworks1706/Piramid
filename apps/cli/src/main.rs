@@ -1,20 +1,17 @@
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
-use std::str::FromStr;
-use std::sync::OnceLock;
 use std::thread;
 use std::time::Duration;
 
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
 mod support;
-use piramid::config::{self, Config, LogLevel, StartupConfig};
+use piramid::config::{self, Config, StartupConfig};
+use piramid::observability;
 use piramid::state::AppState;
 use piramid::{embeddings, server};
-use piramid_observability::ObservabilityGuard;
 use tokio::runtime::Runtime;
-use tracing_subscriber::EnvFilter;
 
 #[derive(Parser)]
 #[command(author, version)]
@@ -152,7 +149,7 @@ fn main() {
             if let Some(dir) = data_dir {
                 std::env::set_var("DATA_DIR", dir);
             }
-            run_or_exit(start_server_inline, "Failed to start piramid-server");
+            run_or_exit(start_server_inline, "Failed to start the server");
         }
         None => {
             let mut command = Cli::command();
@@ -227,38 +224,12 @@ fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {
 }
 
 fn preload_collections_for_metrics(state: &std::sync::Arc<AppState>) -> std::io::Result<()> {
-    let entries = fs::read_dir(&state.data_dir)?;
-    for entry in entries {
-        let entry = entry?;
-        let Some(file_name) = entry.file_name().to_str().map(str::to_string) else {
-            continue;
-        };
-        let Some(collection_name) = collection_name_from_base_db_filename(&file_name) else {
-            continue;
-        };
+    for collection_name in state.collection_manager.discover_on_disk() {
         if let Err(error) = state.get_existing_collection(&collection_name) {
             eprintln!("Skipping collection '{collection_name}' while building metrics: {error}");
         }
     }
     Ok(())
-}
-
-fn collection_name_from_base_db_filename(file_name: &str) -> Option<String> {
-    if !file_name.ends_with(".db") {
-        return None;
-    }
-    if file_name.ends_with(".index.db")
-        || file_name.ends_with(".vecindex.db")
-        || file_name.ends_with(".metadata.db")
-        || file_name.ends_with(".wal.db")
-    {
-        return None;
-    }
-    let name = file_name.strip_suffix(".db")?;
-    if name.is_empty() {
-        return None;
-    }
-    Some(name.to_string())
 }
 
 fn write_config_file(path: &Path, fmt: OutputFormat) -> std::io::Result<()> {
@@ -277,7 +248,8 @@ fn start_server_inline() -> std::io::Result<()> {
     rt.block_on(async {
         let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
 
-        let _observability = init_tracing(&config.startup)?;
+        let _observability =
+            observability::install(config.startup.logging, &config.startup.telemetry);
         init_thread_pool(&config.startup);
         if config.startup.logging.config {
             tracing::info!(
@@ -326,68 +298,6 @@ fn init_thread_pool(startup: &StartupConfig) {
         .build_global()
     {
         tracing::warn!(target: "piramid::config", %error, "thread_pool_already_built");
-    }
-}
-
-/// Install tracing and any configured telemetry exporters; `None` if disabled or already run.
-fn init_tracing(startup: &StartupConfig) -> std::io::Result<Option<ObservabilityGuard>> {
-    let cfg = startup.logging;
-    static TRACING_INIT: OnceLock<()> = OnceLock::new();
-    if TRACING_INIT.get().is_some() {
-        return Ok(None);
-    }
-    if !cfg.enabled {
-        TRACING_INIT.set(()).ok();
-        return Ok(None);
-    }
-
-    let base_level = level_directive(cfg.level);
-    let mut env_filter = if let Ok(val) = std::env::var("RUST_LOG") {
-        EnvFilter::new(val)
-    } else {
-        EnvFilter::new(base_level)
-    };
-
-    if !cfg.config {
-        env_filter = add_directive(env_filter, "piramid::config=off");
-    }
-    if !cfg.indexing {
-        env_filter = add_directive(env_filter, "piramid::indexing=off");
-    }
-    if !cfg.search {
-        env_filter = add_directive(env_filter, "piramid::search=off");
-    }
-    if !cfg.writes {
-        env_filter = add_directive(env_filter, "piramid::writes=off");
-    }
-    if !cfg.inference {
-        env_filter = add_directive(env_filter, "piramid::inference=off");
-    }
-    if !cfg.http {
-        env_filter = add_directive(env_filter, "piramid::http=off");
-    }
-
-    let guard = piramid_observability::init(&startup.telemetry, env_filter, cfg.json);
-    TRACING_INIT.set(()).ok();
-    Ok(Some(guard))
-}
-
-/// Add a filter directive built from a literal in this file.
-fn add_directive(mut filter: EnvFilter, directive: &str) -> EnvFilter {
-    match tracing_subscriber::filter::Directive::from_str(directive) {
-        Ok(parsed) => filter = filter.add_directive(parsed),
-        Err(error) => eprintln!("piramid: ignoring malformed log directive '{directive}': {error}"),
-    }
-    filter
-}
-
-fn level_directive(level: LogLevel) -> &'static str {
-    match level {
-        LogLevel::Error => "error",
-        LogLevel::Warn => "warn",
-        LogLevel::Info => "info",
-        LogLevel::Debug => "debug",
-        LogLevel::Trace => "trace",
     }
 }
 

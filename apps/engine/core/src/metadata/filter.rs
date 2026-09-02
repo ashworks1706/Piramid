@@ -62,6 +62,17 @@ impl Filter {
     pub fn is_empty(&self) -> bool {
         self.conditions.is_empty()
     }
+
+    /// Whether `metadata` *could* satisfy this filter, when it may be incomplete.
+    ///
+    /// [`Filter::matches`] answers "does this document satisfy the filter" and needs the whole
+    /// document. This answers "is it still a candidate", for callers holding a lossy view — an
+    /// index traversing against a bounded cache cannot tell a document with no metadata from one
+    /// whose metadata was evicted, and excluding on that would drop a true match permanently. So
+    /// absent metadata is admitted here and settled later against the resolved document.
+    pub fn may_match(&self, metadata: Option<&Metadata>) -> bool {
+        metadata.is_none_or(|metadata| self.matches(metadata))
+    }
 }
 
 impl Default for Filter {

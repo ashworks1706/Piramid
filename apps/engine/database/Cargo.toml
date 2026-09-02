@@ -1,0 +1,35 @@
+[package]
+name = "piramid-database"
+description = "Where vectors live and how they are found: records, WAL, sidecars, ANN indexes, query planning, and the collection that composes them."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+piramid-hardware.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+bincode.workspace = true
+memmap2.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+rand.workspace = true
+rayon.workspace = true
+dashmap.workspace = true
+parking_lot.workspace = true
+tokio.workspace = true
+
+[dev-dependencies]
+criterion.workspace = true
+
+[[bench]]
+name = "hnsw_performance"
+harness = false
+
+[lints]
+workspace = true

@@ -1,6 +1,6 @@
 use thiserror::Error;
 
-use super::types::ErrorKind;
+use super::kind::ErrorKind;
 
 #[derive(Error, Debug)]
 pub enum ServerError {

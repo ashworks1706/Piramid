@@ -21,53 +21,36 @@
 
 ## What this is
 
-Today Piramid is a single-node vector database written in Rust. Collections, kNN and range
-search, metadata filtering, embedding ingestion, WAL durability, three ANN index families, and
-SIMD distance kernels. It runs as one binary with no external dependencies.
-
-The longer-term goal is to run retrieval and transformer inference in the same process, with
-retrieved vectors entering the model through cross-attention during the forward pass rather than
-being pasted into the prompt. That half is scaffolding: the seams are defined, there is no
-implementation behind them yet. See [Where this is going](#where-this-is-going).
+Piramid is an inference engine for RAG: one process holding the documents, the model weights and
+the KV cache on one device, so retrieval can run *during* generation rather than once before it.
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
 ### How it's put together
 
-Eleven library crates under `apps/engine`, plus the binary that links them. A crate may depend on
-one below it in the list; the reverse fails CI.
+Five library crates under `apps/engine`, plus the binary that links them. A crate may depend on
+one below it; the reverse fails CI.
 
 ```mermaid
 flowchart TD
     CLI[apps/cli]
-    Server[server<br/>http · services · state]
-    Inference[inference<br/>forward pass · retrieval seam]
-    Collections[collections<br/>Collection · cache]
-    Embeddings[embeddings]
-    Search[search]
-    Index[index<br/>flat · hnsw · ivf]
-    Storage[storage<br/>records · WAL · mmap]
-    Core[core<br/>error · config · metadata]
-    Compute[compute<br/>distance kernels]
-    Gpu[gpu<br/>device · buffer · stream]
+    Serving[serving<br/>http · services · state]
+    Model[model<br/>inference · fusion · embeddings]
+    Database[database<br/>storage · index · search · Collection]
+    Core[core<br/>error · config · document · metadata]
+    Hardware[hardware<br/>distance kernels · device · quantization]
 
-    CLI --> Server
-    CLI --> Inference
-    Server --> Collections
-    Server --> Embeddings
-    Inference --> Gpu
-    Collections --> Search
-    Collections --> Storage
-    Search --> Index
-    Index --> Storage
-    Index --> Compute
-    Storage --> Core
-    Core --> Compute
+    CLI --> Serving
+    Serving --> Database
+    Serving --> Model
+    Database --> Core
+    Model --> Core
+    Core --> Hardware
 ```
 
-`compute` and `gpu` depend on nothing else in the workspace. `gpu` owns the device runtime so that
-both `compute` and `inference` can share one device, which is what lets vectors and model weights
-live in the same address space later.
+`hardware` depends on nothing else, so kernels can be benchmarked on their own and `model` can get
+a device without reaching through retrieval math. `model` depends on nothing in `database`, which
+is what keeps a collection queryable with no model loaded.
 
 Built on Rust 1.87 with `axum` and `tokio` for the server, `serde` for the wire and disk formats,
 `wide` for SIMD kernels that lower to AVX2 and NEON, `memmap2` for zero-copy record reads,
@@ -135,21 +118,28 @@ view and `/metrics` for Prometheus.
 
 ## Where this is going
 
-The idea is that knowledge does not have to live in a model's weights, and it does not have to
-live in the prompt either. Retrieval that reaches the model through cross-attention costs no
-context window, and it can happen during generation rather than once before it.
+Knowledge does not have to live in a model's weights, and it does not have to live in the prompt
+either. Retrieval that reaches the model directly costs no context window, and it can happen
+during generation rather than once before it.
+
+Retrieval inside a generation — repeated, overlapped with compute, against state that never leaves
+the device — is what the single process is for. Retrieval before prefill costs one service hop and
+does not need one.
 
 Piramid commits to the seam for that rather than to a particular mechanism.
-`inference::augment::RetrievalHook` says when retrieval may happen and what it may touch, not how
+`model::fusion::RetrievalHook` says when retrieval may happen and what it may touch, not how
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait. The trait exists before anything calls it
 because a forward-pass driver written without the seam is hard to retrofit with one.
 
-The evidence for the specific RETRO mechanism is mixed, and
-[ADR 0006](docs/decisions/0006-retrieval-fusion-seam.md) lays out the case against it alongside
-the case for, plus the experiment that would settle it. Building the seam rather than the
-mechanism means the device runtime, vector layout, kernel dispatch, and indexes stay useful
-whichever way that goes.
+### How it gets measured
+
+Retrieval before prefill is the control arm: a colocated, warm split stack. Four configurations run
+against it on the same corpus at the same token budget — split process, in-process CPU index,
+in-process device-resident index, and retrieval overlapped with prefill on its own stream.
+Reported: TTFT, tokens/sec, p50/p95, recall.
+
+The result gets published whichever way it goes.
 
 [docs/ROADMAP.md](docs/ROADMAP.md) has the plan, as a todo list.
 

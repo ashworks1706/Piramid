@@ -1,7 +1,10 @@
 # Piramid — agent guide
 
-An inference-native retrieval engine in Rust. Read `docs/ARCHITECTURE.md` for crate boundaries and
-invariants, `docs/ROADMAP.md` for what we're building and in what order. Don't contradict either;
+An inference engine for RAG, in Rust: one process holding documents, model weights and the KV cache
+on one device, so retrieval can run during generation rather than once before it.
+
+Read `docs/ARCHITECTURE.md` for crate boundaries and invariants, `docs/ROADMAP.md` for what we're
+building and in what order. Don't contradict either;
 propose an edit to the doc instead.
 
 ## Commands
@@ -45,61 +48,52 @@ One repo, one binary. Everything we author is under `apps/`. The library crates 
 folder and neither is hardware.
 
 ```
-apps/engine/core                  errors (every one the app wraps), config (the whole surface:
-                                  each index family's parameters, and telemetry), metadata and
-                                  filters, validation, stats (what the engine measures itself)
-apps/engine/observability         where those measurements go: subscriber, OTLP,
-                                  Prometheus encoding
-apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
-apps/engine/hardware/gpu          device, buffer, stream, module, kernels
-apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorReader
-apps/engine/data/collections      the Collection object, checkpoint, compact,
-                                  cache/ (VectorStore resident + MetadataCache bounded)
-apps/engine/retrieval/index       flat, hnsw, ivf traversal, selector, sidecar persistence
-apps/engine/retrieval/search      query planning, filtering, scoring, ranking
-apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
-apps/engine/inference             forward pass, kv_cache, batching, sampling,
-                                  augment (the RetrievalHook seam)
-apps/engine/server                http (axum only), services (locks, metrics, DTOs),
-                                  state, disk, cluster
-apps/cli                          the piramid binary and the umbrella piramid facade crate
-apps/website                      piramiddb.com, blog content and images included
-apps/sdk                          npm and python clients
-docs/                             ARCHITECTURE.md, ROADMAP.md, decisions/
-deploy/                           compose and one Dockerfile per image
+apps/engine/core            errors (every one the app wraps), config (the whole surface), the
+                            document and hit shapes, metadata and its filters, validation, stats,
+                            observability (subscriber, OTLP, Prometheus)
+apps/engine/hardware        compute (distance kernels, strategy registry, quantization) and
+                            gpu (device, buffer, stream, module, kernels)
+apps/engine/database        storage (records, WAL, sidecars, mmap), index (flat, hnsw, ivf),
+                            search (planning, filtering, ranking, near-duplicates), and the
+                            Collection that composes them with its caches and checkpoint policy
+apps/engine/model           inference (forward pass, kv_cache, batching, sampling), fusion (the
+                            RetrievalHook seam), embeddings (openai wire format; ollama)
+apps/engine/serving         http (axum only), services (locks, metrics, DTOs), api (wire shapes),
+                            state, disk, cluster
+apps/cli                    the piramid binary and the umbrella piramid facade crate
+apps/website                piramiddb.com, blog content and images included
+apps/sdk                    npm and python clients
+docs/                       ARCHITECTURE.md, ROADMAP.md, decisions/
+deploy/                     compose and one Dockerfile per image
 ```
 
-`core` and `observability` are flat because they're used from everywhere rather than sitting at
-one level. `server` and `inference` are flat because each is a single crate. The grouped folders
-say what they're for: `hardware/` is the code that changes when the machine changes, `data/` is
-where vectors live and who owns them, `retrieval/` is how you find them. Groups are for finding
-your way around; the dependency rule below is what actually constrains anything.
+One folder per crate, no grouping folders. The layering is the dependency rule below, which
+`scripts/check-deps.sh` enforces; the tree carries names.
 
 ## The dependency rule
 
 A crate may depend on one listed below it. The reverse is a layering violation.
 
 ```
-compute ─┐                    gpu ─┐
-         │                         ├─→ inference ─┐
-core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         │        └────────→ cache ───────────┘   │
-         └─→ embeddings ──────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ serving ─→ cli
+                  └─→ model ────┘
 ```
 
 `scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.
 Adding an edge means editing that script and `docs/ARCHITECTURE.md` in the same change.
 
-`compute` and `gpu` depend on nothing in the workspace, `core` included. That's what lets kernels
-be benchmarked on their own, and what stops `inference` reaching through the retrieval math to get
-at a device.
+`hardware` depends on nothing in the workspace, `core` included. That's what lets kernels be
+benchmarked on their own.
+
+`model` never depends on `database`, which is what keeps a collection queryable with no model
+loaded. A hook implementation is its own crate depending on both.
 
 ## The three seams
 
 Everything else is infrastructure for these. Change them deliberately.
 
 `compute::DistanceKernels` — one strategy per file in `compute/strategies/`, one arm in the registry.
-"Backends" means the vendor layer and lives only in `gpu` and `inference`; see ADR 0013.
+"Backends" means the vendor layer and lives only in `gpu` and `inference`.
 Batch methods take a contiguous row-major slab and a caller-owned `out`, because that shape
 uploads to a device in one copy. A slice of `Vec`s can't, and forces a gather on every call that
 costs more than the kernel saves. Don't reintroduce it.
@@ -107,7 +101,7 @@ costs more than the kernel saves. Don't reintroduce it.
 `storage::vectors::VectorReader` — how indexes read vectors they don't own. `as_slab()` is the
 fast path and `gather_into()` the fallback. Both have defaults, so a new reader costs nothing.
 
-`inference::augment::RetrievalHook` — where retrieval enters the forward pass. Defined before
+`model::fusion::RetrievalHook` — where retrieval enters the forward pass. Defined before
 anything can call it, because a driver written without the seam is hard to retrofit with one. A
 strategy that queries an index belongs in its own crate; `inference` must never depend on the
 retrieval stack.
@@ -118,10 +112,10 @@ retrieval stack.
   `todo!`, `unimplemented!`, `dbg!`, `println!`, or `eprintln!` outside `apps/cli`. Fix at the
   source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
   a one-line reason.
-- `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/hardware/gpu` and at two
-  audited sites, `storage::persistence::mmap::create_mmap` and `server::disk`. Every
-  block carries a `// SAFETY:` comment stating its precondition, and the security workflow fails
-  if a fourth site appears.
+- `unsafe_code` is denied workspace-wide. It's allowed at four audited sites: `as_bytes` and
+  `as_bytes_mut` in `hardware/src/gpu/buffer.rs`, `database::storage::sidecars::mmap::create_mmap`,
+  and `serving::disk`. Every block carries a `// SAFETY:` comment stating its precondition, and the
+  security workflow fails if a fifth appears.
 - A library never ends the process. No `std::process::exit` outside `apps/cli`. Loading
   configuration returns a `Result` and the binary decides what to do with it.
 - `core` is transport-agnostic. `PiramidError` exposes an `ErrorKind`, never a `StatusCode`. HTTP
@@ -129,20 +123,17 @@ retrieval stack.
 - Vendor SDK types stay inside their backend module, `gpu/backends/` and `inference/backends/`.
   Nothing above imports `cudarc` or `candle`.
 - Telemetry speaks open standards only. Prometheus and OTLP are protocols; a vendor's product is
-  not. See ADR 0011.
+  not. See `docs/decisions`.
 - Dependencies go in `[workspace.dependencies]` and are referenced with `.workspace = true`.
 - Errors are `thiserror` enums with a `Result` alias per layer. `unwrap_used` and `expect_used`
   are denied; test files opt back in with a module-level `#![allow]` and a reason.
-- Logging is `tracing` with structured fields and a `target:`, never `println!`.
+- Logging is `tracing` with structured fields and a `target:`, never `println!`. Subscriber and
+  filter construction lives in `core::observability`; the binary calls `install` and nothing else.
 - Feature flags are additive and off by default. `cargo build` has to work with no CUDA toolkit.
 - One way to do a thing. No fallback that answers when the thing asked for is unavailable, no
   second spelling of a name, no singular form of a plural request. If it cannot do what was asked,
   it returns an error saying so. A backend that quietly serves different numbers, a config knob
   nothing reads, and a `try_` wrapper around an infallible call are all the same bug.
-- Configuration is one file with two blocks, `startup:` and `runtime:`, split by when a setting
-  takes effect (ADR 0014). A new knob goes in the block that matches its lifecycle, gets an entry
-  in `config.example.yaml`, and is rejected by `validate` if its code isn't written yet. Env vars
-  are overrides only, spelled `PIRAMID__<PATH>`; don't add a hand-written name.
 
 ## Conventions
 
@@ -153,7 +144,7 @@ retrieval stack.
 - Comments explain why, never what. If a comment restates the line below it, delete it.
 - One name, one meaning. Before naming a module, check the word isn't already used for something
   else in the tree. Repeating a word is fine when it means the same thing at each layer, as with
-  `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See ADR 0010.
+  `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See `docs/decisions`.
 - Traits are named for the capability, not the implementation. Strategies and backends are named
   for the technology, one file each, so new hardware is a new file rather than a new match arm.
 - `mod.rs` and `lib.rs` re-export; they don't define types. A domain's manager lives in its

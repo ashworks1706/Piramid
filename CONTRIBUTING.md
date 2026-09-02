@@ -38,20 +38,20 @@ a design conversation, so open an issue first.
 
 | If it is… | It belongs in |
 |---|---|
-| HTTP-specific | `apps/engine/server/src/http` |
-| A user-facing operation | `apps/engine/server/src/services` |
-| One collection's state | `apps/engine/data/collections` |
-| Bytes, mmap, WAL, sidecars | `apps/engine/data/storage` |
-| An ANN implementation detail | `apps/engine/retrieval/index` |
-| Distance math or backend dispatch | `apps/engine/hardware/compute` |
-| Device memory, streams, kernels | `apps/engine/hardware/gpu` |
-| Model execution | `apps/engine/inference` |
+| HTTP-specific | `apps/engine/serving/src/http` |
+| A user-facing operation | `apps/engine/serving/src/services` |
+| One collection's state | `apps/engine/database` |
+| Bytes, mmap, WAL, sidecars | `apps/engine/database/src/storage` |
+| An ANN implementation detail | `apps/engine/database/src/index` |
+| Distance math or backend dispatch | `apps/engine/hardware` |
+| Device memory, streams, kernels | `apps/engine/hardware/src/gpu` |
+| Model execution | `apps/engine/model` |
 | Shared vocabulary | `apps/engine/core` |
 
-## Adding a compute backend
+## Adding a compute strategy
 
-One file in `apps/engine/hardware/compute/src/backends/` implementing `DistanceKernels`, and one
-arm in the registry in `backends/mod.rs`. Nothing else changes; that's what the trait is for.
+One file in `apps/engine/hardware/src/compute/strategies/` implementing `DistanceKernels`, and one
+arm in the registry in `strategies/mod.rs`. Nothing else changes; that's what the trait is for.
 
 The batch methods take a contiguous row-major slab and a caller-owned `out`. Don't change that to
 `&[Vec<f32>]` — scattered rows can't be uploaded to a device without a per-call gather that costs
@@ -67,9 +67,13 @@ self-contained.
 
 ## Commits and PRs
 
+`main` is protected: it takes no direct pushes, so every change arrives as a pull request. Branch
+from `main`, push the branch, open a PR. Force-pushing and deleting `main` are blocked, and review
+threads must be resolved before merge.
+
 Imperative subject under 72 characters. The body explains why, not what the diff already shows.
 One logical change per PR, and new behaviour comes with a test. A change that moves a boundary or
-forecloses an option gets an ADR in `docs/decisions/`.
+forecloses an option gets a numbered record in `docs/decisions/`.
 
 ## Reporting bugs
 
