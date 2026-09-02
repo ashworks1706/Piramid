@@ -1,6 +1,6 @@
 [package]
 name = "piramid"
-description = "Long-term memory for language models: one binary holding documents, weights and the KV cache on one device, so retrieval runs during generation."
+description = "Long-term memory for language models: one binary holding documents, weights and the KV cache on one device, so retrieval runs during generation rather than once before it."
 readme = "../../README.md"
 keywords = ["vector-database", "rag", "embeddings", "search", "inference"]
 categories = ["database-implementations", "command-line-utilities"]

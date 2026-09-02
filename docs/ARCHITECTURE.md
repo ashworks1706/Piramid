@@ -5,16 +5,14 @@ How the workspace is cut, why each boundary sits where it does, and what has to 
 ## The problem this shape solves
 
 Piramid runs retrieval and, eventually, transformer inference in one process, on one device, so
-that a retrieval costs microseconds rather than milliseconds. That price is the product: a lookup
-you can only afford once is a query, and one you can afford sixteen times per generation is
-recall. Retrieval inside a generation — repeated, overlapped with compute, against device-resident
+that a retrieval costs microseconds rather than milliseconds and can be repeated inside a forward
+pass. Retrieval inside a generation — repeated, overlapped with compute, against device-resident
 state — does not cross a service boundary; retrieval before prefill costs one hop and does not
 need one.
 
-Colocation is not the same thing. Putting a vector database and an inference server on one host
-removes the network, but the candidate set still travels to reach the weights. What makes a
-retrieval cheap enough to run continuously is the slab already sitting in device memory beside
-them, which is only possible in one address space.
+Colocating a vector database and an inference server on one host removes the network, and the
+candidate set still travels to reach the weights. The slab sitting in device memory beside them is
+what makes a retrieval cheap enough to repeat, and that needs one address space.
 
 That single-process goal is why internal boundaries matter: with no network between the layers, nothing
 keeps them from growing into each other except discipline, and discipline that nothing checks tends

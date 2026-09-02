@@ -9,15 +9,14 @@ a new numbered record beside this file.
 
 ## What was decided, and what still holds
 
-**One binary, layers as crates.** Piramid ships one executable. The split into crates is about
-enforcing direction, not about producing artifacts — Rust only checks a dependency rule across
-crate boundaries, never inside one. `apps/cli` links them into the single binary.
+**One binary, layers as crates.** Piramid ships one executable. The crates enforce direction:
+Rust checks a dependency rule across crate boundaries and never inside one. `apps/cli` links them
+into the single binary.
 
 **`apps/engine/` for the library tree, `apps/` for what we ship.** `crates/` names Rust's
-compilation model rather than the product. Everything authored lives under `apps/`, which is why
-the SDKs sit there despite being libraries. Reaching a crate is two levels; there are no grouping
-folders, because a folder hierarchy that does not match the dependency rule is a second model to
-keep in your head.
+compilation model rather than the product. Everything authored lives under `apps/`, including the
+SDKs. Reaching a crate is two levels, with no grouping folders — a folder hierarchy that does not
+match the dependency rule is a second model to keep in your head.
 
 **Five crates.** `hardware → core → database → serving`, with `model` depending on core and
 hardware only.
