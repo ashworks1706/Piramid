@@ -599,3 +599,82 @@ fn compaction_rewrites_live_records_through_temp_record_store() {
     drop(storage);
     cleanup_test_files(&files);
 }
+
+// `sync_on_write` is documented as the durability knob and was read by nothing: the WAL flushed
+// its BufWriter to the kernel and never reached the device, so `true` and `false` behaved
+// identically. Whether fsync actually happens is not observable from a test — a reopen reads the
+// page cache, and only power loss tells the two apart. This covers what is observable: the
+// setting is accepted and writes still replay.
+#[test]
+fn writes_replay_with_sync_on_write_enabled() {
+    use piramid_core::config::CollectionConfig;
+
+    let path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_wal_sync.db");
+    for suffix in [
+        "",
+        ".offsets.db",
+        ".wal.db",
+        ".vecindex.db",
+        ".manifest.db",
+        ".wal.meta",
+    ] {
+        let _ = fs::remove_file(format!("{path}{suffix}"));
+    }
+
+    let mut config = CollectionConfig::default();
+    config.wal.sync_on_write = true;
+    // High enough that no checkpoint fires; the WAL must carry the writes on its own.
+    config.wal.checkpoint_frequency = 10_000;
+
+    {
+        let mut collection = Collection::open_with_options(path, config.clone().into()).unwrap();
+        collection
+            .insert(Document::new(vec![1.0, 0.0], "durable".to_string()))
+            .unwrap();
+    }
+
+    let reopened = Collection::open_with_options(path, config.into()).unwrap();
+    assert_eq!(
+        reopened.count(),
+        1,
+        "the synced write must replay from the WAL"
+    );
+}
+
+// max_log_size was declared and read by nothing, so a WAL could grow without bound between
+// checkpoints — a longer replay and a wider loss window than the file asked for.
+#[test]
+fn a_wal_past_max_log_size_triggers_a_checkpoint() {
+    use piramid_core::config::CollectionConfig;
+
+    let path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_wal_max_size.db");
+    for suffix in [
+        "",
+        ".offsets.db",
+        ".wal.db",
+        ".vecindex.db",
+        ".manifest.db",
+        ".wal.meta",
+    ] {
+        let _ = fs::remove_file(format!("{path}{suffix}"));
+    }
+
+    let mut config = CollectionConfig::default();
+    config.wal.checkpoint_frequency = 10_000; // never fires on count
+    config.wal.max_log_size = 256; // a few entries' worth
+
+    let mut collection = Collection::open_with_options(path, config.into()).unwrap();
+    for i in 0..12 {
+        collection
+            .insert(Document::new(vec![i as f32, 0.0], format!("doc{i}")))
+            .unwrap();
+    }
+
+    // A checkpoint rotates the log, so it cannot still be above the bound.
+    let wal_len = fs::metadata(format!("{path}.wal.db")).unwrap().len();
+    assert!(
+        wal_len < 256 * 4,
+        "the size trigger never fired; WAL is {wal_len} bytes"
+    );
+    assert_eq!(collection.count(), 12);
+}

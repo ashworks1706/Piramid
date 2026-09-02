@@ -21,12 +21,31 @@ impl CheckpointManager {
         }
     }
 
-    pub fn should_checkpoint(&mut self, cfg: &piramid_core::config::WalConfig) -> bool {
+    /// Whether this operation should be followed by a checkpoint.
+    ///
+    /// Three independent triggers: operation count, elapsed time, and log size. The size trigger
+    /// matters because `rotate` truncates the log, so an un-checkpointed WAL is the only thing
+    /// standing between a crash and lost writes — letting it grow without bound makes recovery
+    /// slower and the loss window larger.
+    pub fn should_checkpoint(&mut self, cfg: &piramid_core::config::WalConfig, now: u64) -> bool {
         if !cfg.enabled {
             return false;
         }
         self.operation_count += 1;
-        self.operation_count >= cfg.checkpoint_frequency
+
+        if self.operation_count >= cfg.checkpoint_frequency {
+            return true;
+        }
+        if let (Some(interval), Some(last)) =
+            (cfg.checkpoint_interval_secs, self.last_checkpoint_ts)
+        {
+            if now.saturating_sub(last) >= interval {
+                return true;
+            }
+        }
+        self.wal
+            .size_bytes()
+            .is_some_and(|bytes| bytes >= cfg.max_log_size as u64)
     }
 
     pub fn reset_counter(&mut self) {

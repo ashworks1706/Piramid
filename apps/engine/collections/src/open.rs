@@ -71,7 +71,7 @@ pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
     let wal_path = sidecars.wal_path();
 
     let wal = if config.wal.enabled {
-        Wal::new(wal_path.into(), next_seq)?
+        Wal::new(wal_path.into(), next_seq, config.wal.sync_on_write)?
     } else {
         Wal::disabled(wal_path.into(), next_seq)?
     };

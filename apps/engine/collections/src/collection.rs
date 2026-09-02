@@ -29,18 +29,8 @@ pub struct Collection {
 
 impl Collection {
     pub(super) fn track_operation(&mut self) -> Result<()> {
-        let interval_due = if let Some(last) = self.checkpoint.last_checkpoint() {
-            if let Some(interval) = self.config.wal.checkpoint_interval_secs {
-                let now = piramid_core::clock::unix_secs();
-                now.saturating_sub(last) >= interval
-            } else {
-                false
-            }
-        } else {
-            false
-        };
-
-        if self.checkpoint.should_checkpoint(&self.config.wal) || interval_due {
+        let now = piramid_core::clock::unix_secs();
+        if self.checkpoint.should_checkpoint(&self.config.wal, now) {
             super::checkpoint::checkpoint(self)?;
             self.checkpoint.reset_counter();
         }
