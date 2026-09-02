@@ -13,4 +13,4 @@ traversal parallelises poorly on a GPU, which is why FAISS-GPU ships IVF-Flat an
 HNSW on the CPU. Flat is the reference both are measured against.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.

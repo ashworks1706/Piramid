@@ -11,4 +11,4 @@ buffer and a batch kernel or device upload takes it in one copy. Nothing impleme
 contiguous store is a v0.3.0 roadmap item — so every reader falls back to `gather_into`.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
-[`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.
+[`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.

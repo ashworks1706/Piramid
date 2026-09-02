@@ -22,7 +22,7 @@ Check in priority order:
    `VectorReader::as_slab` start copying silently? Did a `RetrievalHook` call site disappear from
    the forward pass? These three are the point of the codebase.
 5. **Tests.** Does new behavior have one? For a new backend, is there a parity test against
-   `ScalarBackend`? Does a new trait have a test double?
+   `ScalarStrategy`? Does a new trait have a test double?
 6. **Conventions.** `///` on public items, `//!` on modules, `tracing` not `println`, workspace
    dependencies, traits named for capability, `mod.rs` re-exports only.
 

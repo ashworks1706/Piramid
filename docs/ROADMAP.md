@@ -6,7 +6,7 @@ KV cache on one device, so retrieval can run during generation rather than once 
 ## Now (v0.3.0) — make the batch path reachable
 
 - [ ] split `ExecutionMode`'s two axes into kernel and row scheduling, so "SIMD across all cores"
-      can be asked for (ADR 0013). Measured: SIMD is 4.5–5.8x scalar pairwise across 384–3072 dims;
+      can be asked for. Measured: SIMD is 4.5–5.8x scalar pairwise across 384–3072 dims;
       `Parallel` is 0.29x at 384, 0.08x at 1536, and 0.43–0.46x across the batch group. It chunks
       within a single vector at `max(len/ncpus, 1024)`, so a realistic embedding is one or two
       chunks behind a rayon fan-out
@@ -45,7 +45,7 @@ KV cache on one device, so retrieval can run during generation rather than once 
       IVF-Flat and IVF-PQ and leaves HNSW on the CPU
 - [ ] binary pre-filter into full-precision rerank, with a recall measurement, moving
       `BinaryStrategy` out of `DistanceKernels` in the same change — it returns an approximate
-      answer, so it is a recall trade rather than an execution strategy (ADR 0013)
+      answer, so it is a recall trade rather than an execution strategy
 
 ## Now (v0.3.0) — what `serve` needs before it is exposed
 
@@ -74,7 +74,7 @@ One model, one GPU, batch size one, no HTTP.
       types and possibly two contexts, and shared-device operations route through host memory
 - [ ] `candle` behind `inference-candle`, weights on the same device retrieval uses. Qwen is the
       supported model
-- [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit (ADR 0015)
+- [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit
 - [ ] the first real `RetrievalHook` implementation, as its own crate
 - [ ] an end-to-end benchmark — embed, search, top-k, fetch, tokenize, prefill, decode — reporting
       TTFT, tokens/sec, p50/p95 and recall
@@ -108,7 +108,7 @@ Qwen is forked and hooked; other architectures use prompt-stuffing until adapter
 
 - [ ] fork the Qwen model implementation and add `RetrievalPoint` call sites between decoder
       layers. `forward` runs every layer internally, so this means one model file per architecture
-- [ ] retrieval on its own CUDA stream, joined against the model's (ADR 0015). Candle does not
+- [ ] retrieval on its own CUDA stream, joined against the model's. Candle does not
       expose per-op stream control
 - [ ] retrieval at block boundaries, measured against the v0.5 prompt-stuffed baseline at equal
       token budget

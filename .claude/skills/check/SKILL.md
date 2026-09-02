@@ -32,7 +32,7 @@ a different crate, or the boundary genuinely needs to move, in which case update
 a library, return a `Result`. In a test the allow is already configured in `clippy.toml`; if clippy
 still complains, your helper isn't marked `#[test]` and needs a narrowly scoped allow.
 
-**`unsafe_code` denied.** `apps/engine/hardware/gpu` allows it. Everywhere else, two sites are
+**`unsafe_code` denied.** `apps/engine/gpu` allows it. Everywhere else, two sites are
 documented in SECURITY.md and a third fails the security workflow. Needing `unsafe` is a design
 conversation first.
 

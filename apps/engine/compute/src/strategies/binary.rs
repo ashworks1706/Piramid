@@ -1,7 +1,7 @@
 //! 1-bit quantized strategy: sign-bit reduction scored by Hamming agreement, a lossy pre-filter.
 //!
 //! Not an execution strategy like its siblings — it returns a *different, approximate* answer
-//! rather than the same one faster. See ADR 0013; it belongs in the search pre-filter path.
+//! rather than the same one faster; it belongs in the search pre-filter path.
 
 use crate::kernels::DistanceKernels;
 use crate::mode::ExecutionMode;

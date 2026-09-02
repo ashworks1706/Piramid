@@ -1,7 +1,9 @@
 # 0008 — `apps/engine/` for the library tree, `apps/` for what we ship
 
 > The `inference` split described here is superseded by
-> [0009](0009-retrieval-hook-is-a-module.md). The rest stands.
+> [0009](0009-retrieval-hook-is-a-module.md), and the subsystem grouping no longer applies: the
+> library crates sit directly under `apps/engine/`. `apps/engine/` for the library tree and `apps/`
+> for what we ship still stand.
 
 
 Supersedes the folder naming in [0002](0002-workspace-crate-boundaries.md); the crate boundaries
@@ -24,9 +26,9 @@ be built or deployed standalone.
 
 ```
 apps/engine/core         shared vocabulary
-apps/engine/hardware/    compute  gpu
-apps/engine/data/        storage  collections
-apps/engine/retrieval/   index  search  embeddings
+apps/engine/    compute  gpu
+apps/engine/        storage  collections
+apps/engine/   index  search  embeddings
 apps/engine/inference/   fusion  runtime
 apps/engine/service/     server  observability
 apps/                    cli  website  sdk
@@ -60,7 +62,7 @@ images were duplicated between `assets/blogs/` and `website/public/assets/blogs/
 drifted, and the public copy was missing `lsm.png` entirely — so that image had not been rendering
 on the site. There is now one copy.
 
-The tree is three levels deep to a crate (`apps/engine/retrieval/index`), which is one more than before.
+The tree is three levels deep to a crate (`apps/engine/index`), which is one more than before.
 That is the cost of the grouping and it is worth it at twelve crates; it would not be at four.
 
 **Not decided.** Whether the SDKs survive at all. They are 11 and 7 lines, published under names

@@ -24,10 +24,6 @@
 Piramid is an inference engine for RAG: one process holding the documents, the model weights and
 the KV cache on one device, so retrieval can run *during* generation rather than once before it.
 
-Today the retrieval half is real and the inference half is not. Collections, kNN and range search,
-metadata filtering, embedding ingestion, WAL durability, three ANN index families and SIMD distance
-kernels all work, as one binary with no external dependencies. Model execution is scaffolding: the
-seams are defined, nothing sits behind them. See [Where this is going](#where-this-is-going).
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
@@ -64,8 +60,7 @@ flowchart TD
     Core --> Compute
 ```
 
-`compute` and `gpu` depend on nothing else in the workspace. `gpu` owns the device runtime so that
-both `compute` and `inference` can share one device, which is what lets vectors and model weights
+`gpu` owns the device runtime so that both `compute` and `inference` can share one device, which is what lets vectors and model weights
 live in the same address space later.
 
 Built on Rust 1.87 with `axum` and `tokio` for the server, `serde` for the wire and disk formats,
@@ -147,12 +142,6 @@ Piramid commits to the seam for that rather than to a particular mechanism.
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait. The trait exists before anything calls it
 because a forward-pass driver written without the seam is hard to retrofit with one.
-
-The evidence for the specific RETRO mechanism is mixed, and
-[ADR 0006](docs/decisions/0006-retrieval-fusion-seam.md) lays out the case against it alongside
-the case for, plus the experiment that would settle it. Building the seam rather than the
-mechanism means the device runtime, vector layout, kernel dispatch, and indexes stay useful
-whichever way that goes.
 
 [docs/ROADMAP.md](docs/ROADMAP.md) has the plan, as a todo list.
 

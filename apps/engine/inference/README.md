@@ -11,7 +11,7 @@ it's mechanism-agnostic on purpose. See `docs/decisions/0006-retrieval-fusion-se
 
 `HiddenState` is either a host slice or a `DeviceBuffer`, so fusing into device memory needs no
 host round trip. `launch` is separate from `join` so retrieval can run on its own stream while the
-model computes. See `docs/decisions/0015-the-retrieval-seam-is-device-aware-and-split.md`.
+model computes.
 
 This crate depends on nothing in the retrieval stack. A strategy that actually queries an index is
 a separate crate depending on both this one and `piramid-search`, which is what keeps a collection

@@ -17,7 +17,7 @@ pub use piramid_server::{cluster, disk, http as server, services, state};
 pub use piramid_storage as storage;
 
 /// Domain managers: one per crate with state to own, each in its crate's `manager.rs`
-/// (ADR 0012). `AppState` is the composition root that holds them, not one of them.
+/// `AppState` is the composition root that holds them, not one of them.
 pub use collections::{CacheManager, CheckpointManager, CollectionManager};
 pub use embeddings::EmbeddingsManager;
 pub use gpu::GpuManager;

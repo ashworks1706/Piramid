@@ -47,35 +47,31 @@ One repo, one binary. Everything we author is under `apps/`. The library crates 
 folder and neither is hardware.
 
 ```
-apps/engine/core                  errors (every one the app wraps), config (the whole surface:
-                                  each index family's parameters, and telemetry), metadata and
-                                  filters, validation, stats (what the engine measures itself)
-apps/engine/observability         where those measurements go: subscriber, OTLP,
-                                  Prometheus encoding
-apps/engine/hardware/compute      distance kernels, backend registry, quantization encodings
-apps/engine/hardware/gpu          device, buffer, stream, module, kernels
-apps/engine/data/storage          records, WAL, SidecarManager, mmap, VectorReader
-apps/engine/data/collections      the Collection object, checkpoint, compact,
-                                  cache/ (VectorStore resident + MetadataCache bounded)
-apps/engine/retrieval/index       flat, hnsw, ivf traversal, selector, sidecar persistence
-apps/engine/retrieval/search      query planning, filtering, scoring, ranking
-apps/engine/retrieval/embeddings  openai (the wire format, local servers included), ollama
-apps/engine/inference             forward pass, kv_cache, batching, sampling,
-                                  augment (the RetrievalHook seam)
-apps/engine/server                http (axum only), services (locks, metrics, DTOs),
-                                  state, disk, cluster
-apps/cli                          the piramid binary and the umbrella piramid facade crate
-apps/website                      piramiddb.com, blog content and images included
-apps/sdk                          npm and python clients
-docs/                             ARCHITECTURE.md, ROADMAP.md, decisions/
-deploy/                           compose and one Dockerfile per image
+apps/engine/core            errors (every one the app wraps), config (the whole surface: each
+                            index family's parameters, and telemetry), metadata and filters,
+                            validation, stats (what the engine measures about itself)
+apps/engine/observability   where those measurements go: subscriber, OTLP, Prometheus encoding
+apps/engine/compute         distance kernels, strategy registry, quantization encodings
+apps/engine/gpu             device, buffer, stream, module, kernels
+apps/engine/storage         records, WAL, SidecarManager, mmap, VectorReader
+apps/engine/collections     the Collection object, checkpoint, compact, cache/ (VectorStore
+                            resident + MetadataCache bounded)
+apps/engine/index           flat, hnsw, ivf traversal, selector, sidecar persistence
+apps/engine/search          query planning, filtering, scoring, ranking
+apps/engine/embeddings      openai (the wire format, local servers included), ollama
+apps/engine/inference       forward pass, kv_cache, batching, sampling, augment (the
+                            RetrievalHook seam)
+apps/engine/server          http (axum only), services (locks, metrics, DTOs), state, disk,
+                            cluster
+apps/cli                    the piramid binary and the umbrella piramid facade crate
+apps/website                piramiddb.com, blog content and images included
+apps/sdk                    npm and python clients
+docs/                       ARCHITECTURE.md, ROADMAP.md, decisions/
+deploy/                     compose and one Dockerfile per image
 ```
 
-`core` and `observability` are flat because they're used from everywhere rather than sitting at
-one level. `server` and `inference` are flat because each is a single crate. The grouped folders
-say what they're for: `hardware/` is the code that changes when the machine changes, `data/` is
-where vectors live and who owns them, `retrieval/` is how you find them. Groups are for finding
-your way around; the dependency rule below is what actually constrains anything.
+One folder per crate, no grouping folders. The layering is the dependency rule below, which
+`scripts/check-deps.sh` enforces; the tree carries names.
 
 ## The dependency rule
 
@@ -101,7 +97,7 @@ at a device.
 Everything else is infrastructure for these. Change them deliberately.
 
 `compute::DistanceKernels` — one strategy per file in `compute/strategies/`, one arm in the registry.
-"Backends" means the vendor layer and lives only in `gpu` and `inference`; see ADR 0013.
+"Backends" means the vendor layer and lives only in `gpu` and `inference`.
 Batch methods take a contiguous row-major slab and a caller-owned `out`, because that shape
 uploads to a device in one copy. A slice of `Vec`s can't, and forces a gather on every call that
 costs more than the kernel saves. Don't reintroduce it.
@@ -120,7 +116,7 @@ retrieval stack.
   `todo!`, `unimplemented!`, `dbg!`, `println!`, or `eprintln!` outside `apps/cli`. Fix at the
   source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
   a one-line reason.
-- `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/hardware/gpu` and at two
+- `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/gpu` and at two
   audited sites, `storage::persistence::mmap::create_mmap` and `server::disk`. Every
   block carries a `// SAFETY:` comment stating its precondition, and the security workflow fails
   if a fourth site appears.
@@ -141,10 +137,6 @@ retrieval stack.
   second spelling of a name, no singular form of a plural request. If it cannot do what was asked,
   it returns an error saying so. A backend that quietly serves different numbers, a config knob
   nothing reads, and a `try_` wrapper around an infallible call are all the same bug.
-- Configuration is one file with two blocks, `startup:` and `runtime:`, split by when a setting
-  takes effect (ADR 0014). A new knob goes in the block that matches its lifecycle, gets an entry
-  in `config.example.yaml`, and is rejected by `validate` if its code isn't written yet. Env vars
-  are overrides only, spelled `PIRAMID__<PATH>`; don't add a hand-written name.
 
 ## Conventions
 

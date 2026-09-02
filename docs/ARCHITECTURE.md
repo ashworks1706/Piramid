@@ -20,15 +20,16 @@ that isn't in the rule below.
 
 ```text
 apps/                     everything we author
-  engine/                 the library crates
+  engine/                 the library crates, one folder each
     core/                 errors, config, metadata, validation, stats
     observability/        where measurements go: subscriber, OTLP, Prometheus
-    hardware/             code that changes when the machine changes
-      compute  gpu
-    data/                 where vectors live and who owns them
-      storage  collections
-    retrieval/            how you find them
-      index  search  embeddings
+    compute/              distance kernels and strategy dispatch
+    gpu/                  device runtime: contexts, buffers, streams, kernels
+    storage/              records, WAL, sidecars, mmap
+    collections/          the Collection object, its cache, checkpoint, compaction
+    index/                flat, hnsw, ivf traversal and the sidecar format
+    search/               query planning, filtering, scoring, ranking
+    embeddings/           provider adapters: openai, ollama
     inference/            how you run a model over them
     server/               how the outside world reaches it
   cli/                    the piramid binary, which links the engine into one artifact
@@ -44,7 +45,7 @@ crates and `apps/cli` is what links them into an artifact.
 
 The groups answer "what is this for", and each cut is a real one.
 
-`hardware/` is the code that changes when the machine changes. `compute` owns what cosine means
+`compute` and `gpu` are the code that changes when the machine changes. `compute` owns what cosine means
 and which backend runs it; `gpu` owns the device, meaning contexts, buffers, streams, and modules.
 They're separate because two subsystems need a device — `compute` for distance kernels and
 `inference` for model execution — and neither should have to depend on the other to allocate
@@ -70,9 +71,9 @@ held as plain atomics with no dependency on `tracing` or any exporter, so `colle
 `tracing-subscriber` and OpenTelemetry. Merging them would link an exporter stack into every crate
 that times a lock.
 
-Folder groups are for finding your way around. They deliberately don't line up with the dependency
-order: `core` depends on `hardware/compute` for the `ExecutionMode` and `Metric` types that
-configuration carries.
+One folder per crate, no grouping folders. The tree carries names; the layering is the
+dependency rule, enforced by `scripts/check-deps.sh`. Folder order is not dependency order — `core`
+depends on `compute` for the `ExecutionMode` and `Metric` types that configuration carries.
 
 ## Crates
 
@@ -156,7 +157,7 @@ pretending:
 
 | Feature | Intended crate | For |
 |---|---|---|
-| `gpu-cuda` | `cudarc` | Device runtime in `hardware/gpu`, confined to `gpu/backends/` |
+| `gpu-cuda` | `cudarc` | Device runtime in `gpu`, confined to `gpu/backends/` |
 | `inference-candle` | `candle` | Model execution in `inference`, confined to `inference/backends/` |
 
 When those land, the vendor types stay inside those backend modules. Nothing above them imports
@@ -207,8 +208,7 @@ Everything else exists to make these cheap to implement and swap.
 ### compute::DistanceKernels
 
 One strategy per file in `compute/strategies/`, one arm in the registry. Nothing else changes.
-"Backends" means the vendor layer — `gpu/backends/`, `inference/backends/` — and nothing else; see
-[ADR 0013](decisions/0013-strategies-are-not-backends.md).
+"Backends" means the vendor layer — `gpu/backends/`, `inference/backends/` — and nothing else.
 
 ```rust
 fn cosine_batch(&self, query: &[f32], candidates: &[f32], dim: usize, out: &mut [f32])
@@ -258,8 +258,7 @@ Mechanism-agnostic on purpose: it says when retrieval may occur and what it may 
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait.
 
-Two things in that signature are load-bearing ([ADR 0015](decisions/0015-the-retrieval-seam-is-device-aware-and-split.md)).
-`ForwardContext` carries a `HiddenState` that is either a host slice or a `DeviceBuffer`, because a
+Two things in that signature are load-bearing. `ForwardContext` carries a `HiddenState` that is either a host slice or a `DeviceBuffer`, because a
 host-only seam would force a device-to-host-to-device copy per invocation — per layer, at
 `LayerEntry` — which is exactly the data movement co-locating retrieval and inference exists to
 remove. And the split into `launch` and `join` is what lets search overlap model compute on its own
@@ -334,7 +333,7 @@ An index owns its own sidecar format, so save and load live in `index::persisten
 ## Configuration
 
 One file, two blocks, split by *when a setting takes effect* rather than by which subsystem owns
-it ([ADR 0014](decisions/0014-config-splits-by-lifecycle.md)):
+it:
 
 ```yaml
 startup:   # applied once at boot; changing one needs a restart
@@ -387,7 +386,7 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 2. No library crate calls `std::process::exit`. Configuration loading returns a `Result`.
 3. `core` never names an HTTP type.
 4. Vendor SDK types, `cudarc` and `candle`, never escape their backend module.
-5. `unsafe` appears only in `apps/engine/hardware/gpu` and two audited sites, each with a
+5. `unsafe` appears only in `apps/engine/gpu` and two audited sites, each with a
    `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
 7. Retrieval works with no model loaded, and `inference` depends on nothing in the retrieval
@@ -396,24 +395,20 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 8. Default builds are CPU-only and need no vendor toolchain.
 9. Telemetry speaks protocols, not products. Nothing is sent to this project under any
    configuration.
-10. No setting is accepted that nothing reads. An unknown key, a key in the wrong lifecycle block,
-    and a feature that isn't implemented all fail at startup naming the key.
 
 ## Where new code goes
 
 1. HTTP-specific goes in `apps/engine/server/src/http`.
 2. Something that coordinates a user-facing operation goes in `apps/engine/server/src/services`.
-3. Something that changes one collection's state goes in `apps/engine/data/collections`.
-4. Bytes, mmap, WAL, and sidecars go in `apps/engine/data/storage`.
-5. An ANN implementation detail goes in `apps/engine/retrieval/index`.
-6. Distance math or backend dispatch goes in `apps/engine/hardware/compute`.
-7. Device memory, streams, and kernels go in `apps/engine/hardware/gpu`.
+3. Something that changes one collection's state goes in `apps/engine/collections`.
+4. Bytes, mmap, WAL, and sidecars go in `apps/engine/storage`.
+5. An ANN implementation detail goes in `apps/engine/index`.
+6. Distance math or backend dispatch goes in `apps/engine/compute`.
+7. Device memory, streams, and kernels go in `apps/engine/gpu`.
 8. Model execution goes in `apps/engine/inference`.
 9. Retrieval inside the forward pass goes in `apps/engine/inference/src/augment`.
 10. Shared vocabulary — error, config, metadata — goes in `apps/engine/core`.
-11. A new setting goes in `startup` if it is read once at boot and in `runtime` if it is re-read,
-    with a matching entry in `config.example.yaml`; the tests fail otherwise.
-12. A deployable, a site, or a client library goes in `apps/`.
+11. A deployable, a site, or a client library goes in `apps/`.
 
 If a change touches three or more crates, start at the service boundary and make the data flow
 explicit before writing anything.
