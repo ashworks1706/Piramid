@@ -84,3 +84,9 @@ pub struct RebuildIndexStatusResponse {
 pub struct DeleteCollectionResponse {
     pub deleted: bool,
 }
+
+/// A bare count, for endpoints whose whole answer is a number.
+#[derive(Serialize)]
+pub struct CountResponse {
+    pub count: usize,
+}

@@ -1,6 +1,6 @@
 //! Conversions between the HTTP request/response shapes and domain types.
 
-use crate::services::types::{HitResponse, SearchTuning};
+use crate::services::api::{HitResponse, SearchTuning};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::{Filter, Metadata, MetadataValue};

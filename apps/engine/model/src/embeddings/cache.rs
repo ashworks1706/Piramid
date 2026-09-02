@@ -5,7 +5,7 @@ use lru::LruCache;
 use parking_lot::Mutex;
 use std::num::NonZeroUsize;
 
-use super::types::{Embedder, EmbeddingResponse, EmbeddingResult};
+use super::embedder::{Embedder, EmbeddingResponse, EmbeddingResult};
 
 pub struct CachedEmbedder<E: Embedder> {
     inner: E,

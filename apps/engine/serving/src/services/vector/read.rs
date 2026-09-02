@@ -2,8 +2,8 @@ use std::time::Instant;
 
 use uuid::Uuid;
 
+use crate::services::api::{ListVectorsQuery, VectorResponse};
 use crate::services::convert::metadata_to_json;
-use crate::services::types::{ListVectorsQuery, VectorResponse};
 use crate::services::VECTOR_NOT_FOUND;
 use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};

@@ -4,8 +4,8 @@ use axum::{
 };
 
 use crate::http::ApiResult as Result;
+use crate::services::api::*;
 use crate::services::collection;
-use crate::services::types::*;
 use crate::state::SharedState;
 
 pub async fn list_collections(

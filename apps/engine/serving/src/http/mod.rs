@@ -1,7 +1,7 @@
 //! HTTP transport: routes, handlers, request ids, error mapping, the scrape endpoint.
 //!
 //! Handlers stay thin — parse the request, call a service, serialize the result. DTOs live in
-//! `services::types`.
+//! `services::api`.
 
 pub mod error;
 pub mod handlers;

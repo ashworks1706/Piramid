@@ -5,7 +5,7 @@ use axum::{
 
 use crate::http::request_id::RequestId;
 use crate::http::ApiResult as Result;
-use crate::services::types::*;
+use crate::services::api::*;
 use crate::services::vector;
 use crate::state::SharedState;
 

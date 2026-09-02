@@ -2,7 +2,7 @@
 
 use axum::response::Json;
 
-use crate::services::types::VersionResponse;
+use crate::services::api::VersionResponse;
 
 /// Binary version, plus the build's git hash when one was baked in.
 pub async fn version() -> Json<VersionResponse> {

@@ -2,9 +2,10 @@
 
 use std::sync::Arc;
 
+use crate::embeddings::embedder::{Embedder, EmbeddingResult};
 use crate::embeddings::providers::create_embedder;
 use crate::embeddings::retry::RetryEmbedder;
-use crate::embeddings::types::{Embedder, EmbeddingConfig, EmbeddingResult};
+use piramid_core::config::EmbeddingConfig;
 use piramid_core::stats::EmbedMetrics;
 
 /// Owns the embedding stack and its throughput counters.

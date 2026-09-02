@@ -1,13 +1,12 @@
-//! The `Embedder` trait and the types providers return.
+//! The `Embedder` contract and what a provider returns.
 
 use async_trait::async_trait;
 use serde::{Deserialize, Serialize};
 
-pub use piramid_core::error::embedding::EmbeddingError;
+use piramid_core::error::embedding::EmbeddingError;
 
+/// What a provider call returns.
 pub type EmbeddingResult<T> = Result<T, EmbeddingError>;
-
-pub use piramid_core::config::EmbeddingConfig;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EmbeddingResponse {

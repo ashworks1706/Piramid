@@ -1,8 +1,8 @@
 pub mod admin;
+pub mod api;
 pub mod collection;
 pub mod convert;
 pub mod embedding;
-pub mod types;
 pub mod vector;
 
 // Error strings shared by several services, so the same condition reads the same in every

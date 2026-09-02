@@ -52,7 +52,7 @@ fn invalid_metric_is_rejected() {
 
 #[test]
 fn zero_valued_tuning_knobs_are_rejected() {
-    use piramid_serving::services::types::SearchTuning;
+    use piramid_serving::services::api::SearchTuning;
     let base = piramid_core::config::SearchConfig::default();
     for tuning in [
         SearchTuning {
@@ -88,7 +88,7 @@ fn unknown_filter_operators_are_rejected() {
 #[test]
 fn tuning_fields_match_the_config_fields_they_override() {
     let json = serde_json::json!({ "ef": 5, "nprobe": 6, "filter_overfetch": 7 });
-    let tuning: piramid_serving::services::types::SearchTuning =
+    let tuning: piramid_serving::services::api::SearchTuning =
         serde_json::from_value(json).unwrap();
 
     let applied = piramid_serving::services::convert::apply_search_overrides(
@@ -104,7 +104,7 @@ fn tuning_fields_match_the_config_fields_they_override() {
 
 #[test]
 fn a_rejected_tuning_value_names_the_field_the_user_wrote() {
-    let tuning = piramid_serving::services::types::SearchTuning {
+    let tuning = piramid_serving::services::api::SearchTuning {
         filter_overfetch: Some(0),
         ..Default::default()
     };

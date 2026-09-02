@@ -2,7 +2,7 @@
 
 use piramid_core::observability::prometheus::{MetricType, Registry};
 
-use crate::services::types::MetricsResponse;
+use crate::services::api::MetricsResponse;
 
 /// Render a metrics snapshot in the Prometheus text format.
 pub fn render(metrics: &MetricsResponse) -> String {
@@ -21,7 +21,7 @@ pub fn render(metrics: &MetricsResponse) -> String {
         metrics.total_vectors as f64,
     );
 
-    let by_collection = |extract: fn(&crate::services::types::CollectionMetrics) -> Option<f64>| {
+    let by_collection = |extract: fn(&crate::services::api::CollectionMetrics) -> Option<f64>| {
         metrics
             .collections
             .iter()

@@ -4,12 +4,12 @@
 //! retrieval enters through, and on nothing in the retrieval stack. Every module here is a
 //! boundary with no implementation behind it yet.
 
+pub mod architecture;
 pub mod backends;
 pub mod batching;
 pub mod forward;
 pub mod kv_cache;
 pub mod manager;
-pub mod model;
 pub mod sampling;
 
 pub use manager::InferenceManager;

@@ -7,7 +7,9 @@ use std::sync::Arc;
 use super::ollama::OllamaEmbedder;
 use super::openai::OpenAIEmbedder;
 use crate::embeddings::cache::CachedEmbedder;
-use crate::embeddings::types::{Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResult};
+use crate::embeddings::embedder::{Embedder, EmbeddingResult};
+use piramid_core::config::EmbeddingConfig;
+use piramid_core::error::embedding::EmbeddingError;
 
 /// Entries kept per embedder.
 // The unwrap is const-evaluated: a zero literal here fails the build, not a request.

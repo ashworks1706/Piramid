@@ -1,6 +1,6 @@
 use std::time::Instant;
 
-use crate::services::types::*;
+use crate::services::api::*;
 use crate::state::{RebuildJobStatus, RebuildState, SharedState};
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;

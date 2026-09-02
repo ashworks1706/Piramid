@@ -2,11 +2,11 @@ use std::time::Instant;
 
 use uuid::Uuid;
 
-use crate::services::convert::json_to_metadata;
-use crate::services::types::{
+use crate::services::api::{
     DeleteResponse, DeleteVectorsRequest, InsertRequest, InsertResponse, UpsertRequest,
     UpsertResponse,
 };
+use crate::services::convert::json_to_metadata;
 use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::Metadata;

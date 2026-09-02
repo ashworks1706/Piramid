@@ -2,7 +2,7 @@ use axum::{extract::State, http::StatusCode, response::Json};
 
 use crate::http::ApiResult as Result;
 use crate::services::admin;
-use crate::services::types::{HealthResponse, MetricsResponse};
+use crate::services::api::{HealthResponse, MetricsResponse};
 use crate::state::SharedState;
 
 pub async fn health() -> Json<HealthResponse> {

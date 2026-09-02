@@ -5,9 +5,9 @@ use reqwest::Client;
 use serde::{Deserialize, Serialize};
 use std::time::Duration;
 
-use crate::embeddings::types::{
-    Embedder, EmbeddingConfig, EmbeddingError, EmbeddingResponse, EmbeddingResult,
-};
+use crate::embeddings::embedder::{Embedder, EmbeddingResponse, EmbeddingResult};
+use piramid_core::config::EmbeddingConfig;
+use piramid_core::error::embedding::EmbeddingError;
 
 const DEFAULT_OLLAMA_URL: &str = "http://localhost:11434";
 
