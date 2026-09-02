@@ -8,6 +8,7 @@ use crate::CollectionOpenOptions;
 use piramid_core::config::Config;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::LatencyTracker;
+use piramid_database::storage::SidecarManager;
 
 pub type CollectionHandle = Arc<RwLock<Collection>>;
 
@@ -129,8 +130,10 @@ impl CollectionManager {
 
 /// The collection a data file belongs to, or `None` if it is a sidecar or not ours.
 fn collection_name_of(file_name: &str) -> Option<String> {
-    const SIDECARS: [&str; 4] = [".index.db", ".vecindex.db", ".metadata.db", ".wal.db"];
-    if SIDECARS.iter().any(|suffix| file_name.ends_with(suffix)) {
+    if SidecarManager::SUFFIXES
+        .iter()
+        .any(|suffix| file_name.ends_with(suffix))
+    {
         return None;
     }
     let name = file_name.strip_suffix(".db")?;
@@ -146,9 +149,9 @@ mod tests {
         assert_eq!(collection_name_of("docs.db").as_deref(), Some("docs"));
         for sidecar in [
             "docs.db.wal.db",
-            "docs.db.index.db",
+            "docs.db.offsets.db",
             "docs.db.vecindex.db",
-            "docs.db.metadata.db",
+            "docs.db.manifest.db",
         ] {
             assert_eq!(collection_name_of(sidecar), None, "{sidecar} is a sidecar");
         }

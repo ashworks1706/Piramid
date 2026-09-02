@@ -32,6 +32,28 @@ impl<'a> SidecarManager<'a> {
         Self { base }
     }
 
+    /// Every suffix this type appends to a base path.
+    ///
+    /// The one list a caller needs to delete a collection or to tell a data file apart from a
+    /// sidecar. Adding a sidecar means adding it here, so nothing outside this file has to know
+    /// the set.
+    pub const SUFFIXES: [&'static str; 6] = [
+        ".wal.db",
+        ".wal.meta",
+        ".offsets.db",
+        ".manifest.db",
+        ".vecindex.db",
+        ".compact",
+    ];
+
+    /// Every sidecar path beside this base, existing or not.
+    pub fn all_paths(&self) -> Vec<String> {
+        Self::SUFFIXES
+            .iter()
+            .map(|suffix| format!("{}{suffix}", self.base))
+            .collect()
+    }
+
     /// Path of the write-ahead log.
     pub fn wal_path(&self) -> String {
         format!("{}.wal.db", self.base)
@@ -42,14 +64,14 @@ impl<'a> SidecarManager<'a> {
         format!("{}.wal.meta", self.base)
     }
 
-    /// Path of the offset-index sidecar.
+    /// Path of the offset-index sidecar: uuid to a byte range in the record file.
     pub fn offsets_path(&self) -> String {
-        format!("{}.index.db", self.base)
+        format!("{}.offsets.db", self.base)
     }
 
-    /// Path of the collection manifest sidecar.
+    /// Path of the manifest sidecar: schema version, name, dimensions, counts.
     pub fn manifest_path(&self) -> String {
-        format!("{}.metadata.db", self.base)
+        format!("{}.manifest.db", self.base)
     }
 
     /// Path of the ANN index sidecar. `piramid-retrieval` owns its format; this owns its place.

@@ -2,6 +2,7 @@ use crate::services::types::*;
 use crate::state::SharedState;
 use piramid_core::error::Result;
 use piramid_core::stats::record_lock_read;
+use piramid_database::storage::SidecarManager;
 
 pub fn health() -> HealthResponse {
     HealthResponse {
@@ -72,7 +73,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
             .unwrap_or_default();
 
         total_vectors += count;
-        let search_overfetch = Some(collection_guard.config.search.filter_overfetch);
+        let filter_overfetch = Some(collection_guard.config.search.filter_overfetch);
         let (hnsw_ef_search, ivf_nprobe) = match &collection_guard.config.index {
             piramid_retrieval::index::IndexConfig::Auto { .. }
             | piramid_retrieval::index::IndexConfig::Flat { .. } => (None, None),
@@ -93,12 +94,12 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
             search_latency_ms,
             lock_read_ms,
             lock_write_ms,
-            search_overfetch,
+            filter_overfetch,
             hnsw_ef_search,
             ivf_nprobe,
         });
 
-        let wal_size = optional_file_size(&format!("{}.wal.db", collection_guard.path))?;
+        let wal_size = optional_file_size(&SidecarManager::at(&collection_guard.path).wal_path())?;
         let checkpoint_age_secs = collection_guard
             .checkpoint
             .last_checkpoint()
@@ -146,7 +147,8 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
         let last_checkpoint = collection_guard.checkpoint.last_checkpoint();
         let checkpoint_age_secs = last_checkpoint
             .and_then(|timestamp| piramid_core::clock::unix_secs().checked_sub(timestamp));
-        let wal_size_bytes = optional_file_size(&format!("{}.wal.db", collection_guard.path))?;
+        let wal_size_bytes =
+            optional_file_size(&SidecarManager::at(&collection_guard.path).wal_path())?;
 
         collections.push(CollectionHealth {
             name,

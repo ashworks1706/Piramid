@@ -28,13 +28,13 @@ Every collection lives under a path you configure at startup (`startup.data_dir`
 
 ```
 my_docs.db          -- the main data file (mmap'd raw byte store)
-my_docs.index.db    -- the offset index: UUID → (offset, length) in the data file
+my_docs.offsets.db  -- the offset index: UUID → (offset, length) in the data file
 my_docs.vidx.db     -- the serialized vector index (HNSW graph, IVF clusters, etc.)
 my_docs.meta.db     -- collection-level metadata (vector count, timestamps, config)
 my_docs.wal.db      -- the write-ahead log
 ```
 
-The data file is the closest thing to a traditional heap file: a flat, append-oriented binary store of serialized document entries. Unlike a B+ tree page file, there's no fixed page size and no tree structure. Vectors are written sequentially at the end of the file as they arrive, and their byte locations are tracked in a separate in-memory and on-disk index (`my_docs.index.db`), which maps each document UUID to an `(offset, length)` pair. A lookup for a specific document goes: read the offset index to find the byte range, then read those bytes from the data file and deserialize. There's no page directory, no slot array, no internal tree to navigate, just a flat file and a map telling you where things are.
+The data file is the closest thing to a traditional heap file: a flat, append-oriented binary store of serialized document entries. Unlike a B+ tree page file, there's no fixed page size and no tree structure. Vectors are written sequentially at the end of the file as they arrive, and their byte locations are tracked in a separate in-memory and on-disk index (`my_docs.offsets.db`), which maps each document UUID to an `(offset, length)` pair. A lookup for a specific document goes: read the offset index to find the byte range, then read those bytes from the data file and deserialize. There's no page directory, no slot array, no internal tree to navigate, just a flat file and a map telling you where things are.
 
 This is simpler than a B+ tree heap, and for the access patterns I'm targeting, that simplicity is a feature not a compromise. Documents are written once and rarely touched again; point lookups by UUID are satisfied by the offset index; range scans by vector similarity are handled entirely by the vector index, not by scanning the data file at all. The data file is basically a dumb append log that you consult after the ANN index has already done the interesting work.
 

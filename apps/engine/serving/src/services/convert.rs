@@ -36,8 +36,8 @@ pub fn apply_search_overrides(base: SearchConfig, tuning: &SearchTuning) -> Resu
     if let Some(nprobe) = tuning.nprobe {
         cfg.nprobe = Some(require_nonzero(nprobe, "nprobe")?);
     }
-    if let Some(overfetch) = tuning.overfetch {
-        cfg.filter_overfetch = require_nonzero(overfetch, "overfetch")?;
+    if let Some(overfetch) = tuning.filter_overfetch {
+        cfg.filter_overfetch = require_nonzero(overfetch, "filter_overfetch")?;
     }
     Ok(cfg)
 }

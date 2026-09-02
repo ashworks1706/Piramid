@@ -34,10 +34,10 @@ fn basic_store_and_retrieve() {
     let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db");
     let files = vec![
         test_path,
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.offsets.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.wal.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.vecindex.db"),
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.metadata.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_basic.db.manifest.db"),
     ];
     cleanup_test_files(&files);
 
@@ -64,7 +64,7 @@ fn configured_quantization_does_not_quantize_stored_documents() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_raw_storage_with_quantization.db.index.db"
+            "/test_raw_storage_with_quantization.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -76,7 +76,7 @@ fn configured_quantization_does_not_quantize_stored_documents() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_raw_storage_with_quantization.db.metadata.db"
+            "/test_raw_storage_with_quantization.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -111,10 +111,10 @@ fn persistence_roundtrip() {
     let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db");
     let files = vec![
         test_path,
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.offsets.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.wal.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.vecindex.db"),
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.metadata.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_persist.db.manifest.db"),
     ];
     cleanup_test_files(&files);
 
@@ -146,10 +146,10 @@ fn search_returns_results() {
     let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db");
     let files = vec![
         test_path,
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.index.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.offsets.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.wal.db"),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.vecindex.db"),
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.metadata.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_search.db.manifest.db"),
     ];
     cleanup_test_files(&files);
 
@@ -185,7 +185,7 @@ fn batch_search_multi_queries() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_batch_search.db.index.db"
+            "/test_batch_search.db.offsets.db"
         ),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_batch_search.db.wal.db"),
         concat!(
@@ -194,7 +194,7 @@ fn batch_search_multi_queries() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_batch_search.db.metadata.db"
+            "/test_batch_search.db.manifest.db"
         ),
     ];
     cleanup_test_files(&files);
@@ -229,7 +229,7 @@ fn no_mmap_insert_grows_file_without_panicking() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_no_mmap_grow.db.index.db"
+            "/test_no_mmap_grow.db.offsets.db"
         ),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_no_mmap_grow.db.wal.db"),
         concat!(
@@ -242,7 +242,7 @@ fn no_mmap_insert_grows_file_without_panicking() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_no_mmap_grow.db.metadata.db"
+            "/test_no_mmap_grow.db.manifest.db"
         ),
     ];
     cleanup_test_files(&files);
@@ -276,7 +276,10 @@ fn updates_write_one_wal_entry_each() {
     let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db");
     let files = vec![
         test_path,
-        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db.index.db"),
+        concat!(
+            env!("CARGO_TARGET_TMPDIR"),
+            "/test_update_wal.db.offsets.db"
+        ),
         concat!(env!("CARGO_TARGET_TMPDIR"), "/test_update_wal.db.wal.db"),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -284,7 +287,7 @@ fn updates_write_one_wal_entry_each() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_update_wal.db.metadata.db"
+            "/test_update_wal.db.manifest.db"
         ),
     ];
     cleanup_test_files(&files);
@@ -342,7 +345,7 @@ fn update_vector_persists_new_raw_vector_after_reopen() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_update_vector_persist.db.index.db"
+            "/test_update_vector_persist.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -354,7 +357,7 @@ fn update_vector_persists_new_raw_vector_after_reopen() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_update_vector_persist.db.metadata.db"
+            "/test_update_vector_persist.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -390,7 +393,7 @@ fn sidecar_files_persist_at_checkpoint_only() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_checkpoint_only.db.index.db"
+            "/test_checkpoint_only.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -402,7 +405,7 @@ fn sidecar_files_persist_at_checkpoint_only() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_checkpoint_only.db.metadata.db"
+            "/test_checkpoint_only.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -416,12 +419,12 @@ fn sidecar_files_persist_at_checkpoint_only() {
         .insert(Document::new(vec![1.0, 2.0, 3.0], "checkpoint only".into()))
         .unwrap();
 
-    assert!(fs::metadata(format!("{test_path}.index.db")).is_err());
+    assert!(fs::metadata(format!("{test_path}.offsets.db")).is_err());
     assert!(fs::metadata(format!("{test_path}.vecindex.db")).is_err());
 
     storage.checkpoint().unwrap();
 
-    assert!(fs::metadata(format!("{test_path}.index.db")).is_ok());
+    assert!(fs::metadata(format!("{test_path}.offsets.db")).is_ok());
     assert!(fs::metadata(format!("{test_path}.vecindex.db")).is_ok());
 
     drop(storage);
@@ -436,7 +439,7 @@ fn metadata_cache_is_bounded_without_evicting_vectors() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_cache_manager_bounds.db.index.db"
+            "/test_cache_manager_bounds.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -448,7 +451,7 @@ fn metadata_cache_is_bounded_without_evicting_vectors() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_cache_manager_bounds.db.metadata.db"
+            "/test_cache_manager_bounds.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -496,7 +499,7 @@ fn append_cursor_survives_reopen_and_preserves_existing_records() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_append_cursor_reopen.db.index.db"
+            "/test_append_cursor_reopen.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -508,7 +511,7 @@ fn append_cursor_survives_reopen_and_preserves_existing_records() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_append_cursor_reopen.db.metadata.db"
+            "/test_append_cursor_reopen.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -550,7 +553,7 @@ fn compaction_rewrites_live_records_through_temp_record_store() {
         test_path,
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_record_store_compact.db.index.db"
+            "/test_record_store_compact.db.offsets.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
@@ -562,7 +565,7 @@ fn compaction_rewrites_live_records_through_temp_record_store() {
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),
-            "/test_record_store_compact.db.metadata.db"
+            "/test_record_store_compact.db.manifest.db"
         ),
         concat!(
             env!("CARGO_TARGET_TMPDIR"),

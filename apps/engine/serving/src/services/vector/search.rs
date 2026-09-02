@@ -78,7 +78,7 @@ pub fn search_vectors(
     let params = piramid_retrieval::search::SearchParams {
         mode: collection_guard.config().execution,
         filter: filter.as_ref(),
-        filter_overfetch_override: tuning.overfetch,
+        filter_overfetch_override: tuning.filter_overfetch,
         search_config_override: Some(effective_search),
     };
 
@@ -162,7 +162,7 @@ pub fn range_search_vectors(
     let params = piramid_retrieval::search::SearchParams {
         mode: collection_guard.config().execution,
         filter: filter.as_ref(),
-        filter_overfetch_override: tuning.overfetch,
+        filter_overfetch_override: tuning.filter_overfetch,
         search_config_override: Some(effective_search),
     };
 

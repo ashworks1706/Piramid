@@ -5,6 +5,7 @@ use crate::state::{RebuildJobStatus, RebuildState, SharedState};
 use piramid_core::error::{Result, ServerError};
 use piramid_core::stats::record_lock_read;
 use piramid_core::validation;
+use piramid_database::storage::SidecarManager;
 
 fn collection_info(name: String, collection: &piramid_collections::Collection) -> CollectionInfo {
     let meta = collection.metadata();
@@ -72,19 +73,10 @@ pub fn delete_collection(
 
     let existed = state.collection_manager.remove(&collection).is_some();
     if existed {
-        for suffix in [
-            "",
-            ".index.db",
-            ".metadata.db",
-            ".vecindex.db",
-            ".wal.db",
-            ".wal.meta",
-        ] {
-            let path = if suffix.is_empty() {
-                format!("{}/{}.db", state.data_dir, collection)
-            } else {
-                format!("{}/{}.db{}", state.data_dir, collection, suffix)
-            };
+        let base = format!("{}/{}.db", state.data_dir, collection);
+        let mut paths = vec![base.clone()];
+        paths.extend(SidecarManager::at(&base).all_paths());
+        for path in paths {
             match std::fs::remove_file(&path) {
                 Ok(()) => {}
                 Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}

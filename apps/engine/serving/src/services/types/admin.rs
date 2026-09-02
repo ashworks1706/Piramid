@@ -26,7 +26,7 @@ pub struct CollectionMetrics {
     pub search_latency_ms: Option<f32>,
     pub lock_read_ms: Option<f32>,
     pub lock_write_ms: Option<f32>,
-    pub search_overfetch: Option<usize>,
+    pub filter_overfetch: Option<usize>,
     pub hnsw_ef_search: Option<usize>,
     pub ivf_nprobe: Option<usize>,
 }

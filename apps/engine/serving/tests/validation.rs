@@ -64,7 +64,7 @@ fn zero_valued_tuning_knobs_are_rejected() {
             ..Default::default()
         },
         SearchTuning {
-            overfetch: Some(0),
+            filter_overfetch: Some(0),
             ..Default::default()
         },
     ] {
@@ -80,4 +80,39 @@ fn unknown_filter_operators_are_rejected() {
     let mut raw = HashMap::new();
     raw.insert("year".to_string(), ops);
     assert!(piramid_serving::services::convert::parse_filter(Some(raw)).is_err());
+}
+
+// The request field and the config field it writes into must spell the knob the same way. They
+// did not: the wire said `overfetch` while the YAML said `filter_overfetch`, and the validation
+// error named a field that did not exist in the user's file.
+#[test]
+fn tuning_fields_match_the_config_fields_they_override() {
+    let json = serde_json::json!({ "ef": 5, "nprobe": 6, "filter_overfetch": 7 });
+    let tuning: piramid_serving::services::types::SearchTuning =
+        serde_json::from_value(json).unwrap();
+
+    let applied = piramid_serving::services::convert::apply_search_overrides(
+        piramid_core::config::SearchConfig::default(),
+        &tuning,
+    )
+    .unwrap();
+
+    assert_eq!(applied.ef, Some(5));
+    assert_eq!(applied.nprobe, Some(6));
+    assert_eq!(applied.filter_overfetch, 7);
+}
+
+#[test]
+fn a_rejected_tuning_value_names_the_field_the_user_wrote() {
+    let tuning = piramid_serving::services::types::SearchTuning {
+        filter_overfetch: Some(0),
+        ..Default::default()
+    };
+    let error = piramid_serving::services::convert::apply_search_overrides(
+        piramid_core::config::SearchConfig::default(),
+        &tuning,
+    )
+    .unwrap_err()
+    .to_string();
+    assert!(error.contains("filter_overfetch"), "{error}");
 }

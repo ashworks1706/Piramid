@@ -16,7 +16,7 @@ pub struct SearchTuning {
     pub nprobe: Option<usize>,
     /// Multiplier applied to `k` when a filter is present.
     #[serde(default)]
-    pub overfetch: Option<usize>,
+    pub filter_overfetch: Option<usize>,
 }
 
 /// Search a collection with one or more query vectors.
