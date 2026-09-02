@@ -7,8 +7,8 @@
 use std::fs;
 use {
     piramid_collections::Collection, piramid_core::metadata::metadata,
-    piramid_core::metadata::Filter, piramid_database::storage::Document,
-    piramid_hardware::compute::Metric, piramid_retrieval::search::SearchParams,
+    piramid_core::metadata::Filter, piramid_core::Document, piramid_hardware::compute::Metric,
+    piramid_retrieval::search::SearchParams,
 };
 
 fn cleanup(path: &str) {
@@ -57,7 +57,7 @@ fn search_respects_filter() {
             .search(&[1.0, 0.0, 0.0], 5, Metric::Cosine, params)
             .unwrap();
         assert_eq!(results.len(), 1);
-        assert_eq!(results[0].text, "rust doc");
+        assert_eq!(results[0].document.text, "rust doc");
     }
 
     cleanup(test_db);

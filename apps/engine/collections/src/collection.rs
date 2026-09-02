@@ -116,7 +116,7 @@ impl Collection {
         &self.config
     }
 
-    pub fn get_all(&self) -> Result<Vec<piramid_database::storage::document::Document>> {
+    pub fn get_all(&self) -> Result<Vec<piramid_core::Document>> {
         let mut all_entries = Vec::new();
         for id in self.index.keys() {
             if let Some(entry) = super::operations::get(self, id)? {

@@ -12,7 +12,7 @@ use piramid_collections::Collection;
 use piramid_core::config::Config;
 use piramid_core::error::{ErrorKind, PiramidError};
 use piramid_core::metadata::metadata;
-use piramid_database::storage::Document;
+use piramid_core::Document;
 use piramid_serving::http::handlers::{collections, vectors};
 use piramid_serving::http::ApiResult;
 use piramid_serving::services::types::{

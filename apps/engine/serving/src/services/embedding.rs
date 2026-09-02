@@ -9,7 +9,7 @@ use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::Metadata;
 use piramid_core::stats::{record_lock_read, record_lock_write};
-use piramid_database::storage::Document;
+use piramid_core::Document;
 
 /// The configured embedder, or the 503 both embed endpoints answer without one.
 fn require_embedder(

@@ -2,12 +2,12 @@ use memmap2::MmapMut;
 use std::fs::{File, OpenOptions};
 use std::io::{Read, Seek, SeekFrom, Write};
 
-use crate::storage::document::Document;
 use crate::storage::persistence::{
     create_mmap, ensure_file_size, grow_mmap_if_needed, warm_mmap, EntryPointer,
 };
 use piramid_core::config::CollectionConfig;
 use piramid_core::error::{Result, StorageError};
+use piramid_core::Document;
 
 pub struct RecordStore {
     data_file: File,

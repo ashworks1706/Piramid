@@ -1,8 +1,9 @@
 //! Collection-level search: adapts collection configuration into a search target.
 
+use piramid_core::Hit;
 use piramid_core::Result;
 use piramid_hardware::compute::{ExecutionMode, Metric};
-use piramid_retrieval::search::{Hit, SearchParams, SearchTarget};
+use piramid_retrieval::search::{SearchParams, SearchTarget};
 
 use super::Collection;
 

@@ -1,7 +1,7 @@
 //! Umbrella crate: re-exports every workspace crate under one namespace. See `docs/ARCHITECTURE.md`
 //! for crate boundaries and the dependency rule.
 
-pub use piramid_core::{config, error, metadata, observability, stats, validation};
+pub use piramid_core::{config, document, error, metadata, observability, stats, validation};
 
 pub use piramid_collections as collections;
 pub use piramid_collections::cache;
@@ -27,6 +27,7 @@ pub use compute::{
     DistanceKernels, ExecutionMode, Metric,
 };
 pub use config::*;
+pub use document::{Document, Hit};
 pub use embeddings::{EmbeddingConfig, EmbeddingError, EmbeddingProvider};
 pub use error::{ErrorContext, PiramidError, Result};
 pub use gpu::{Device, DeviceBuffer, GpuError, Stream};
@@ -37,5 +38,5 @@ pub use index::{
 };
 pub use metadata::{metadata, Filter, FilterCondition, Metadata, MetadataValue};
 pub use quantization::QuantizedVector;
-pub use search::{Hit, SearchParams};
-pub use storage::{CollectionMetadata, Document};
+pub use search::SearchParams;
+pub use storage::CollectionMetadata;

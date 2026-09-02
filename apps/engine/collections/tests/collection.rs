@@ -12,7 +12,7 @@ use {
     piramid_core::config::CollectionConfig,
     piramid_core::config::MemoryConfig,
     piramid_core::metadata::metadata,
-    piramid_database::storage::Document,
+    piramid_core::Document,
     piramid_hardware::compute::Metric,
     piramid_retrieval::search::SearchParams,
 };
@@ -171,7 +171,7 @@ fn search_returns_results() {
         .search(&[1.0, 0.0, 0.0], 2, Metric::Cosine, params)
         .unwrap();
     assert_eq!(results.len(), 2);
-    assert_eq!(results[0].text, "vec0");
+    assert_eq!(results[0].document.text, "vec0");
 
     drop(storage);
     cleanup_test_files(&files);

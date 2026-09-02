@@ -7,7 +7,7 @@ use super::collection::Collection;
 use super::CollectionOpenOptions;
 use crate::cache::CacheManager;
 use piramid_core::error::{Result, StorageError};
-use piramid_database::storage::document::Document;
+use piramid_core::Document;
 use piramid_database::storage::manifest::CollectionMetadata;
 use piramid_database::storage::record_store::RecordStore;
 use piramid_database::storage::wal::{Wal, WalEntry};

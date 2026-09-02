@@ -1,11 +1,11 @@
 //! Query execution: plans overfetch, asks the index for candidates, scores and filters them.
 
 use crate::index::{IndexSearchRequest, MetadataReader, VectorIndex, VectorReader};
-use crate::search::{utils::sort_and_truncate, Hit};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{IndexError, Result};
 use piramid_core::metadata::Filter;
-use piramid_database::storage::Document;
+use piramid_core::Document;
+use piramid_core::Hit;
 use piramid_hardware::compute::{strategies::for_mode, ExecutionMode, Metric};
 use uuid::Uuid;
 
@@ -87,20 +87,16 @@ pub fn search(
         let entry = resolve(&id)?.ok_or_else(|| {
             IndexError::SearchFailed(format!("index returned missing document {id}"))
         })?;
-        let vec = entry.vector().to_vec();
-        let score = metric.calculate(query, &vec, kernels);
+        let score = metric.calculate(query, entry.vector(), kernels);
         results.push(Hit {
-            id,
             score,
-            text: entry.text,
-            vector: vec,
-            metadata: entry.metadata.clone(),
+            document: entry,
         });
     }
 
     if let Some(filter) = params.filter {
-        results.retain(|hit| filter.matches(&hit.metadata));
-        sort_and_truncate(&mut results, k);
+        results.retain(|hit| filter.matches(&hit.document.metadata));
+        rank_top_k(&mut results, k);
     }
     Ok(results)
 }
@@ -127,4 +123,14 @@ pub fn search_batch(
             .map(|query| search(target, query, k, metric, params, resolve))
             .collect()
     }
+}
+
+/// Sort by score descending and keep the top `k`.
+fn rank_top_k(results: &mut Vec<Hit>, k: usize) {
+    results.sort_by(|a, b| {
+        b.score
+            .partial_cmp(&a.score)
+            .unwrap_or(std::cmp::Ordering::Equal)
+    });
+    results.truncate(k);
 }

@@ -1,7 +1,9 @@
+//! The record a collection stores, and a scored one.
+
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use piramid_core::metadata::Metadata;
+use crate::metadata::Metadata;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {
@@ -35,4 +37,16 @@ impl Document {
     pub fn vector(&self) -> &[f32] {
         &self.vector
     }
+}
+
+/// A search result: a stored document and how well it matched.
+///
+/// Holds the [`Document`] rather than restating its fields, so a field added to one cannot go
+/// missing from the other.
+#[derive(Debug, Clone)]
+pub struct Hit {
+    /// Similarity, normalised so higher is closer.
+    pub score: f32,
+    /// The document that matched.
+    pub document: Document,
 }

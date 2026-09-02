@@ -4,7 +4,7 @@ use std::collections::HashMap;
 
 use super::collection::Collection;
 use piramid_core::error::Result;
-use piramid_database::storage::document::Document;
+use piramid_core::Document;
 use piramid_database::storage::record_store::RecordStore;
 use piramid_database::storage::SidecarManager;
 use piramid_retrieval::index::save_vector_index;

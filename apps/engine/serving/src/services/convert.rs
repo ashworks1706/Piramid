@@ -4,8 +4,8 @@ use crate::services::types::{HitResponse, SearchTuning};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::{Filter, Metadata, MetadataValue};
+use piramid_core::Hit;
 use piramid_hardware::compute::{ComputeError, Metric};
-use piramid_retrieval::search::Hit;
 use std::collections::HashMap;
 
 /// Resolve a requested metric name, defaulting when the caller omits one.
@@ -93,10 +93,10 @@ pub fn parse_filter(
 
 pub fn hit_to_response(hit: Hit) -> HitResponse {
     HitResponse {
-        id: hit.id.to_string(),
+        id: hit.document.id.to_string(),
         score: hit.score,
-        text: hit.text,
-        metadata: metadata_to_json(&hit.metadata),
+        text: hit.document.text,
+        metadata: metadata_to_json(&hit.document.metadata),
     }
 }
 

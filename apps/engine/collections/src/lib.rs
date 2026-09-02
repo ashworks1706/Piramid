@@ -30,9 +30,9 @@ impl From<piramid_core::config::CollectionConfig> for CollectionOpenOptions {
 
 use piramid_core::error::Result;
 use piramid_core::metadata::Metadata;
-use piramid_database::storage::document::Document;
+use piramid_core::Document;
+use piramid_core::Hit;
 use piramid_hardware::compute::Metric;
-use piramid_retrieval::search::Hit;
 use std::collections::HashMap;
 use uuid::Uuid;
 
