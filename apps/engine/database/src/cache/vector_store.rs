@@ -8,8 +8,8 @@ use uuid::Uuid;
 /// All of a collection's vectors, resident in memory.
 ///
 /// Not a cache: the ANN indexes hold ids and resolve them here, so an evicted entry is a search
-/// failure, not a slower search. Bounding memory happens by evicting the [`MetadataCache`]
-/// (crate::MetadataCache), never this.
+/// failure, not a slower search. Bounding memory happens by evicting the
+/// [`MetadataCache`](crate::MetadataCache), never this.
 ///
 /// The backing map is one allocation per vector, which no prefetcher can stride and no device can
 /// upload in one copy. Making it contiguous is a v0.3.0 roadmap item; it changes this type's
