@@ -7,7 +7,7 @@ use piramid_retrieval::search::{SearchParams, SearchTarget};
 
 use super::Collection;
 
-fn target(collection: &Collection) -> SearchTarget<'_> {
+pub(crate) fn target(collection: &Collection) -> SearchTarget<'_> {
     SearchTarget {
         index: collection.vector_index(),
         vectors: collection.vector_reader(),

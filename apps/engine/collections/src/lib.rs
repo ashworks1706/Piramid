@@ -17,5 +17,6 @@ pub use checkpoint::CheckpointManager;
 pub use collection::Collection;
 pub use compact::{compact, CompactStats};
 pub use manager::{CollectionHandle, CollectionManager};
-pub use near_duplicates::{find_duplicates, DuplicateHit};
+pub use near_duplicates::find_duplicates;
 pub use open::CollectionOpenOptions;
+pub use piramid_retrieval::search::DuplicatePair;
