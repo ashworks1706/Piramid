@@ -1,11 +1,11 @@
-use super::super::collection::Collection;
+use crate::collection::Collection;
 use piramid_core::error::{Result, ServerError};
 
-pub(super) fn enforce_single(storage: &Collection, entry_bytes: usize) -> Result<()> {
-    let limits = storage.config.limits;
+pub(super) fn enforce_single(collection: &Collection, entry_bytes: usize) -> Result<()> {
+    let limits = collection.config.limits;
 
     if let Some(max_vecs) = limits.max_vectors {
-        if storage.count() >= max_vecs {
+        if collection.count() >= max_vecs {
             return Err(
                 ServerError::InvalidRequest("Collection max vectors reached".into()).into(),
             );
@@ -13,7 +13,7 @@ pub(super) fn enforce_single(storage: &Collection, entry_bytes: usize) -> Result
     }
 
     if let Some(max_bytes) = limits.max_bytes {
-        let current_size = storage.record_store.used_bytes();
+        let current_size = collection.record_store.used_bytes();
         let required = current_size.saturating_add(entry_bytes as u64);
         if required > max_bytes {
             return Err(ServerError::InvalidRequest("Collection max size reached".into()).into());
@@ -32,15 +32,15 @@ pub(super) fn enforce_single(storage: &Collection, entry_bytes: usize) -> Result
 }
 
 pub(super) fn enforce_batch(
-    storage: &Collection,
+    collection: &Collection,
     total_entries: usize,
     total_bytes: u64,
     max_entry_bytes: Option<usize>,
 ) -> Result<()> {
-    let limits = storage.config.limits;
+    let limits = collection.config.limits;
 
     if let Some(max_vecs) = limits.max_vectors {
-        let current = storage.count();
+        let current = collection.count();
         if current.saturating_add(total_entries) > max_vecs {
             return Err(
                 ServerError::InvalidRequest("Collection max vectors reached".into()).into(),
@@ -49,7 +49,7 @@ pub(super) fn enforce_batch(
     }
 
     if let Some(max_bytes) = limits.max_bytes {
-        let current_size = storage.record_store.used_bytes();
+        let current_size = collection.record_store.used_bytes();
         let required = current_size.saturating_add(total_bytes);
         if required > max_bytes {
             return Err(ServerError::InvalidRequest("Collection max size reached".into()).into());

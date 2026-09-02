@@ -42,39 +42,39 @@ impl CheckpointManager {
     }
 }
 
-pub fn save_index(storage: &Collection) -> Result<()> {
-    SidecarManager::at(&storage.path).save_offsets(&storage.index)
+pub fn save_index(collection: &Collection) -> Result<()> {
+    SidecarManager::at(&collection.path).save_offsets(&collection.index)
 }
 
-pub fn save_vector_index(storage: &Collection) -> Result<()> {
-    save_vec_idx(&storage.path, storage.vector_index.as_ref())
+pub fn save_vector_index(collection: &Collection) -> Result<()> {
+    save_vec_idx(&collection.path, collection.vector_index.as_ref())
 }
 
-pub fn save_metadata(storage: &Collection) -> Result<()> {
-    SidecarManager::at(&storage.path).save_manifest(&storage.metadata)
+pub fn save_manifest(collection: &Collection) -> Result<()> {
+    SidecarManager::at(&collection.path).save_manifest(&collection.manifest)
 }
 
-pub fn checkpoint(storage: &mut Collection) -> Result<()> {
+pub fn checkpoint(collection: &mut Collection) -> Result<()> {
     let timestamp = piramid_core::clock::unix_secs();
 
     // All three sidecars land before the WAL is cleared below, so a crash mid-checkpoint replays
     // rather than loses.
-    save_index(storage)?;
-    save_vector_index(storage)?;
-    save_metadata(storage)?;
+    save_index(collection)?;
+    save_vector_index(collection)?;
+    save_manifest(collection)?;
 
-    if storage.config.wal.enabled {
-        storage.checkpoint.wal.checkpoint(timestamp)?;
-        storage.checkpoint.record_checkpoint(timestamp);
-        let last_seq = storage.checkpoint.wal.next_seq.saturating_sub(1);
-        SidecarManager::at(&storage.path).save_wal_meta(last_seq)?;
-        storage.checkpoint.wal.rotate()?;
+    if collection.config.wal.enabled {
+        collection.checkpoint.wal.checkpoint(timestamp)?;
+        collection.checkpoint.record_checkpoint(timestamp);
+        let last_seq = collection.checkpoint.wal.next_seq.saturating_sub(1);
+        SidecarManager::at(&collection.path).save_wal_meta(last_seq)?;
+        collection.checkpoint.wal.rotate()?;
     }
 
     Ok(())
 }
 
-pub fn flush(storage: &mut Collection) -> Result<()> {
-    storage.checkpoint.wal.flush()?;
+pub fn flush(collection: &mut Collection) -> Result<()> {
+    collection.checkpoint.wal.flush()?;
     Ok(())
 }

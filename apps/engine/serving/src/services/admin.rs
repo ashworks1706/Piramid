@@ -158,7 +158,7 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
             last_checkpoint,
             checkpoint_age_secs,
             wal_size_bytes,
-            schema_version: Some(collection_guard.metadata.schema_version),
+            schema_version: Some(collection_guard.manifest.schema_version),
             integrity_ok: true,
             error: None,
         });

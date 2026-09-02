@@ -11,61 +11,61 @@ use piramid_retrieval::index::save_vector_index;
 use piramid_retrieval::index::HashMapVectorReader;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
-pub fn compact(storage: &mut Collection) -> Result<CompactStats> {
-    let original_entries = storage.index.len();
-    let docs: Vec<Document> = storage.get_all()?;
+pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
+    let original_entries = collection.index.len();
+    let docs: Vec<Document> = collection.get_all()?;
 
-    let temp_path = SidecarManager::at(&storage.path).compact_path();
+    let temp_path = SidecarManager::at(&collection.path).compact_path();
     match std::fs::remove_file(&temp_path) {
         Ok(()) => {}
         Err(error) if error.kind() == std::io::ErrorKind::NotFound => {}
         Err(error) => return Err(error.into()),
     }
-    let mut temp_store = RecordStore::open(&temp_path, &storage.config, &HashMap::new())?;
+    let mut temp_store = RecordStore::open(&temp_path, &collection.config, &HashMap::new())?;
     let mut new_index = HashMap::with_capacity(docs.len());
     let mut new_vectors = HashMap::with_capacity(docs.len());
     let mut new_vector_index = piramid_retrieval::index::create_index(
-        &storage.config.index,
-        storage.config.execution,
+        &collection.config.index,
+        collection.config.execution,
         docs.len(),
     );
-    let mut new_metadata = storage.metadata.clone();
-    new_metadata.update_vector_count(0);
+    let mut new_manifest = collection.manifest.clone();
+    new_manifest.update_vector_count(0);
 
     for doc in docs {
         let id = doc.id;
         let vector = doc.vector().to_vec();
         let bytes = RecordStore::encode_document(&doc)?;
         let pointer = temp_store.append(&bytes)?;
-        new_metadata.set_dimensions(vector.len())?;
+        new_manifest.set_dimensions(vector.len())?;
         new_index.insert(id, pointer);
         new_vectors.insert(id, vector.clone());
         let reader = HashMapVectorReader::new(&new_vectors);
         new_vector_index.insert(id, &vector, &reader)?;
     }
-    new_metadata.update_vector_count(new_index.len());
+    new_manifest.update_vector_count(new_index.len());
 
     temp_store.sync()?;
     drop(temp_store);
-    std::fs::rename(&temp_path, &storage.path)?;
+    std::fs::rename(&temp_path, &collection.path)?;
 
-    storage.record_store = RecordStore::open(&storage.path, &storage.config, &new_index)?;
-    storage.index = new_index;
-    storage.vector_index = new_vector_index;
-    storage.metadata = new_metadata;
-    storage.clear_caches_for_rebuild();
-    storage.rebuild_vector_cache()?;
+    collection.record_store = RecordStore::open(&collection.path, &collection.config, &new_index)?;
+    collection.index = new_index;
+    collection.vector_index = new_vector_index;
+    collection.manifest = new_manifest;
+    collection.clear_caches_for_rebuild();
+    collection.rebuild_vector_cache()?;
 
-    let sidecars = SidecarManager::at(&storage.path);
-    sidecars.save_offsets(&storage.index)?;
-    save_vector_index(&storage.path, storage.vector_index())?;
-    sidecars.save_manifest(&storage.metadata)?;
+    let sidecars = SidecarManager::at(&collection.path);
+    sidecars.save_offsets(&collection.index)?;
+    save_vector_index(&collection.path, collection.vector_index())?;
+    sidecars.save_manifest(&collection.manifest)?;
     // Sidecars are durable before we drop the WAL entries they made redundant.
-    storage.checkpoint.wal.rotate()?;
+    collection.checkpoint.wal.rotate()?;
 
     Ok(CompactStats {
         original_entries,
-        compacted_entries: storage.index.len(),
+        compacted_entries: collection.index.len(),
     })
 }
 

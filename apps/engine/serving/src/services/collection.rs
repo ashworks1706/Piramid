@@ -8,7 +8,7 @@ use piramid_core::validation;
 use piramid_database::storage::SidecarManager;
 
 fn collection_info(name: String, collection: &piramid_collections::Collection) -> CollectionInfo {
-    let meta = collection.metadata();
+    let meta = collection.manifest();
     CollectionInfo {
         name,
         count: collection.count(),

@@ -1,6 +1,11 @@
 use std::collections::HashMap;
 use uuid::Uuid;
 
+use crate::CollectionOpenOptions;
+use piramid_core::metadata::Metadata;
+use piramid_core::{Document, Hit};
+use piramid_hardware::compute::Metric;
+
 use super::checkpoint::CheckpointManager;
 use crate::cache::CacheManager;
 use piramid_core::error::Result;
@@ -17,7 +22,7 @@ pub struct Collection {
     pub(super) vector_index: Box<dyn VectorIndex>,
     pub(super) cache: CacheManager,
     pub config: piramid_core::config::CollectionConfig,
-    pub metadata: CollectionMetadata,
+    pub manifest: CollectionMetadata,
     pub path: String,
     pub checkpoint: CheckpointManager,
 }
@@ -42,8 +47,8 @@ impl Collection {
         Ok(())
     }
 
-    pub fn metadata(&self) -> &CollectionMetadata {
-        &self.metadata
+    pub fn manifest(&self) -> &CollectionMetadata {
+        &self.manifest
     }
 
     pub fn count(&self) -> usize {
@@ -119,7 +124,7 @@ impl Collection {
     pub fn get_all(&self) -> Result<Vec<piramid_core::Document>> {
         let mut all_entries = Vec::new();
         for id in self.index.keys() {
-            if let Some(entry) = super::operations::get(self, id)? {
+            if let Some(entry) = crate::document::get(self, id)? {
                 all_entries.push(entry);
             }
         }
@@ -129,7 +134,7 @@ impl Collection {
     pub(super) fn rebuild_vector_cache(&mut self) -> Result<()> {
         let mut cache = CacheManager::new(self.config.cache);
         for id in self.index.keys() {
-            if let Some(entry) = super::operations::get(self, id)? {
+            if let Some(entry) = crate::document::get(self, id)? {
                 cache.put_vector(*id, entry.vector().to_vec());
                 cache.put_metadata(*id, entry.metadata.clone());
             }
@@ -161,5 +166,79 @@ impl Collection {
         self.rebuild_vector_cache()?;
         save_vector_index(self.path.as_str(), self.vector_index())?;
         Ok(())
+    }
+}
+
+impl Collection {
+    pub fn open(path: &str) -> Result<Self> {
+        crate::open::open(path, CollectionOpenOptions::default())
+    }
+
+    pub fn open_with_options(path: &str, options: CollectionOpenOptions) -> Result<Self> {
+        crate::open::open(path, options)
+    }
+
+    pub fn get(&self, id: &Uuid) -> Result<Option<Document>> {
+        crate::document::get(self, id)
+    }
+
+    pub fn insert(&mut self, entry: Document) -> Result<Uuid> {
+        crate::document::insert(self, entry)
+    }
+
+    pub fn insert_batch(&mut self, entries: Vec<Document>) -> Result<Vec<Uuid>> {
+        crate::document::insert_batch(self, entries)
+    }
+
+    pub fn upsert(&mut self, entry: Document) -> Result<Uuid> {
+        crate::document::upsert(self, entry)
+    }
+
+    pub fn delete(&mut self, id: &Uuid) -> Result<bool> {
+        crate::document::delete(self, id)
+    }
+
+    pub fn delete_batch(&mut self, ids: &[Uuid]) -> Result<usize> {
+        crate::document::delete_batch(self, ids)
+    }
+
+    pub fn update_metadata(&mut self, id: &Uuid, metadata: Metadata) -> Result<bool> {
+        crate::document::update_metadata(self, id, metadata)
+    }
+
+    pub fn update_vector(&mut self, id: &Uuid, vector: Vec<f32>) -> Result<bool> {
+        crate::document::update_vector(self, id, vector)
+    }
+
+    pub fn search(
+        &self,
+        query: &[f32],
+        k: usize,
+        metric: Metric,
+        params: piramid_retrieval::search::SearchParams,
+    ) -> Result<Vec<Hit>> {
+        crate::search_target::search(self, query, k, metric, params)
+    }
+
+    pub fn search_batch_with(
+        &self,
+        queries: &[Vec<f32>],
+        k: usize,
+        metric: Metric,
+        params: piramid_retrieval::search::SearchParams,
+    ) -> Result<Vec<Vec<Hit>>> {
+        crate::search_target::search_batch(self, queries, k, metric, params)
+    }
+
+    pub fn get_vectors(&self) -> &HashMap<Uuid, Vec<f32>> {
+        self.vectors_view()
+    }
+
+    pub fn checkpoint(&mut self) -> Result<()> {
+        crate::checkpoint::checkpoint(self)
+    }
+
+    pub fn flush(&mut self) -> Result<()> {
+        crate::checkpoint::flush(self)
     }
 }
