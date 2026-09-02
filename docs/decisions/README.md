@@ -22,3 +22,4 @@ to someone reading the tree in a year. Write it when the decision is made, not a
 | [0012](0012-managers-name-domains.md) | Managers name domains, not resources |
 | [0013](0013-strategies-are-not-backends.md) | Strategies are not backends |
 | [0014](0014-config-splits-by-lifecycle.md) | Configuration splits by lifecycle, not by subsystem |
+| [0015](0015-the-retrieval-seam-is-device-aware-and-split.md) | The retrieval seam is device-aware and split into launch and join |

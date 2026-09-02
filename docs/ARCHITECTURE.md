@@ -245,17 +245,25 @@ Where retrieval enters the forward pass.
 
 ```rust
 fn wants(&self, point: RetrievalPoint) -> bool;
-fn on_retrieval_point(&self, ctx: &mut ForwardContext<'_>) -> Result<()>;
+fn launch(&self, request: &RetrievalRequest<'_>) -> Result<Box<dyn PendingRetrieval>>;
+// ... the driver does model work here ...
+fn join(self: Box<Self>, ctx: &mut ForwardContext<'_>) -> Result<()>;
 ```
 
 Mechanism-agnostic on purpose: it says when retrieval may occur and what it may touch, not how
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait.
 
+Two things in that signature are load-bearing ([ADR 0015](decisions/0015-the-retrieval-seam-is-device-aware-and-split.md)).
+`ForwardContext` carries a `HiddenState` that is either a host slice or a `DeviceBuffer`, because a
+host-only seam would force a device-to-host-to-device copy per invocation — per layer, at
+`LayerEntry` — which is exactly the data movement co-locating retrieval and inference exists to
+remove. And the split into `launch` and `join` is what lets search overlap model compute on its own
+stream; a single fused call serializes them no matter how it is implemented.
+
 It exists before anything calls it because a forward-pass driver written without the seam is hard
-to retrofit with one, and a driver written with it costs nothing extra. `ForwardContext` is a
-named struct rather than a parameter list so adding state later doesn't break every
-implementation.
+to retrofit with one, and a driver written with it costs nothing extra. `RetrievalRequest` withholds
+the hidden state so launching cannot block on the pass it is meant to overlap.
 
 A strategy that actually queries an index depends on `search`, so it belongs in its own crate
 depending on both that and `inference`. That's what keeps `inference` free of the retrieval stack.

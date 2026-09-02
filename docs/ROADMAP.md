@@ -2,7 +2,6 @@
 
 ## Now (v0.3.0) — make the batch path reachable
 
-- [x] add a criterion bench for `compute` — scalar vs SIMD vs parallel, realistic dimensions
 - [ ] split `ExecutionMode`'s two axes. The bench settles it: SIMD is 4.5–5.8x scalar pairwise
       across 384–3072 dims, and `Parallel` is *slower than scalar at every dimension and every
       candidate count measured* — 0.29x at 384, 0.08x at 1536, 0.43–0.46x throughout the batch
@@ -32,7 +31,18 @@
 - [ ] wire `cudarc` behind `gpu-cuda`: a real `Device`, `DeviceBuffer`, `Stream`
 - [ ] round-trip test — allocate, upload, download, compare — before any kernel
 - [ ] a `cosine_batch` CUDA kernel, benched against the scalar reference
-- [ ] keep a device-resident candidate slab across queries, measure against per-call upload
+- [ ] a device-side top-k, so only `k` ordinals and scores cross PCIe. Without it the kernel
+      computes N scores and copies all N back, and the transfer eats the win — a faster kernel
+      that moves more data is not a faster query
+- [ ] keep a device-resident candidate slab across queries, measured against per-call upload.
+      This is the experiment, not an optimisation on top of one: the CPU bench is already
+      memory-bound at 8192 candidates, so the GPU's edge is HBM bandwidth (~1–3 TB/s against
+      ~50–100 GB/s), which exists only if the slab is already there. Pay PCIe per query and the
+      whole advantage is spent before the kernel runs
+- [ ] write down the VRAM budget the co-located design has to fit in. A 7B model at fp16 is
+      ~14 GB and an 8k KV cache ~2 GB, so a 24 GB card leaves ~6–8 GB — about 2–2.5M vectors at
+      768 dims and fp32. That ceiling is the scope: single-collection, single-tenant workloads,
+      not web-scale search. Decide it deliberately rather than discovering it
 
 ## Now (v0.3.0) — independent
 
@@ -48,35 +58,68 @@
       — `axum::serve` runs without `with_graceful_shutdown` and there is no signal handler, so
       every SIGTERM is a hard kill. The WAL means no data loss, but every restart replays a log a
       clean checkpoint would have truncated, and in-flight writes die mid-request
-- [ ] decide what happens to `cluster`
 - [ ] implement `QuantizationLevel::Int4` and `Float16`, or drop the variants. `validate` rejects
       both today
 
-## Next (v0.4.0)
+## Next (v0.4.0) — the integrated baseline
 
-- [ ] retrofit a small model in Python, measure fused vs prompt-stuffed at equal token budget
-- [ ] publish the result either way
+The question the whole project turns on: at equal answer quality and context budget, when does
+device-resident retrieval inside the inference loop beat a separate vector store and model server?
+One model, one GPU, batch size one, no HTTP. Answer it before building anything to serve it.
+
 - [ ] `candle` behind `inference-candle`, weights on the same device retrieval uses
+- [ ] an interoperability test proving `piramid-gpu` and `candle` can share one device, context and
+      allocator. Assumed today; if it is false, most of this section changes shape
 - [ ] a forward-pass driver with `RetrievalHook` call sites from the first commit
-- [ ] paged KV cache
 - [ ] the first real `RetrievalHook` implementation, as its own crate
+- [ ] an end-to-end benchmark — embed, search, top-k, fetch, tokenize, prefill, decode — reporting
+      TTFT, tokens/sec, p50/p95 and recall. Kernel microbenchmarks cannot answer the question above
+- [ ] measure four configurations against it: split process; in-process CPU index; in-process
+      device-resident index; and retrieval overlapped with prefill on its own stream
+- [ ] publish the result either way. Co-location losing to a split process, because the index
+      competes with weights and KV for bandwidth, is a real finding and the likelier one
+- [ ] spans on kernel launches and forward-pass stages
+
+## Next (v0.4.0) — define "fused" before measuring it
+
+"Fused vs prompt-stuffed" is four experiments, in ascending order of difficulty. Do them in order
+and stop when one wins; each is a separate measurement against the baseline above.
+
+- [ ] retrieved text appended to the prompt — the control arm, not a result
+- [ ] retrieved documents pre-tokenized, so retrieval skips tokenization on the hot path
+- [ ] precomputed document KV states reused at prefill. The hard part is that document KV is not
+      context-independent: position and preceding context change it, so states cannot simply be
+      concatenated. Read CacheBlend on selective recomputation before starting
+- [ ] hidden-state fusion through `RetrievalHook` — the only arm that needs the seam at all
+
+## Later (v0.5.0) — serving
+
+Nothing here is needed to answer the v0.4 question. It is what turns the answer into a runtime.
+
+- [ ] paged KV cache
+- [ ] `/api/infer` and an OpenAI-compatible `/v1/chat/completions`
+- [ ] SSE streaming
+- [ ] continuous batching
 - [ ] an in-process embedding provider, `provider: piramid`, once `candle` is loaded —
       encoder-only, no KV cache or sampling, reusing the device retrieval already holds. A fourth
       option beside `openai` (including any server speaking that format) and `ollama`, not a
       replacement: a self-hosted embedder stays a supported setup. It needs its own crate, since
       `embeddings` must not depend on `inference`; the binary wires it in through
       `EmbeddingsManager`, the same shape as a `RetrievalHook` implementation
-- [ ] `/api/infer` and an OpenAI-compatible `/v1/chat/completions`
-- [ ] SSE streaming
-- [ ] continuous batching
-- [ ] spans on kernel launches and forward-pass stages
 
-## Later (v0.5.0+)
+## Later (v0.6.0+) — retrieval-native experiments
+
+One at a time, each against the v0.4 baseline.
 
 - [ ] fused kernels combining retrieval encoding and attention in one launch
 - [ ] an index co-designed for the attention access pattern
 - [ ] fp16/bf16 for weights and stored vectors, no upcasting on the hot path
-- [ ] distributed placement in `cluster`
+- [ ] retrieval over the model's own KV history rather than external documents — a different
+      problem from document RAG (long-context attention), kept as its own branch. See
+      RetrievalAttention
+- [ ] retrieval at block boundaries under block-diffusion decoding, where a block is the natural
+      retrieval unit instead of a token. Only interpretable once the autoregressive baseline
+      exists, or the win cannot be attributed
 
 ## Unscheduled
 
@@ -107,4 +150,6 @@
 - a managed cloud service
 - non-NVIDIA GPU backends until the CUDA path is real
 - a second deployable process — [ADR 0001](decisions/0001-single-binary.md)
+- distributed placement, and `cluster` beyond the local no-op router, until the single-device
+  numbers exist. Multi-device is not interesting while one device is unmeasured
 - vendor telemetry integrations — [ADR 0011](decisions/0011-open-standards-only.md)

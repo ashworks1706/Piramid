@@ -6,4 +6,7 @@
 
 mod hook;
 
-pub use hook::{ForwardContext, NoopRetrievalHook, RetrievalHook, RetrievalPoint};
+pub use hook::{
+    ForwardContext, HiddenState, NoopPending, NoopRetrievalHook, PendingRetrieval, RetrievalHook,
+    RetrievalPoint, RetrievalRequest,
+};
