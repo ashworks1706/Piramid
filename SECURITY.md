@@ -64,6 +64,6 @@ as `just audit`. Dependabot proposes updates weekly.
 
 `unsafe_code` is denied workspace-wide, and permitted at four audited sites: `as_bytes` and
 `as_bytes_mut` in `apps/engine/hardware/src/gpu/buffer.rs`, which reinterpret a typed slice as
-bytes for device transfer; `database::storage::persistence::mmap::create_mmap`; and
+bytes for device transfer; `database::storage::sidecars::mmap::create_mmap`; and
 `serving::disk`. Each carries a `// SAFETY:` comment stating its precondition. A PR introducing
 `unsafe` anywhere else fails CI.

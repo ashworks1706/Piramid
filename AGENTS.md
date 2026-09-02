@@ -113,7 +113,7 @@ retrieval stack.
   source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
   a one-line reason.
 - `unsafe_code` is denied workspace-wide. It's allowed at four audited sites: `as_bytes` and
-  `as_bytes_mut` in `hardware/src/gpu/buffer.rs`, `database::storage::persistence::mmap::create_mmap`,
+  `as_bytes_mut` in `hardware/src/gpu/buffer.rs`, `database::storage::sidecars::mmap::create_mmap`,
   and `serving::disk`. Every block carries a `// SAFETY:` comment stating its precondition, and the
   security workflow fails if a fifth appears.
 - A library never ends the process. No `std::process::exit` outside `apps/cli`. Loading
