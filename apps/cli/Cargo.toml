@@ -1,6 +1,6 @@
 [package]
 name = "piramid"
-description = "Inference engine for retrieval systems: one binary for vector storage, search, and retrieval-fused inference."
+description = "Long-term memory for language models: one binary holding documents, weights and the KV cache on one device, so retrieval runs during generation."
 readme = "../../README.md"
 keywords = ["vector-database", "rag", "embeddings", "search", "inference"]
 categories = ["database-implementations", "command-line-utilities"]

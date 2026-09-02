@@ -1,7 +1,8 @@
 <img width="1114" height="191" alt="Piramid Logo" src="https://github.com/user-attachments/assets/efaa4c47-62d1-4397-9899-8bd58d400fc6" />
 
 <p align="center">
-    <b>Inference Engine for Retrieval Systems</b>
+    <b>Long-term memory for language models</b><br/>
+    <sub>Fast enough to use mid-thought, not just before it</sub>
 </p>
 
 <p align="center">
@@ -21,8 +22,29 @@
 
 ## What this is
 
-Piramid is an inference engine for RAG: one process holding the documents, the model weights and
-the KV cache on one device, so retrieval can run *during* generation rather than once before it.
+A database is something you query. A memory is something you have. The difference is latency.
+
+Retrieval-augmented generation today makes a model guess what it will need before it starts
+thinking. You embed the query, search once, stuff the results into the prompt, and generate. If at
+token 300 the model needs something that was not in the top-5 at token 0, it cannot ask — it has
+no way to. That is not a tuning problem. It is what happens when retrieval and generation are two
+processes with a network between them: when a lookup costs milliseconds and a hop, you only get to
+do it once, and everything downstream is compensation for that single shot.
+
+Piramid holds the documents, the model weights and the KV cache in one process on one device, so a
+retrieval costs microseconds instead of milliseconds. At that price it stops being a preprocessing
+step and becomes an operation inside the forward pass — cheap enough to run sixteen times during a
+generation instead of once. That is the whole idea: **speed is what turns a database into a
+memory.**
+
+This is not the same thing as agent memory. Libraries like mem0 or Zep add memory *around* a model
+— conversation history and user facts, behind an API. Piramid puts it *inside* the forward pass.
+One is a library call; this is closer to a kernel.
+
+It is also not "colocate your vector DB and your inference server." Same process is not the same
+address space, and the same address space is not the same device. Colocation removes a network
+hop. It does not put the candidate slab in VRAM beside the weights, and that is the part that makes
+a retrieval cheap enough to do continuously.
 
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
@@ -132,6 +154,20 @@ Piramid commits to the seam for that rather than to a particular mechanism.
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait. The trait exists before anything calls it
 because a forward-pass driver written without the seam is hard to retrofit with one.
+
+### How you will know whether this was right
+
+The claim is falsifiable and the test is written down before the code, which is the point.
+
+Retrieval before prefill is the control arm — the ordinary split stack, colocated and warm, not a
+straw man. Against it, four configurations get measured on the same corpus and the same token
+budget: split process; in-process CPU index; in-process device-resident index; and retrieval
+overlapped with prefill on its own stream. The numbers reported are TTFT, tokens/sec, p50/p95 and
+recall.
+
+If the device-resident and overlapped arms do not beat a well-tuned split stack, the thesis is
+wrong and the result gets published anyway. A benchmark whose control arm is weak proves nothing,
+so the control arm is specified first.
 
 [docs/ROADMAP.md](docs/ROADMAP.md) has the plan, as a todo list.
 

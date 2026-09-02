@@ -1,8 +1,11 @@
 # Piramid — agent guide
 
-An inference engine for RAG, in Rust: one process holding documents, model weights and the KV cache
-on one device, so retrieval can run during generation rather than once before it. Read
-`docs/ARCHITECTURE.md` for crate boundaries and invariants, `docs/ROADMAP.md` for what we're
+Long-term memory for language models, in Rust: one process holding documents, model weights and the
+KV cache on one device, so a retrieval costs microseconds and can run during generation rather than
+once before it. Speed is the product — a lookup affordable once is a query, one affordable
+continuously is recall.
+
+Read `docs/ARCHITECTURE.md` for crate boundaries and invariants, `docs/ROADMAP.md` for what we're
 building and in what order. Don't contradict either;
 propose an edit to the doc instead.
 
