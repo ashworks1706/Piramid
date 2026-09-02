@@ -39,33 +39,31 @@ Two things the naming is doing. `engine/` says what the thing is; "crates" descr
 compilation model, not the product. And one binary doesn't mean one folder: the engine is eleven
 crates and `apps/cli` is what links them into an artifact.
 
-The groups answer "what is this for", and each cut is a real one.
+Each cut is a real one.
 
-`compute` and `gpu` are the code that changes when the machine changes. `compute` owns what cosine means
-and which backend runs it; `gpu` owns the device, meaning contexts, buffers, streams, and modules.
-They're separate because two subsystems need a device — `compute` for distance kernels and
-`inference` for model execution — and neither should have to depend on the other to allocate
-memory.
+`hardware` is the code that changes when the machine changes. `compute` owns what cosine means and
+which strategy runs it, `gpu` owns the device — contexts, buffers, streams, modules — and
+`quantization` owns the encodings both score over. It is a leaf, so kernels can be benchmarked on
+their own and `model` can get a device without reaching through retrieval math.
 
-`data/` is where vectors live and who owns them. `storage` is bytes: records, WAL, mmap, layout.
-`collections` is the object that owns a store, a cache, a checkpoint policy, and an index. A
-collection is acted on by search rather than being a way of finding things itself.
+`database` is where vectors live: records, WAL, mmap, sidecars. It decides nothing about API
+behaviour or collection lifecycle — a `RecordStore` does not know what a collection is.
 
-`retrieval/` is how you find them: `index` for the ANN structure, `search` for planning and
-scoring, `embeddings` for turning text into a vector to search with.
+`retrieval` is how they are found: `index` for the ANN structure, `search` for planning and
+scoring. `collections` is the object that owns a store, a cache, a checkpoint policy and an index;
+a collection is acted on by search rather than being a way of finding things itself.
 
-`core` and `observability` sit flat because they're used from everywhere rather than at one level.
-`core` is the vocabulary everything shares. `observability` is used by `server`, which renders
-metrics, and directly by `apps/cli`, which installs the tracing subscriber before any server
-exists. `server` and `inference` are flat because each is one crate, and a group of one buys
-nothing.
+`model` is the forward pass, the `fusion` seam retrieval enters it through, and the `embeddings`
+providers that turn text into a vector. It depends on nothing in the retrieval stack, which is what
+keeps a collection queryable with no model loaded.
 
-`core::stats` and `observability` split a concern that's easy to read as two names for one thing.
-`stats` is what the engine measures about itself: latency, lock contention, embedding throughput,
-held as plain atomics with no dependency on `tracing` or any exporter, so `collections` and
-`server` can record into it freely. `observability` is where those numbers go, and it carries
-`tracing-subscriber` and OpenTelemetry. Merging them would link an exporter stack into every crate
-that times a lock.
+`core` is the vocabulary everything shares: errors, the whole configuration surface, document
+metadata and its filters, validation, and the counters the engine keeps about itself.
+
+`core::stats` and `core::observability` split a concern that is easy to read as two names for one
+thing. `stats` is what the engine measures: latency, lock contention, embedding throughput, held as
+plain atomics with no dependency on an exporter, so any crate can record into it freely.
+`observability` is where those numbers go, and it carries `tracing-subscriber` and OpenTelemetry.
 
 One folder per crate, no grouping folders. The tree carries names; the layering is the
 dependency rule, enforced by `scripts/check-deps.sh`. Folder order is not dependency order — `core`
@@ -153,11 +151,9 @@ MDX through `next-mdx-remote` with KaTeX for the maths in the blog posts.
 A crate may depend on one listed below it. The reverse is a violation.
 
 ```
-compute ─┐                    gpu ─┐
-         │                         ├─→ inference ─┐
-core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         │        └────────→ cache ───────────┘   │
-         └─→ embeddings ──────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
+                  │                                          ├─→ serving ─→ cli
+                  └─→ model ────────────────────────────────┘
 ```
 
 `scripts/check-deps.sh` holds the allow-list. Adding an edge means editing that file and this

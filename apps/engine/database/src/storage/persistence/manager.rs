@@ -52,7 +52,7 @@ impl<'a> SidecarManager<'a> {
         format!("{}.metadata.db", self.base)
     }
 
-    /// Path of the ANN index sidecar. `piramid-index` owns its format; this owns its place.
+    /// Path of the ANN index sidecar. `piramid-retrieval` owns its format; this owns its place.
     pub fn vector_index_path(&self) -> String {
         format!("{}.vecindex.db", self.base)
     }

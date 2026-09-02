@@ -4,7 +4,7 @@ use crate::compute::kernels::DistanceKernels;
 use crate::compute::mode::ExecutionMode;
 use crate::compute::strategies::scalar::ScalarStrategy;
 
-/// GPU kernels dispatched through `piramid-gpu`.
+/// GPU kernels dispatched through `hardware::gpu`.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct CudaStrategy;
 

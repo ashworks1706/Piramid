@@ -4,20 +4,20 @@ use crate::services::types::{HitResponse, SearchTuning};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{Result, ServerError};
 use piramid_core::metadata::{Filter, Metadata, MetadataValue};
-use piramid_hardware::compute::Metric;
+use piramid_hardware::compute::{ComputeError, Metric};
 use piramid_retrieval::search::Hit;
 use std::collections::HashMap;
 
+/// Resolve a requested metric name, defaulting when the caller omits one.
+///
+/// Which names exist is `Metric`'s to say. This decides only that an absent metric means the
+/// default, and that an unknown one is a bad request rather than an unavailable backend.
 pub fn parse_metric(metric: Option<String>) -> Result<Metric> {
-    match metric.as_deref() {
-        None | Some("cosine") => Ok(Metric::Cosine),
-        Some("euclidean") => Ok(Metric::Euclidean),
-        Some("dot") => Ok(Metric::DotProduct),
-        Some(other) => Err(ServerError::InvalidRequest(format!(
-            "Unknown metric '{other}'. Expected cosine, euclidean, or dot"
-        ))
-        .into()),
-    }
+    let Some(name) = metric else {
+        return Ok(Metric::default());
+    };
+    name.parse()
+        .map_err(|error: ComputeError| ServerError::InvalidRequest(error.to_string()).into())
 }
 
 fn require_nonzero(value: usize, name: &str) -> Result<usize> {

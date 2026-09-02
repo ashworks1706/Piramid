@@ -9,6 +9,4 @@ pub mod observability;
 pub mod stats;
 pub mod validation;
 
-pub use piramid_hardware::compute;
-
 pub use error::{ErrorContext, PiramidError, Result};

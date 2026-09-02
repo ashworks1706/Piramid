@@ -1,4 +1,4 @@
-//! Filesystem capacity probing, the one `unsafe` site in `piramid-server`.
+//! Filesystem capacity probing, the one `unsafe` site in `piramid-serving`.
 
 use piramid_core::error::{Result, ServerError};
 

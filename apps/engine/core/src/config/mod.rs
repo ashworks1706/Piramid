@@ -18,9 +18,7 @@ mod logging;
 mod memory;
 mod runtime;
 mod search;
-mod search_mode;
 mod startup;
-mod storage;
 mod telemetry;
 mod wal;
 
@@ -38,9 +36,7 @@ pub use logging::{LogLevel, LoggingConfig};
 pub use memory::MemoryConfig;
 pub use runtime::RuntimeConfig;
 pub use search::SearchConfig;
-pub use search_mode::{RangeSearchParams, SearchMode};
 pub use startup::StartupConfig;
-pub use storage::StorageConfig;
 pub use telemetry::{OtlpConfig, TelemetryConfig};
 pub use wal::WalConfig;
 

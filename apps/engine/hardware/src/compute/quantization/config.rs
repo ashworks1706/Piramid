@@ -16,9 +16,9 @@ pub enum QuantizationLevel {
         /// Number of blocks the vector is split into.
         subquantizers: usize,
     },
-    /// 4-bit integer. Not implemented; rejected by `AppConfig::validate`.
+    /// 4-bit integer. Not implemented; rejected by `RuntimeConfig::validate`.
     Int4,
-    /// Half precision. Not implemented; rejected by `AppConfig::validate`.
+    /// Half precision. Not implemented; rejected by `RuntimeConfig::validate`.
     Float16,
 }
 

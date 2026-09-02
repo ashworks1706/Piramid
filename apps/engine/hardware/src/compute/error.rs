@@ -5,6 +5,12 @@ use thiserror::Error;
 /// A kernel failed to run: dimension mismatch, unavailable strategy, or a device fault.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ComputeError {
+    /// A metric name that does not match any variant.
+    #[error("unknown metric '{name}'; expected cosine, euclidean or dot")]
+    UnknownMetric {
+        /// The name that was asked for.
+        name: String,
+    },
     /// The requested strategy is not compiled in, or the hardware it needs is absent.
     #[error("compute strategy '{strategy}' unavailable: {reason}")]
     StrategyUnavailable {

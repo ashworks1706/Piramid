@@ -70,3 +70,30 @@ fn cosine_similarity_cases() {
     let sim_orth = cosine_similarity(&[1.0, 0.0], &[0.0, 1.0], auto());
     assert!(sim_orth.abs() < 1e-6);
 }
+
+// One spelling per metric. serde, `as_str` and `FromStr` previously disagreed: serde rendered
+// DotProduct as "dotproduct" while the HTTP layer accepted only "dot", so the same value was
+// spelled differently in the config file and on the wire.
+#[test]
+fn a_metric_spells_the_same_everywhere() {
+    use piramid_hardware::compute::Metric;
+
+    for metric in [Metric::Cosine, Metric::Euclidean, Metric::DotProduct] {
+        let name = metric.as_str();
+        assert_eq!(
+            serde_json::to_string(&metric).unwrap(),
+            format!("\"{name}\""),
+            "serde and as_str disagree for {metric:?}"
+        );
+        assert_eq!(name.parse::<Metric>().unwrap(), metric, "FromStr disagrees");
+    }
+}
+
+#[test]
+fn an_unknown_metric_names_the_alternatives() {
+    use piramid_hardware::compute::Metric;
+
+    let error = "dot_product".parse::<Metric>().unwrap_err().to_string();
+    assert!(error.contains("cosine"), "{error}");
+    assert!(error.contains("dot"), "{error}");
+}

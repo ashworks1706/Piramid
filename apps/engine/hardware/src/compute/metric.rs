@@ -2,6 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
+use crate::compute::error::ComputeError;
 use crate::compute::kernels::DistanceKernels;
 use crate::compute::pairwise::{cosine_similarity, dot_product, euclidean_distance};
 
@@ -15,6 +16,7 @@ pub enum Metric {
     /// L2 distance, mapped to `1 / (1 + d)` so higher stays better.
     Euclidean,
     /// Unnormalized inner product.
+    #[serde(rename = "dot")]
     DotProduct,
 }
 
@@ -28,12 +30,26 @@ impl Metric {
         }
     }
 
-    /// Stable lowercase name, used by the HTTP surface and telemetry labels.
+    /// Stable lowercase name. Matches the serde representation, so the wire, the config file and
+    /// telemetry labels all spell a metric the same way.
     pub fn as_str(&self) -> &'static str {
         match self {
             Metric::Cosine => "cosine",
             Metric::Euclidean => "euclidean",
             Metric::DotProduct => "dot",
         }
+    }
+}
+
+impl std::str::FromStr for Metric {
+    type Err = ComputeError;
+
+    fn from_str(name: &str) -> Result<Self, Self::Err> {
+        [Metric::Cosine, Metric::Euclidean, Metric::DotProduct]
+            .into_iter()
+            .find(|metric| metric.as_str() == name)
+            .ok_or_else(|| ComputeError::UnknownMetric {
+                name: name.to_string(),
+            })
     }
 }

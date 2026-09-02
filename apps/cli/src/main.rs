@@ -149,7 +149,7 @@ fn main() {
             if let Some(dir) = data_dir {
                 std::env::set_var("DATA_DIR", dir);
             }
-            run_or_exit(start_server_inline, "Failed to start piramid-server");
+            run_or_exit(start_server_inline, "Failed to start the server");
         }
         None => {
             let mut command = Cli::command();
