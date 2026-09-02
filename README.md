@@ -1,7 +1,7 @@
 <img width="1114" height="191" alt="Piramid Logo" src="https://github.com/user-attachments/assets/efaa4c47-62d1-4397-9899-8bd58d400fc6" />
 
 <p align="center">
-    <b>Long-term memory for language models</b>
+    <b>Inference Engine for Retrieval Systems</b>
 </p>
 
 <p align="center">
@@ -21,14 +21,8 @@
 
 ## What this is
 
-Piramid holds the documents, the model weights and the KV cache in one process on one device, so
-retrieval can run *during* generation rather than once before it.
-
-RAG today retrieves once, before the model has generated anything. If the model needs something at
-token 300 that was not in the top-k at token 0, there is no way for it to ask.
-
-In one address space a retrieval costs microseconds instead of milliseconds, which is cheap enough
-to repeat inside the forward pass — around sixteen times in a 512-token generation.
+Piramid is an inference engine for RAG: one process holding the documents, the model weights and
+the KV cache on one device, so retrieval can run *during* generation rather than once before it.
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 

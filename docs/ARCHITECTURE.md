@@ -5,10 +5,9 @@ How the workspace is cut, why each boundary sits where it does, and what has to 
 ## The problem this shape solves
 
 Piramid runs retrieval and, eventually, transformer inference in one process, on one device, so
-that a retrieval costs microseconds rather than milliseconds and can be repeated inside a forward
-pass. Retrieval inside a generation — repeated, overlapped with compute, against device-resident
-state — does not cross a service boundary; retrieval before prefill costs one hop and does not
-need one.
+that retrieval can happen during generation rather than once before it. Retrieval inside a
+generation — repeated, overlapped with compute, against device-resident state — does not cross a
+service boundary; retrieval before prefill costs one hop and does not need one.
 
 Colocating a vector database and an inference server on one host removes the network, and the
 candidate set still travels to reach the weights. The slab sitting in device memory beside them is

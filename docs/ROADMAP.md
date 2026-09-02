@@ -1,8 +1,7 @@
 # Roadmap
 
-Piramid is long-term memory for language models: one process holding the documents, the model
-weights and the KV cache on one device, so a retrieval costs microseconds and can run during
-generation rather than once before it.
+Piramid is an inference engine for RAG: one process holding the documents, the model weights and the
+KV cache on one device, so retrieval can run during generation rather than once before it.
 
 The order below is what it takes to measure that against a colocated split stack and publish the
 number.

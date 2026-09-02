@@ -1,8 +1,7 @@
 # Piramid — agent guide
 
-Long-term memory for language models, in Rust: one process holding documents, model weights and the
-KV cache on one device, so a retrieval costs microseconds and can run during generation rather than
-once before it.
+An inference engine for RAG, in Rust: one process holding documents, model weights and the KV cache
+on one device, so retrieval can run during generation rather than once before it.
 
 Read `docs/ARCHITECTURE.md` for crate boundaries and invariants, `docs/ROADMAP.md` for what we're
 building and in what order. Don't contradict either;

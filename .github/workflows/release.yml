@@ -150,7 +150,7 @@ jobs:
             type=raw,value=latest
           labels: |
             org.opencontainers.image.title=Piramid
-            org.opencontainers.image.description=Long-term memory for language models: retrieval that runs during generation.
+            org.opencontainers.image.description=Inference engine for retrieval systems.
             org.opencontainers.image.licenses=Apache-2.0
       - id: build
         uses: docker/build-push-action@v6
