@@ -12,7 +12,7 @@ mod support;
 use piramid::config::{self, Config, LogLevel, StartupConfig};
 use piramid::state::AppState;
 use piramid::{embeddings, server};
-use piramid_observability::ObservabilityGuard;
+use piramid_core::observability::ObservabilityGuard;
 use tokio::runtime::Runtime;
 use tracing_subscriber::EnvFilter;
 
@@ -367,7 +367,7 @@ fn init_tracing(startup: &StartupConfig) -> std::io::Result<Option<Observability
         env_filter = add_directive(env_filter, "piramid::http=off");
     }
 
-    let guard = piramid_observability::init(&startup.telemetry, env_filter, cfg.json);
+    let guard = piramid_core::observability::init(&startup.telemetry, env_filter, cfg.json);
     TRACING_INIT.set(()).ok();
     Ok(Some(guard))
 }

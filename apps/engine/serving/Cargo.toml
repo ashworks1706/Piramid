@@ -16,7 +16,6 @@ piramid-database.workspace = true
 piramid-retrieval.workspace = true
 piramid-collections.workspace = true
 piramid-model.workspace = true
-piramid-observability.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 axum.workspace = true

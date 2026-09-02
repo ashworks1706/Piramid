@@ -2,7 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::collections::HashMap;
 use uuid::Uuid;
 
-use crate::metadata::MetadataValue;
+use piramid_core::metadata::MetadataValue;
 
 #[derive(Serialize, Deserialize, Debug, Clone)]
 pub enum WalEntry {

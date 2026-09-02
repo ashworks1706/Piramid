@@ -48,20 +48,18 @@ folder and neither is hardware.
 
 ```
 apps/engine/core            errors (every one the app wraps), config (the whole surface: each
-                            index family's parameters, and telemetry), validation, stats (what the
-                            engine measures about itself)
-apps/engine/observability   where those measurements go: subscriber, OTLP, Prometheus encoding
-apps/engine/hardware        compute (distance kernels, strategy registry, quantization) and
-                            gpu (device, buffer, stream, module, kernels)
-apps/engine/database        storage (records, WAL, SidecarManager, mmap, VectorReader) and
-                            metadata (values and the filters over them)
+                            index family's parameters, and telemetry), metadata and the filters
+                            over it, validation, stats, observability (subscriber, OTLP,
+                            Prometheus)
+apps/engine/hardware        compute (distance kernels, strategy registry), gpu (device, buffer,
+                            stream, module, kernels), quantization (the encodings both score over)
+apps/engine/database        records, WAL, SidecarManager, mmap, VectorReader
 apps/engine/retrieval       index (flat, hnsw, ivf traversal, selector, sidecar persistence) and
                             search (query planning, filtering, scoring, ranking)
 apps/engine/collections     the Collection object, checkpoint, compact, cache/ (VectorStore
                             resident + MetadataCache bounded)
-apps/engine/fusion          the RetrievalHook seam, depending on neither half it joins
-apps/engine/model           inference (forward pass, kv_cache, batching, sampling) and
-                            embeddings (openai wire format, local servers included; ollama)
+apps/engine/model           inference (forward pass, kv_cache, batching, sampling), fusion (the
+                            RetrievalHook seam), embeddings (openai wire format; ollama)
 apps/engine/serving         http (axum only), services (locks, metrics, DTOs), state, disk,
                             cluster
 apps/cli                    the piramid binary and the umbrella piramid facade crate
@@ -79,9 +77,9 @@ One folder per crate, no grouping folders. The layering is the dependency rule b
 A crate may depend on one listed below it. The reverse is a layering violation.
 
 ```
-hardware ─┬─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
-          │         │                                          ├─→ serving ─→ cli
-          └─→ fusion ─→ model ────────────────────────────────┘
+hardware ─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
+                  │                                          ├─→ serving ─→ cli
+                  └─→ model ────────────────────────────────┘
 ```
 
 `scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.
@@ -90,8 +88,8 @@ Adding an edge means editing that script and `docs/ARCHITECTURE.md` in the same 
 `hardware` depends on nothing in the workspace, `core` included. That's what lets kernels be
 benchmarked on their own.
 
-`model` and `fusion` never depend on the retrieval stack, which is what keeps a collection
-queryable with no model loaded. A hook implementation is its own crate depending on both.
+`model` never depends on the retrieval stack, which is what keeps a collection queryable with no
+model loaded. A hook implementation is its own crate depending on both.
 
 ## The three seams
 
@@ -106,7 +104,7 @@ costs more than the kernel saves. Don't reintroduce it.
 `storage::vectors::VectorReader` — how indexes read vectors they don't own. `as_slab()` is the
 fast path and `gather_into()` the fallback. Both have defaults, so a new reader costs nothing.
 
-`fusion::RetrievalHook` — where retrieval enters the forward pass. Defined before
+`model::fusion::RetrievalHook` — where retrieval enters the forward pass. Defined before
 anything can call it, because a driver written without the seam is hard to retrofit with one. A
 strategy that queries an index belongs in its own crate; `inference` must never depend on the
 retrieval stack.

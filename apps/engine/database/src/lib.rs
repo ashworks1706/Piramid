@@ -1,4 +1,3 @@
-//! Where vectors live: the bytes on disk and the metadata they are filtered by.
+//! Where vectors live: records, the write-ahead log, mmap, and the sidecars beside them.
 
-pub mod metadata;
 pub mod storage;

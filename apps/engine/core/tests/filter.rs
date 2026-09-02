@@ -5,8 +5,8 @@
 )]
 
 use {
-    piramid_database::metadata::metadata, piramid_database::metadata::Filter,
-    piramid_database::metadata::MetadataValue,
+    piramid_core::metadata::metadata, piramid_core::metadata::Filter,
+    piramid_core::metadata::MetadataValue,
 };
 
 #[test]

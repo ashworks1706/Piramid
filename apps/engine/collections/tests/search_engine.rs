@@ -6,8 +6,8 @@
 
 use std::fs;
 use {
-    piramid_collections::Collection, piramid_database::metadata::metadata,
-    piramid_database::metadata::Filter, piramid_database::storage::Document,
+    piramid_collections::Collection, piramid_core::metadata::metadata,
+    piramid_core::metadata::Filter, piramid_database::storage::Document,
     piramid_hardware::compute::Metric, piramid_retrieval::search::SearchParams,
 };
 

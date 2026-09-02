@@ -9,9 +9,9 @@ use crate::services::types::{
 };
 use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
+use piramid_core::metadata::Metadata;
 use piramid_core::stats::record_lock_write;
 use piramid_core::validation;
-use piramid_database::metadata::Metadata;
 use piramid_database::storage::Document;
 
 use super::MAX_BATCH_SIZE;

@@ -1,5 +1,3 @@
-#![deny(missing_docs)]
-
 //! The seam where retrieval enters the forward pass.
 //!
 //! Defined apart from both halves on purpose: a model runtime that depends on the retrieval stack

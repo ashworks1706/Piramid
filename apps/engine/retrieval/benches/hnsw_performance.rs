@@ -4,7 +4,7 @@ use criterion::{criterion_group, criterion_main, Criterion};
 use std::collections::HashMap;
 use uuid::Uuid;
 use {
-    piramid_database::metadata::Metadata, piramid_retrieval::index::HashMapVectorReader,
+    piramid_core::metadata::Metadata, piramid_retrieval::index::HashMapVectorReader,
     piramid_retrieval::index::HnswConfig, piramid_retrieval::index::HnswIndex,
 };
 

@@ -4,7 +4,7 @@ use crate::index::{IndexSearchRequest, MetadataReader, VectorIndex, VectorReader
 use crate::search::{utils::sort_and_truncate, Hit};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{IndexError, Result};
-use piramid_database::metadata::Filter;
+use piramid_core::metadata::Filter;
 use piramid_database::storage::Document;
 use piramid_hardware::compute::{strategies::for_mode, ExecutionMode, Metric};
 use uuid::Uuid;

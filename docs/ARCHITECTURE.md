@@ -21,17 +21,13 @@ that isn't in the rule below.
 ```text
 apps/                     everything we author
   engine/                 the library crates, one folder each
-    core/                 errors, config, metadata, validation, stats
-    observability/        where measurements go: subscriber, OTLP, Prometheus
-    compute/              distance kernels and strategy dispatch
-    gpu/                  device runtime: contexts, buffers, streams, kernels
-    storage/              records, WAL, sidecars, mmap
+    core/                 errors, config, metadata, validation, stats, observability
+    hardware/             compute, gpu, quantization
+    database/             records, WAL, sidecars, mmap
+    retrieval/            index, search
     collections/          the Collection object, its cache, checkpoint, compaction
-    index/                flat, hnsw, ivf traversal and the sidecar format
-    search/               query planning, filtering, scoring, ranking
-    embeddings/           provider adapters: openai, ollama
-    inference/            how you run a model over them
-    server/               how the outside world reaches it
+    model/                inference, fusion, embeddings
+    serving/              how the outside world reaches it
   cli/                    the piramid binary, which links the engine into one artifact
   website/                piramiddb.com, with blog content and images inside it
   sdk/                    npm and python clients
@@ -81,13 +77,11 @@ depends on `compute` for the `ExecutionMode` and `Metric` types that configurati
 flowchart TD
     CLI[apps/cli<br/>binary + umbrella facade]
     Serving[serving<br/>http · services · state · cluster]
-    Model[model<br/>inference · embeddings]
-    Fusion[fusion<br/>the RetrievalHook seam]
+    Model[model<br/>inference · fusion · embeddings]
     Collections[collections<br/>Collection · cache · checkpoint · compact]
     Retrieval[retrieval<br/>index · search]
-    Database[database<br/>storage · metadata]
-    Core[core<br/>error · config · validation · stats]
-    Observability[observability<br/>subscriber · OTLP · Prometheus]
+    Database[database<br/>records · WAL · sidecars · mmap]
+    Core[core<br/>error · config · metadata · validation · stats · observability]
     Hardware[hardware<br/>compute · gpu · quantization]
 
     CLI --> Serving
@@ -95,34 +89,27 @@ flowchart TD
     Serving --> Model
     Serving --> Retrieval
     Serving --> Database
-    Serving --> Observability
     Serving --> Core
     Collections --> Retrieval
     Collections --> Database
     Collections --> Core
     Retrieval --> Database
     Retrieval --> Core
-    Model --> Fusion
-    Model --> Core
-    Fusion --> Core
-    Database --> Core
-    Observability --> Core
-    Core --> Hardware
-    Fusion --> Hardware
-    Model --> Hardware
     Retrieval --> Hardware
+    Model --> Core
+    Model --> Hardware
+    Database --> Core
+    Core --> Hardware
 ```
 
 | Crate | Owns | Must not |
 |---|---|---|
-| `core` | Every error the app wraps, all configuration (including per-index-family parameters), validation, `stats` | Know about HTTP, end the process, or depend on an exporter |
-| `observability` | Tracing subscriber, OTLP export, Prometheus encoding | Integrate with a vendor's product, or own its own settings — those are `core::config::TelemetryConfig` |
+| `core` | Every error the app wraps, all configuration, metadata and its filters, validation, `stats`, and the telemetry export those feed | Know about HTTP or end the process |
 | `hardware` | Distance math and strategy dispatch, the device runtime, quantization encodings | Depend on anything in the workspace, or let vendor types escape `gpu::backends` |
-| `database` | Records, WAL, `SidecarManager`, mmap, vector layout, and the metadata filters run over | Decide API behaviour or collection lifecycle |
+| `database` | Records, WAL, `SidecarManager`, mmap, vector layout | Decide API behaviour or collection lifecycle |
 | `retrieval` | ANN traversal and the sidecar format; overfetch planning, scoring, filtering, ranking | Own the vectors, or know what a `Collection` is |
 | `collections` | The `Collection` object, its `cache` (resident `VectorStore` + bounded `MetadataCache`), checkpoint, compaction | Serve HTTP, or evict a vector |
-| `fusion` | The `RetrievalHook` seam and nothing else | Depend on either half it joins |
-| `model` | Model execution, KV cache, batching, sampling; embedding providers, caching, retries | Depend on the retrieval stack, or be required for retrieval to work |
+| `model` | Model execution, KV cache, batching, sampling; the `RetrievalHook` seam; embedding providers | Depend on the retrieval stack, or be required for retrieval to work |
 | `serving` | Routes, handlers, services (admission, locks, metrics, DTOs), `AppState`, routing | Touch file formats or index internals |
 | `apps/cli` | Argument parsing, process lifecycle, terminal output | Contain domain logic |
 
@@ -238,7 +225,7 @@ structures hold a 4-byte handle instead of a 16-byte key — is what makes `as_s
 It does not exist yet: making `cache::VectorStore` contiguous is a v0.3.0 roadmap item, and
 because `as_slab` is optional it can land one reader at a time.
 
-### fusion::RetrievalHook
+### model::fusion::RetrievalHook
 
 Where retrieval enters the forward pass.
 
@@ -384,7 +371,7 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 5. `unsafe` appears at four audited sites, each with a `// SAFETY:` comment.
 6. Cache and index are rebuildable from the record store.
 7. Retrieval works with no model loaded, and `model` depends on nothing in the retrieval
-   stack. `fusion` holds only the trait; a strategy that queries an index is a
+   stack. `model::fusion` holds only the trait; a strategy that queries an index is a
    separate crate depending on both. Enforced by `scripts/check-deps.sh`.
 8. Default builds are CPU-only and need no vendor toolchain.
 9. Telemetry speaks protocols, not products. Nothing is sent to this project under any
@@ -400,7 +387,7 @@ the orphan rule isn't a problem, since the `IntoResponse` impl is on a local new
 6. Distance math or backend dispatch goes in `apps/engine/hardware`.
 7. Device memory, streams, and kernels go in `apps/engine/hardware/src/gpu`.
 8. Model execution goes in `apps/engine/model`.
-9. Retrieval inside the forward pass goes in `apps/engine/fusion/src`.
+9. Retrieval inside the forward pass goes in `apps/engine/model/src/fusion`.
 10. Shared vocabulary — error, config, metadata — goes in `apps/engine/core`.
 11. A deployable, a site, or a client library goes in `apps/`.
 

@@ -3,7 +3,7 @@
 use crate::services::types::{HitResponse, SearchTuning};
 use piramid_core::config::SearchConfig;
 use piramid_core::error::{Result, ServerError};
-use piramid_database::metadata::{Filter, Metadata, MetadataValue};
+use piramid_core::metadata::{Filter, Metadata, MetadataValue};
 use piramid_hardware::compute::Metric;
 use piramid_retrieval::search::Hit;
 use std::collections::HashMap;

@@ -29,7 +29,7 @@ impl From<piramid_core::config::CollectionConfig> for CollectionOpenOptions {
 }
 
 use piramid_core::error::Result;
-use piramid_database::metadata::Metadata;
+use piramid_core::metadata::Metadata;
 use piramid_database::storage::document::Document;
 use piramid_hardware::compute::Metric;
 use piramid_retrieval::search::Hit;

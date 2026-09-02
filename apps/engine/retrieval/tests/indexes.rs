@@ -32,7 +32,7 @@ fn flat_index_searches() {
     let ready_stats = idx.stats();
     assert_eq!(ready_stats.total_vectors, 2);
 
-    let empty_meta: HashMap<Uuid, piramid_database::metadata::Metadata> = HashMap::new();
+    let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
     let results = idx
         .search(IndexSearchRequest::new(
             &v1,
@@ -56,7 +56,7 @@ fn hnsw_tombstone_tracks() {
     let reader = HashMapVectorReader::new(&vectors);
     idx.insert(id, &vec, &reader).unwrap();
 
-    let empty_meta: HashMap<Uuid, piramid_database::metadata::Metadata> = HashMap::new();
+    let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
     let results = idx.search(&vec, 1, 50, &reader, None, &empty_meta).unwrap();
     assert!(!results.is_empty());
 
@@ -93,7 +93,7 @@ fn ivf_search_basic() {
     let ready_stats = idx.stats();
     assert_eq!(ready_stats.total_vectors, 2);
 
-    let empty_meta: HashMap<Uuid, piramid_database::metadata::Metadata> = HashMap::new();
+    let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
     let results = idx
         .search(IndexSearchRequest::new(
             &v1,
@@ -122,7 +122,7 @@ fn ivf_search_fails_before_clusters_are_ready() {
     idx.insert(id, &vec, &reader).unwrap();
     assert_eq!(idx.stats().total_vectors, 1);
 
-    let empty_meta: HashMap<Uuid, piramid_database::metadata::Metadata> = HashMap::new();
+    let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
     let result = idx.search(IndexSearchRequest::new(
         &vec,
         1,
@@ -190,7 +190,7 @@ fn index_selector_prefers_expected_types() {
 // coverage of `passes_filter` on the graph path.
 #[test]
 fn hnsw_search_applies_a_filter_during_traversal() {
-    use piramid_database::metadata::{metadata, Filter, Metadata};
+    use piramid_core::metadata::{metadata, Filter, Metadata};
 
     let mut idx = HnswIndex::new(HnswConfig::default());
     let mut vectors = HashMap::new();

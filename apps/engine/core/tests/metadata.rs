@@ -5,7 +5,7 @@
 )]
 
 use std::f64::consts::PI;
-use {piramid_database::metadata::metadata, piramid_database::metadata::MetadataValue};
+use {piramid_core::metadata::metadata, piramid_core::metadata::MetadataValue};
 
 #[test]
 fn metadata_helper_builds_map() {

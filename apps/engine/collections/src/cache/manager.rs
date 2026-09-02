@@ -2,7 +2,7 @@
 
 use crate::{MetadataCache, VectorStore};
 use piramid_core::config::CacheConfig;
-use piramid_database::metadata::Metadata;
+use piramid_core::metadata::Metadata;
 use piramid_database::storage::vectors::VectorReader;
 use uuid::Uuid;
 

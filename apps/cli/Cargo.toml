@@ -25,7 +25,7 @@ default = []
 gpu-cuda = ["piramid-hardware/gpu-cuda"]
 inference-candle = ["piramid-model/inference-candle"]
 # Export traces over OTLP to any collector (Axiom, Tempo, Honeycomb, Jaeger).
-otel = ["piramid-observability/otel"]
+otel = ["piramid-core/otel"]
 
 [dependencies]
 rayon.workspace = true
@@ -34,9 +34,7 @@ piramid-hardware.workspace = true
 piramid-database.workspace = true
 piramid-retrieval.workspace = true
 piramid-collections.workspace = true
-piramid-fusion.workspace = true
 piramid-model.workspace = true
-piramid-observability.workspace = true
 piramid-serving.workspace = true
 axum.workspace = true
 clap.workspace = true

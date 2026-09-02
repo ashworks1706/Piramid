@@ -3,8 +3,9 @@
 The machine: the math, the device that runs it, and the encodings it runs over.
 
 `compute` owns what a distance means and which strategy computes it. `gpu` owns talking to a
-device — contexts, buffers, streams, module loading — and nothing about what the math means. Vendor
-SDK types like `cudarc` appear only in `gpu/backends/`.
+device — contexts, buffers, streams, module loading — and nothing about what the math means; vendor
+SDK types like `cudarc` appear only in `gpu/backends/`. `quantization` owns the encodings
+both score over, beside them rather than under either.
 
 A leaf crate: it depends on nothing else in the workspace, so kernels can be benchmarked on their
 own and `model` can get a `Device` without reaching through retrieval math.
@@ -17,8 +18,7 @@ more than the kernel saves.
 Dispatch never panics and never substitutes. A requested strategy that isn't available on this
 machine or in this build returns `ComputeError::StrategyUnavailable`.
 
-`unsafe` appears at two functions in `gpu/buffer.rs`, each with a `// SAFETY:` note. The
-security workflow fails if a third site appears.
+`unsafe` appears at two functions in `gpu/buffer.rs`, each with a `// SAFETY:` note.
 
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
 [`docs/ARCHITECTURE.md`](../../../docs/ARCHITECTURE.md) for how the crates fit together.

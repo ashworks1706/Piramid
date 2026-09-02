@@ -2,12 +2,10 @@
 resolver = "2"
 members = [
     "apps/engine/core",
-    "apps/engine/observability",
     "apps/engine/hardware",
     "apps/engine/database",
     "apps/engine/retrieval",
     "apps/engine/collections",
-    "apps/engine/fusion",
     "apps/engine/model",
     "apps/engine/serving",
     "apps/cli",
@@ -25,12 +23,10 @@ rust-version = "1.87"  # `usize::is_multiple_of` / `next_multiple_of`, used by c
 [workspace.dependencies]
 # in-repo crates, so versions stay in lockstep
 piramid-core = { path = "apps/engine/core", version = "0.2.0" }
-piramid-observability = { path = "apps/engine/observability", version = "0.2.0" }
 piramid-hardware = { path = "apps/engine/hardware", version = "0.2.0" }
 piramid-database = { path = "apps/engine/database", version = "0.2.0" }
 piramid-retrieval = { path = "apps/engine/retrieval", version = "0.2.0" }
 piramid-collections = { path = "apps/engine/collections", version = "0.2.0" }
-piramid-fusion = { path = "apps/engine/fusion", version = "0.2.0" }
 piramid-model = { path = "apps/engine/model", version = "0.2.0" }
 piramid-serving = { path = "apps/engine/serving", version = "0.2.0" }
 

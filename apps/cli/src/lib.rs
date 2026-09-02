@@ -1,16 +1,14 @@
 //! Umbrella crate: re-exports every workspace crate under one namespace. See `docs/ARCHITECTURE.md`
 //! for crate boundaries and the dependency rule.
 
-pub use piramid_core::{config, error, stats, validation};
+pub use piramid_core::{config, error, metadata, observability, stats, validation};
 
 pub use piramid_collections as collections;
 pub use piramid_collections::cache;
-pub use piramid_database::{metadata, storage};
-pub use piramid_fusion as fusion;
-pub use piramid_hardware::compute::quantization;
+pub use piramid_database::storage;
+pub use piramid_hardware::quantization;
 pub use piramid_hardware::{compute, gpu};
-pub use piramid_model::{embeddings, inference};
-pub use piramid_observability as observability;
+pub use piramid_model::{embeddings, fusion, inference};
 pub use piramid_retrieval::{index, search};
 pub use piramid_serving::{cluster, disk, http as server, services, state};
 

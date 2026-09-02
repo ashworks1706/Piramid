@@ -1221,10 +1221,8 @@ dependencies = [
  "piramid-collections",
  "piramid-core",
  "piramid-database",
- "piramid-fusion",
  "piramid-hardware",
  "piramid-model",
- "piramid-observability",
  "piramid-retrieval",
  "piramid-serving",
  "rayon",
@@ -1260,12 +1258,18 @@ version = "0.2.0"
 dependencies = [
  "bincode",
  "num_cpus",
+ "opentelemetry",
+ "opentelemetry-otlp",
+ "opentelemetry_sdk",
  "piramid-hardware",
  "serde",
  "serde_json",
  "serde_yaml",
  "thiserror 1.0.69",
  "tokio",
+ "tracing",
+ "tracing-opentelemetry",
+ "tracing-subscriber",
  "uuid",
 ]
 
@@ -1280,14 +1284,6 @@ dependencies = [
  "serde_json",
  "tracing",
  "uuid",
-]
-
-[[package]]
-name = "piramid-fusion"
-version = "0.2.0"
-dependencies = [
- "piramid-core",
- "piramid-hardware",
 ]
 
 [[package]]
@@ -1311,27 +1307,12 @@ dependencies = [
  "lru",
  "parking_lot",
  "piramid-core",
- "piramid-fusion",
  "piramid-hardware",
  "reqwest 0.12.28",
  "serde",
  "serde_json",
  "tokio",
  "tracing",
-]
-
-[[package]]
-name = "piramid-observability"
-version = "0.2.0"
-dependencies = [
- "opentelemetry",
- "opentelemetry-otlp",
- "opentelemetry_sdk",
- "piramid-core",
- "thiserror 1.0.69",
- "tracing",
- "tracing-opentelemetry",
- "tracing-subscriber",
 ]
 
 [[package]]
@@ -1363,7 +1344,6 @@ dependencies = [
  "piramid-database",
  "piramid-hardware",
  "piramid-model",
- "piramid-observability",
  "piramid-retrieval",
  "serde",
  "serde_json",

@@ -7,8 +7,8 @@ use crate::services::types::*;
 use crate::services::EMBEDDING_NOT_CONFIGURED;
 use crate::state::SharedState;
 use piramid_core::error::{Result, ServerError};
+use piramid_core::metadata::Metadata;
 use piramid_core::stats::{record_lock_read, record_lock_write};
-use piramid_database::metadata::Metadata;
 use piramid_database::storage::Document;
 
 /// The configured embedder, or the 503 both embed endpoints answer without one.

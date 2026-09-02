@@ -108,7 +108,7 @@ impl Collection {
         &self.cache
     }
 
-    pub fn metadata_view(&self) -> &HashMap<Uuid, piramid_database::metadata::Metadata> {
+    pub fn metadata_view(&self) -> &HashMap<Uuid, piramid_core::metadata::Metadata> {
         self.cache.metadata()
     }
 

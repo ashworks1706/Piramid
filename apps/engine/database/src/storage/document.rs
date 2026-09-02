@@ -1,7 +1,7 @@
 use serde::{Deserialize, Serialize};
 use uuid::Uuid;
 
-use crate::metadata::Metadata;
+use piramid_core::metadata::Metadata;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Document {

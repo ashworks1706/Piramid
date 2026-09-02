@@ -1,6 +1,6 @@
 //! The inference domain entry.
 
-use piramid_fusion::{NoopRetrievalHook, RetrievalHook};
+use crate::fusion::{NoopRetrievalHook, RetrievalHook};
 
 /// Owns the model runtime once one exists: weights, KV cache, batch queue, and the retrieval
 /// hook the forward pass calls into. Scaffolded ahead of the code so drivers are written against

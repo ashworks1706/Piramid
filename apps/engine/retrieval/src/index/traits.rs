@@ -6,8 +6,8 @@ use uuid::Uuid;
 
 use piramid_core::config::SearchConfig;
 use piramid_core::error::Result;
-use piramid_database::metadata::Filter;
-use piramid_database::metadata::Metadata;
+use piramid_core::metadata::Filter;
+use piramid_core::metadata::Metadata;
 
 pub use piramid_database::storage::vectors::{HashMapVectorReader, VectorReader};
 

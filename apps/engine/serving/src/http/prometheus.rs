@@ -1,6 +1,6 @@
 //! Renders `/api/metrics` JSON into the Prometheus text exposition format.
 
-use piramid_observability::prometheus::{MetricType, Registry, CONTENT_TYPE};
+use piramid_core::observability::prometheus::{MetricType, Registry, CONTENT_TYPE};
 
 use crate::services::types::MetricsResponse;
 

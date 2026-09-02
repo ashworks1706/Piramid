@@ -48,10 +48,10 @@ a design conversation, so open an issue first.
 | Model execution | `apps/engine/model` |
 | Shared vocabulary | `apps/engine/core` |
 
-## Adding a compute backend
+## Adding a compute strategy
 
 One file in `apps/engine/hardware/src/compute/strategies/` implementing `DistanceKernels`, and one
-arm in the registry in `backends/mod.rs`. Nothing else changes; that's what the trait is for.
+arm in the registry in `strategies/mod.rs`. Nothing else changes; that's what the trait is for.
 
 The batch methods take a contiguous row-major slab and a caller-owned `out`. Don't change that to
 `&[Vec<f32>]` — scattered rows can't be uploaded to a device without a per-call gather that costs

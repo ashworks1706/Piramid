@@ -8,8 +8,8 @@ use tracing_subscriber::layer::SubscriberExt;
 use tracing_subscriber::util::SubscriberInitExt;
 use tracing_subscriber::{EnvFilter, Layer};
 
+pub use crate::config::{OtlpConfig, TelemetryConfig};
 pub use config::{ObservabilityError, ObservabilityResult};
-pub use piramid_core::config::{OtlpConfig, TelemetryConfig};
 
 /// Holds exporters alive; dropping this flushes pending telemetry.
 #[must_use = "dropping the guard shuts down telemetry export"]

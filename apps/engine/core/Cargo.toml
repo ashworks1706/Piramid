@@ -11,6 +11,14 @@ rust-version.workspace = true
 
 [dependencies]
 piramid-hardware.workspace = true
+tracing.workspace = true
+tracing-subscriber.workspace = true
+
+# Optional exporters. Default builds pull in none of these.
+opentelemetry = { workspace = true, optional = true }
+opentelemetry_sdk = { workspace = true, optional = true }
+opentelemetry-otlp = { workspace = true, optional = true }
+tracing-opentelemetry = { workspace = true, optional = true }
 serde.workspace = true
 serde_json.workspace = true
 serde_yaml.workspace = true
@@ -22,6 +30,18 @@ uuid.workspace = true
 [dev-dependencies]
 tokio.workspace = true
 serde_yaml.workspace = true
+
+[features]
+default = []
+
+# Export traces over OTLP. Any OTLP collector works — Axiom, Grafana Tempo, Honeycomb,
+# Jaeger — so this is one feature rather than one per vendor.
+otel = [
+    "dep:opentelemetry",
+    "dep:opentelemetry_sdk",
+    "dep:opentelemetry-otlp",
+    "dep:tracing-opentelemetry",
+]
 
 [lints]
 workspace = true

@@ -34,7 +34,7 @@ Specifically:
 ## Telemetry
 
 Nothing is transmitted to this project under any configuration. The exporters in
-`piramid-observability` point at endpoints you supply, and `PIRAMID_LOG_SPANS` only writes to your
+`core::observability` points at endpoints you supply, and `PIRAMID_LOG_SPANS` only writes to your
 own logs.
 
 Span fields carry collection names and request ids. They never carry vector contents, document

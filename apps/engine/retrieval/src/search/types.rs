@@ -1,4 +1,4 @@
-use piramid_database::metadata::Metadata;
+use piramid_core::metadata::Metadata;
 use uuid::Uuid;
 
 /// A search result: the stored entry plus its similarity score.

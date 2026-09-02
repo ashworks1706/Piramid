@@ -3,7 +3,7 @@ use uuid::Uuid;
 use super::super::collection::Collection;
 use super::limits;
 use piramid_core::error::Result;
-use piramid_database::metadata::Metadata;
+use piramid_core::metadata::Metadata;
 use piramid_database::storage::document::Document;
 use piramid_database::storage::record_store::RecordStore;
 use piramid_database::storage::wal::WalEntry;

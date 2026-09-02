@@ -45,7 +45,7 @@ struct SearchCandidate {
 
 struct SearchContext<'a> {
     vectors: &'a dyn VectorReader,
-    filter: Option<&'a piramid_database::metadata::Filter>,
+    filter: Option<&'a piramid_core::metadata::Filter>,
     metadatas: &'a dyn MetadataReader,
     /// Resolved once per operation; traversal computes thousands of distances against it.
     kernels: &'a dyn DistanceKernels,
@@ -108,7 +108,7 @@ impl HnswIndex {
     /// Insert `id`, linking it into each layer it occupies.
     pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
         let kernels = for_mode(self.config.mode)?;
-        let empty_meta: HashMap<Uuid, piramid_database::metadata::Metadata> = HashMap::new();
+        let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
         let search_context = SearchContext {
             vectors,
             filter: None,
@@ -229,7 +229,7 @@ impl HnswIndex {
         k: usize,
         ef: usize,
         vectors: &dyn VectorReader,
-        filter: Option<&piramid_database::metadata::Filter>,
+        filter: Option<&piramid_core::metadata::Filter>,
         metadatas: &dyn MetadataReader,
     ) -> Result<Vec<Uuid>> {
         let Some(ep) = self.start_node else {
