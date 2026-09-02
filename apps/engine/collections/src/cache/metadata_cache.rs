@@ -3,7 +3,7 @@
 use std::collections::{HashMap, VecDeque};
 
 use piramid_core::config::CacheConfig;
-use piramid_core::metadata::{Metadata, MetadataValue};
+use piramid_database::metadata::{Metadata, MetadataValue};
 use uuid::Uuid;
 
 /// Cached per-document metadata, bounded by `CacheConfig::max_size` entries.

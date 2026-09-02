@@ -2,8 +2,8 @@
 
 use crate::{MetadataCache, VectorStore};
 use piramid_core::config::CacheConfig;
-use piramid_core::metadata::Metadata;
-use piramid_storage::vectors::VectorReader;
+use piramid_database::metadata::Metadata;
+use piramid_database::storage::vectors::VectorReader;
 use uuid::Uuid;
 
 /// The caching domain entry for one collection.

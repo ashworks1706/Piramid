@@ -22,24 +22,22 @@ path = "src/main.rs"
 
 [features]
 default = []
-gpu-cuda = ["piramid-compute/gpu-cuda", "piramid-gpu/gpu-cuda"]
-inference-candle = ["piramid-inference/inference-candle"]
+gpu-cuda = ["piramid-hardware/gpu-cuda"]
+inference-candle = ["piramid-model/inference-candle"]
 # Export traces over OTLP to any collector (Axiom, Tempo, Honeycomb, Jaeger).
 otel = ["piramid-observability/otel"]
 
 [dependencies]
 rayon.workspace = true
 piramid-core.workspace = true
-piramid-compute.workspace = true
-piramid-gpu.workspace = true
-piramid-storage.workspace = true
-piramid-index.workspace = true
-piramid-search.workspace = true
+piramid-hardware.workspace = true
+piramid-database.workspace = true
+piramid-retrieval.workspace = true
 piramid-collections.workspace = true
-piramid-embeddings.workspace = true
-piramid-inference.workspace = true
+piramid-fusion.workspace = true
+piramid-model.workspace = true
 piramid-observability.workspace = true
-piramid-server.workspace = true
+piramid-serving.workspace = true
 axum.workspace = true
 clap.workspace = true
 serde.workspace = true

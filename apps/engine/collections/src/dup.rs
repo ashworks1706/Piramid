@@ -4,9 +4,9 @@ use std::collections::HashSet;
 use uuid::Uuid;
 
 use super::collection::Collection;
-use piramid_compute::{strategies::for_mode, Metric};
 use piramid_core::error::Result;
-use piramid_index::IndexSearchRequest;
+use piramid_hardware::compute::{strategies::for_mode, Metric};
+use piramid_retrieval::index::IndexSearchRequest;
 
 /// Neighbours examined per document when the caller does not say.
 const DEFAULT_NEIGHBOR_K: usize = 49;

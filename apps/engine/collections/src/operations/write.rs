@@ -3,10 +3,10 @@ use uuid::Uuid;
 use super::super::collection::Collection;
 use super::limits;
 use piramid_core::error::Result;
-use piramid_core::metadata::Metadata;
-use piramid_storage::document::Document;
-use piramid_storage::record_store::RecordStore;
-use piramid_storage::wal::WalEntry;
+use piramid_database::metadata::Metadata;
+use piramid_database::storage::document::Document;
+use piramid_database::storage::record_store::RecordStore;
+use piramid_database::storage::wal::WalEntry;
 
 pub fn insert_internal(storage: &mut Collection, entry: Document) -> Result<Uuid> {
     let id = entry.id;
@@ -35,7 +35,7 @@ pub fn insert_internal(storage: &mut Collection, entry: Document) -> Result<Uuid
 pub fn delete_internal(storage: &mut Collection, id: &Uuid) {
     storage.index.remove(id);
     storage.vector_index.remove(id);
-    if storage.vector_index.index_type() != piramid_index::IndexType::Hnsw {
+    if storage.vector_index.index_type() != piramid_retrieval::index::IndexType::Hnsw {
         storage.cache.remove(id, true);
     } else {
         storage.cache.remove(id, false);

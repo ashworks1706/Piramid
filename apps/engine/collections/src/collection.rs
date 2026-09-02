@@ -4,12 +4,12 @@ use uuid::Uuid;
 use super::checkpoint::CheckpointManager;
 use crate::cache::CacheManager;
 use piramid_core::error::Result;
-use piramid_index::save_vector_index;
-use piramid_index::{HashMapVectorReader, VectorIndex, VectorReader};
-use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::persistence::{warm_file, EntryPointer};
-use piramid_storage::record_store::RecordStore;
-use piramid_storage::SidecarManager;
+use piramid_database::storage::manifest::CollectionMetadata;
+use piramid_database::storage::persistence::{warm_file, EntryPointer};
+use piramid_database::storage::record_store::RecordStore;
+use piramid_database::storage::SidecarManager;
+use piramid_retrieval::index::save_vector_index;
+use piramid_retrieval::index::{HashMapVectorReader, VectorIndex, VectorReader};
 
 pub struct Collection {
     pub(super) record_store: RecordStore,
@@ -108,7 +108,7 @@ impl Collection {
         &self.cache
     }
 
-    pub fn metadata_view(&self) -> &HashMap<Uuid, piramid_core::metadata::Metadata> {
+    pub fn metadata_view(&self) -> &HashMap<Uuid, piramid_database::metadata::Metadata> {
         self.cache.metadata()
     }
 
@@ -116,7 +116,7 @@ impl Collection {
         &self.config
     }
 
-    pub fn get_all(&self) -> Result<Vec<piramid_storage::document::Document>> {
+    pub fn get_all(&self) -> Result<Vec<piramid_database::storage::document::Document>> {
         let mut all_entries = Vec::new();
         for id in self.index.keys() {
             if let Some(entry) = super::operations::get(self, id)? {
@@ -147,7 +147,7 @@ impl Collection {
             vectors.insert(*id, entry.vector().to_vec());
         }
 
-        let mut new_index = piramid_index::create_index(
+        let mut new_index = piramid_retrieval::index::create_index(
             &self.config.index,
             self.config.execution,
             self.index.len(),

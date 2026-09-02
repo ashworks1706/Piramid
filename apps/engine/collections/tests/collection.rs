@@ -8,13 +8,13 @@ use std::fs;
 use {
     piramid_collections::Collection,
     piramid_collections::{compact, CollectionOpenOptions},
-    piramid_compute::Metric,
     piramid_core::config::CacheConfig,
     piramid_core::config::CollectionConfig,
     piramid_core::config::MemoryConfig,
-    piramid_core::metadata::metadata,
-    piramid_search::SearchParams,
-    piramid_storage::Document,
+    piramid_database::metadata::metadata,
+    piramid_database::storage::Document,
+    piramid_hardware::compute::Metric,
+    piramid_retrieval::search::SearchParams,
 };
 
 fn ensure_test_dir() {

@@ -4,11 +4,11 @@ use std::collections::HashMap;
 
 use super::collection::Collection;
 use piramid_core::error::Result;
-use piramid_index::save_vector_index;
-use piramid_index::HashMapVectorReader;
-use piramid_storage::document::Document;
-use piramid_storage::record_store::RecordStore;
-use piramid_storage::SidecarManager;
+use piramid_database::storage::document::Document;
+use piramid_database::storage::record_store::RecordStore;
+use piramid_database::storage::SidecarManager;
+use piramid_retrieval::index::save_vector_index;
+use piramid_retrieval::index::HashMapVectorReader;
 
 /// Compact a collection by rewriting live documents into a fresh file and rebuilding indexes.
 pub fn compact(storage: &mut Collection) -> Result<CompactStats> {
@@ -24,8 +24,11 @@ pub fn compact(storage: &mut Collection) -> Result<CompactStats> {
     let mut temp_store = RecordStore::open(&temp_path, &storage.config, &HashMap::new())?;
     let mut new_index = HashMap::with_capacity(docs.len());
     let mut new_vectors = HashMap::with_capacity(docs.len());
-    let mut new_vector_index =
-        piramid_index::create_index(&storage.config.index, storage.config.execution, docs.len());
+    let mut new_vector_index = piramid_retrieval::index::create_index(
+        &storage.config.index,
+        storage.config.execution,
+        docs.len(),
+    );
     let mut new_metadata = storage.metadata.clone();
     new_metadata.update_vector_count(0);
 

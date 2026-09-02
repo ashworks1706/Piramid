@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use piramid_storage::vectors::VectorReader;
+use piramid_database::storage::vectors::VectorReader;
 use uuid::Uuid;
 
 /// All of a collection's vectors, resident in memory.

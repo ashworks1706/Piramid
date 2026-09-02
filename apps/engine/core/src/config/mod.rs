@@ -46,8 +46,10 @@ pub use wal::WalConfig;
 
 // `ExecutionMode` and the quantization types are owned by `compute/` (they name kernel
 // behaviour, not app policy). Re-exported here so configuration callers keep one import path.
-pub use piramid_compute::quantization::{QuantizationConfig, QuantizationLevel, QuantizationStage};
-pub use piramid_compute::ExecutionMode;
+pub use piramid_hardware::compute::quantization::{
+    QuantizationConfig, QuantizationLevel, QuantizationStage,
+};
+pub use piramid_hardware::compute::ExecutionMode;
 
 /// Shared `#[serde(default = ...)]` target for fields that default to on.
 pub(crate) fn default_true() -> bool {

@@ -43,7 +43,7 @@ pub enum PiramidError {
     Embedding(#[from] super::embedding::EmbeddingError),
 
     #[error("Compute error: {0}")]
-    Compute(#[from] piramid_compute::ComputeError),
+    Compute(#[from] piramid_hardware::compute::ComputeError),
 
     #[error("IO error: {0}")]
     Io(#[from] io::Error),

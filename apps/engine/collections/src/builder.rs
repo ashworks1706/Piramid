@@ -7,13 +7,13 @@ use super::collection::Collection;
 use super::CollectionOpenOptions;
 use crate::cache::CacheManager;
 use piramid_core::error::{Result, StorageError};
-use piramid_index::load_vector_index;
-use piramid_index::HashMapVectorReader;
-use piramid_storage::document::Document;
-use piramid_storage::manifest::CollectionMetadata;
-use piramid_storage::record_store::RecordStore;
-use piramid_storage::wal::{Wal, WalEntry};
-use piramid_storage::SidecarManager;
+use piramid_database::storage::document::Document;
+use piramid_database::storage::manifest::CollectionMetadata;
+use piramid_database::storage::record_store::RecordStore;
+use piramid_database::storage::wal::{Wal, WalEntry};
+use piramid_database::storage::SidecarManager;
+use piramid_retrieval::index::load_vector_index;
+use piramid_retrieval::index::HashMapVectorReader;
 
 pub struct CollectionBuilder;
 
@@ -49,7 +49,7 @@ impl CollectionBuilder {
         let loaded_vector_index = load_vector_index(path)?;
         let vector_index_missing = loaded_vector_index.is_none();
         let mut vector_index = loaded_vector_index.unwrap_or_else(|| {
-            piramid_index::create_index(&config.index, config.execution, index.len())
+            piramid_retrieval::index::create_index(&config.index, config.execution, index.len())
         });
 
         let min_seq = if config.wal.enabled {
@@ -150,8 +150,8 @@ impl CollectionBuilder {
     }
 
     fn rebuild_vector_index(
-        vector_index: &mut Box<dyn piramid_index::VectorIndex>,
-        index: &HashMap<Uuid, piramid_storage::persistence::EntryPointer>,
+        vector_index: &mut Box<dyn piramid_retrieval::index::VectorIndex>,
+        index: &HashMap<Uuid, piramid_database::storage::persistence::EntryPointer>,
         record_store: &RecordStore,
     ) -> Result<()> {
         // Read every live record through the offset index and re-insert it, which is what makes

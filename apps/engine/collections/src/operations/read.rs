@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use super::super::collection::Collection;
 use piramid_core::error::Result;
-use piramid_storage::document::Document;
+use piramid_database::storage::document::Document;
 
 pub fn get(storage: &Collection, id: &Uuid) -> Result<Option<Document>> {
     let Some(index_entry) = storage.index.get(id) else {

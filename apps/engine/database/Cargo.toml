@@ -1,0 +1,22 @@
+[package]
+name = "piramid-database"
+description = "Where vectors live: records, WAL, mmap, sidecars, and the metadata they are filtered by."
+readme = "README.md"
+version.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+homepage.workspace = true
+rust-version.workspace = true
+
+[dependencies]
+piramid-core.workspace = true
+serde.workspace = true
+serde_json.workspace = true
+bincode.workspace = true
+memmap2.workspace = true
+tracing.workspace = true
+uuid.workspace = true
+
+[lints]
+workspace = true

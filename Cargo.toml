@@ -3,15 +3,13 @@ resolver = "2"
 members = [
     "apps/engine/core",
     "apps/engine/observability",
-    "apps/engine/compute",
-    "apps/engine/gpu",
-    "apps/engine/storage",
+    "apps/engine/hardware",
+    "apps/engine/database",
+    "apps/engine/retrieval",
     "apps/engine/collections",
-    "apps/engine/index",
-    "apps/engine/search",
-    "apps/engine/embeddings",
-    "apps/engine/inference",
-    "apps/engine/server",
+    "apps/engine/fusion",
+    "apps/engine/model",
+    "apps/engine/serving",
     "apps/cli",
 ]
 
@@ -27,16 +25,14 @@ rust-version = "1.87"  # `usize::is_multiple_of` / `next_multiple_of`, used by c
 [workspace.dependencies]
 # in-repo crates, so versions stay in lockstep
 piramid-core = { path = "apps/engine/core", version = "0.2.0" }
-piramid-compute = { path = "apps/engine/compute", version = "0.2.0" }
-piramid-gpu = { path = "apps/engine/gpu", version = "0.2.0" }
-piramid-storage = { path = "apps/engine/storage", version = "0.2.0" }
-piramid-index = { path = "apps/engine/index", version = "0.2.0" }
-piramid-search = { path = "apps/engine/search", version = "0.2.0" }
-piramid-collections = { path = "apps/engine/collections", version = "0.2.0" }
-piramid-embeddings = { path = "apps/engine/embeddings", version = "0.2.0" }
-piramid-inference = { path = "apps/engine/inference", version = "0.2.0" }
 piramid-observability = { path = "apps/engine/observability", version = "0.2.0" }
-piramid-server = { path = "apps/engine/server", version = "0.2.0" }
+piramid-hardware = { path = "apps/engine/hardware", version = "0.2.0" }
+piramid-database = { path = "apps/engine/database", version = "0.2.0" }
+piramid-retrieval = { path = "apps/engine/retrieval", version = "0.2.0" }
+piramid-collections = { path = "apps/engine/collections", version = "0.2.0" }
+piramid-fusion = { path = "apps/engine/fusion", version = "0.2.0" }
+piramid-model = { path = "apps/engine/model", version = "0.2.0" }
+piramid-serving = { path = "apps/engine/serving", version = "0.2.0" }
 
 # serialization
 serde = { version = "1.0", features = ["derive"] }

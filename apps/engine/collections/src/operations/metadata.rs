@@ -4,9 +4,9 @@ use super::super::collection::Collection;
 use super::limits;
 use super::read::get;
 use piramid_core::error::Result;
-use piramid_core::metadata::Metadata;
-use piramid_storage::record_store::RecordStore;
-use piramid_storage::wal::WalEntry;
+use piramid_database::metadata::Metadata;
+use piramid_database::storage::record_store::RecordStore;
+use piramid_database::storage::wal::WalEntry;
 
 pub fn update_metadata(storage: &mut Collection, id: &Uuid, metadata: Metadata) -> Result<bool> {
     if let Some(entry) = get(storage, id)? {

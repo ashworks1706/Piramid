@@ -85,7 +85,7 @@ impl Default for SamplingConfig {
     }
 }
 
-/// Retrieval fused into the forward pass, through `inference::augment::RetrievalHook`.
+/// Retrieval fused into the forward pass, through `piramid_fusion::RetrievalHook`.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct AugmentConfig {

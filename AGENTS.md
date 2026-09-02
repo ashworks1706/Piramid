@@ -48,20 +48,21 @@ folder and neither is hardware.
 
 ```
 apps/engine/core            errors (every one the app wraps), config (the whole surface: each
-                            index family's parameters, and telemetry), metadata and filters,
-                            validation, stats (what the engine measures about itself)
+                            index family's parameters, and telemetry), validation, stats (what the
+                            engine measures about itself)
 apps/engine/observability   where those measurements go: subscriber, OTLP, Prometheus encoding
-apps/engine/compute         distance kernels, strategy registry, quantization encodings
-apps/engine/gpu             device, buffer, stream, module, kernels
-apps/engine/storage         records, WAL, SidecarManager, mmap, VectorReader
+apps/engine/hardware        compute (distance kernels, strategy registry, quantization) and
+                            gpu (device, buffer, stream, module, kernels)
+apps/engine/database        storage (records, WAL, SidecarManager, mmap, VectorReader) and
+                            metadata (values and the filters over them)
+apps/engine/retrieval       index (flat, hnsw, ivf traversal, selector, sidecar persistence) and
+                            search (query planning, filtering, scoring, ranking)
 apps/engine/collections     the Collection object, checkpoint, compact, cache/ (VectorStore
                             resident + MetadataCache bounded)
-apps/engine/index           flat, hnsw, ivf traversal, selector, sidecar persistence
-apps/engine/search          query planning, filtering, scoring, ranking
-apps/engine/embeddings      openai (the wire format, local servers included), ollama
-apps/engine/inference       forward pass, kv_cache, batching, sampling, augment (the
-                            RetrievalHook seam)
-apps/engine/server          http (axum only), services (locks, metrics, DTOs), state, disk,
+apps/engine/fusion          the RetrievalHook seam, depending on neither half it joins
+apps/engine/model           inference (forward pass, kv_cache, batching, sampling) and
+                            embeddings (openai wire format, local servers included; ollama)
+apps/engine/serving         http (axum only), services (locks, metrics, DTOs), state, disk,
                             cluster
 apps/cli                    the piramid binary and the umbrella piramid facade crate
 apps/website                piramiddb.com, blog content and images included
@@ -78,19 +79,19 @@ One folder per crate, no grouping folders. The layering is the dependency rule b
 A crate may depend on one listed below it. The reverse is a layering violation.
 
 ```
-compute ─┐                    gpu ─┐
-         │                         ├─→ inference ─┐
-core ────┼─→ storage ─→ index ─→ search ─→ collections ─→ server ─→ cli
-         │        └────────→ cache ───────────┘   │
-         └─→ embeddings ──────────────────────────┘
+hardware ─┬─→ core ─┬─→ database ─→ retrieval ─→ collections ─┐
+          │         │                                          ├─→ serving ─→ cli
+          └─→ fusion ─→ model ────────────────────────────────┘
 ```
 
 `scripts/check-deps.sh` enforces it, and runs in `just check-rust`, the pre-commit hook, and CI.
 Adding an edge means editing that script and `docs/ARCHITECTURE.md` in the same change.
 
-`compute` and `gpu` depend on nothing in the workspace, `core` included. That's what lets kernels
-be benchmarked on their own, and what stops `inference` reaching through the retrieval math to get
-at a device.
+`hardware` depends on nothing in the workspace, `core` included. That's what lets kernels be
+benchmarked on their own.
+
+`model` and `fusion` never depend on the retrieval stack, which is what keeps a collection
+queryable with no model loaded. A hook implementation is its own crate depending on both.
 
 ## The three seams
 
@@ -105,7 +106,7 @@ costs more than the kernel saves. Don't reintroduce it.
 `storage::vectors::VectorReader` — how indexes read vectors they don't own. `as_slab()` is the
 fast path and `gather_into()` the fallback. Both have defaults, so a new reader costs nothing.
 
-`inference::augment::RetrievalHook` — where retrieval enters the forward pass. Defined before
+`fusion::RetrievalHook` — where retrieval enters the forward pass. Defined before
 anything can call it, because a driver written without the seam is hard to retrofit with one. A
 strategy that queries an index belongs in its own crate; `inference` must never depend on the
 retrieval stack.
@@ -116,10 +117,10 @@ retrieval stack.
   `todo!`, `unimplemented!`, `dbg!`, `println!`, or `eprintln!` outside `apps/cli`. Fix at the
   source rather than adding an `#[allow]`. A real exception gets the narrowest possible scope and
   a one-line reason.
-- `unsafe_code` is denied workspace-wide. It's allowed in `apps/engine/gpu` and at two
-  audited sites, `storage::persistence::mmap::create_mmap` and `server::disk`. Every
-  block carries a `// SAFETY:` comment stating its precondition, and the security workflow fails
-  if a fourth site appears.
+- `unsafe_code` is denied workspace-wide. It's allowed at four audited sites: `as_bytes` and
+  `as_bytes_mut` in `hardware/src/gpu/buffer.rs`, `database::storage::persistence::mmap::create_mmap`,
+  and `serving::disk`. Every block carries a `// SAFETY:` comment stating its precondition, and the
+  security workflow fails if a fifth appears.
 - A library never ends the process. No `std::process::exit` outside `apps/cli`. Loading
   configuration returns a `Result` and the binary decides what to do with it.
 - `core` is transport-agnostic. `PiramidError` exposes an `ErrorKind`, never a `StatusCode`. HTTP

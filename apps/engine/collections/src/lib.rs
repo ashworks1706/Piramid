@@ -28,11 +28,11 @@ impl From<piramid_core::config::CollectionConfig> for CollectionOpenOptions {
     }
 }
 
-use piramid_compute::Metric;
 use piramid_core::error::Result;
-use piramid_core::metadata::Metadata;
-use piramid_search::Hit;
-use piramid_storage::document::Document;
+use piramid_database::metadata::Metadata;
+use piramid_database::storage::document::Document;
+use piramid_hardware::compute::Metric;
+use piramid_retrieval::search::Hit;
 use std::collections::HashMap;
 use uuid::Uuid;
 
@@ -82,7 +82,7 @@ impl Collection {
         query: &[f32],
         k: usize,
         metric: Metric,
-        params: piramid_search::SearchParams,
+        params: piramid_retrieval::search::SearchParams,
     ) -> Result<Vec<Hit>> {
         search::search(self, query, k, metric, params)
     }
@@ -92,7 +92,7 @@ impl Collection {
         queries: &[Vec<f32>],
         k: usize,
         metric: Metric,
-        params: piramid_search::SearchParams,
+        params: piramid_retrieval::search::SearchParams,
     ) -> Result<Vec<Vec<Hit>>> {
         search::search_batch(self, queries, k, metric, params)
     }

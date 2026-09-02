@@ -1,8 +1,8 @@
 //! Collection-level search: adapts collection configuration into a search target.
 
-use piramid_compute::{ExecutionMode, Metric};
 use piramid_core::Result;
-use piramid_search::{Hit, SearchParams, SearchTarget};
+use piramid_hardware::compute::{ExecutionMode, Metric};
+use piramid_retrieval::search::{Hit, SearchParams, SearchTarget};
 
 use super::Collection;
 
@@ -29,7 +29,7 @@ pub fn search(
     if params.filter_overfetch_override.is_none() {
         params.filter_overfetch_override = Some(storage.config.search.filter_overfetch);
     }
-    piramid_search::search(&target(storage), query, k, metric, params, &|id| {
+    piramid_retrieval::search::search(&target(storage), query, k, metric, params, &|id| {
         storage.get(id)
     })
 }
@@ -46,7 +46,7 @@ pub fn search_batch(
     if matches!(params.mode, ExecutionMode::Auto) {
         params.mode = storage.config().execution;
     }
-    piramid_search::search_batch(
+    piramid_retrieval::search::search_batch(
         &target(storage),
         queries,
         k,

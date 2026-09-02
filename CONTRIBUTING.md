@@ -38,19 +38,19 @@ a design conversation, so open an issue first.
 
 | If it is… | It belongs in |
 |---|---|
-| HTTP-specific | `apps/engine/server/src/http` |
-| A user-facing operation | `apps/engine/server/src/services` |
+| HTTP-specific | `apps/engine/serving/src/http` |
+| A user-facing operation | `apps/engine/serving/src/services` |
 | One collection's state | `apps/engine/collections` |
-| Bytes, mmap, WAL, sidecars | `apps/engine/storage` |
-| An ANN implementation detail | `apps/engine/index` |
-| Distance math or backend dispatch | `apps/engine/compute` |
-| Device memory, streams, kernels | `apps/engine/gpu` |
-| Model execution | `apps/engine/inference` |
+| Bytes, mmap, WAL, sidecars | `apps/engine/database` |
+| An ANN implementation detail | `apps/engine/retrieval` |
+| Distance math or backend dispatch | `apps/engine/hardware` |
+| Device memory, streams, kernels | `apps/engine/hardware/src/gpu` |
+| Model execution | `apps/engine/model` |
 | Shared vocabulary | `apps/engine/core` |
 
 ## Adding a compute backend
 
-One file in `apps/engine/compute/src/strategies/` implementing `DistanceKernels`, and one
+One file in `apps/engine/hardware/src/compute/strategies/` implementing `DistanceKernels`, and one
 arm in the registry in `backends/mod.rs`. Nothing else changes; that's what the trait is for.
 
 The batch methods take a contiguous row-major slab and a caller-owned `out`. Don't change that to

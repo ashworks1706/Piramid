@@ -13,7 +13,7 @@ KV cache on one device, so retrieval can run during generation rather than once 
 - [ ] decide whether `Parallel` survives the split. The bench found no dimension or candidate count
       where it beats scalar
 - [ ] route the flat index scan through `cosine_batch` instead of a per-vector loop
-- [ ] route the rerank loop in `search::engine` through the batch API
+- [ ] route the rerank loop in `retrieval::search::engine` through the batch API
 
 ## Now (v0.3.0) — contiguous layout
 
@@ -67,7 +67,7 @@ KV cache on one device, so retrieval can run during generation rather than once 
 
 One model, one GPU, batch size one, no HTTP.
 
-- [ ] the interop spike, before the rest of this section: allocate with `piramid-gpu`, hand the
+- [ ] the interop spike, before the rest of this section: allocate with `hardware::gpu`, hand the
       pointer to candle as a tensor, run a kernel, verify numerics, and confirm in Nsight that no
       host round trip occurred
 - [ ] pin `cudarc` to the version candle uses. Two versions produce two unrelated `CudaDevice`

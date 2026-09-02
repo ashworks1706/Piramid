@@ -3,7 +3,7 @@
 use serde::{Deserialize, Serialize};
 
 use crate::config::{FlatConfig, HnswConfig, IvfConfig};
-use piramid_compute::Metric;
+use piramid_hardware::compute::Metric;
 
 /// Which index family a configuration resolves to.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]

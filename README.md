@@ -29,39 +29,36 @@ https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
 ### How it's put together
 
-Eleven library crates under `apps/engine`, plus the binary that links them. A crate may depend on
-one below it in the list; the reverse fails CI.
+Nine library crates under `apps/engine`, plus the binary that links them. A crate may depend on
+one below it; the reverse fails CI.
 
 ```mermaid
 flowchart TD
     CLI[apps/cli]
-    Server[server<br/>http · services · state]
-    Inference[inference<br/>forward pass · retrieval seam]
+    Serving[serving<br/>http · services · state]
+    Model[model<br/>inference · embeddings]
+    Fusion[fusion<br/>the retrieval seam]
     Collections[collections<br/>Collection · cache]
-    Embeddings[embeddings]
-    Search[search]
-    Index[index<br/>flat · hnsw · ivf]
-    Storage[storage<br/>records · WAL · mmap]
-    Core[core<br/>error · config · metadata]
-    Compute[compute<br/>distance kernels]
-    Gpu[gpu<br/>device · buffer · stream]
+    Retrieval[retrieval<br/>index · search]
+    Database[database<br/>records · WAL · mmap · metadata]
+    Core[core<br/>error · config · validation]
+    Hardware[hardware<br/>distance kernels · device · quantization]
 
-    CLI --> Server
-    CLI --> Inference
-    Server --> Collections
-    Server --> Embeddings
-    Inference --> Gpu
-    Collections --> Search
-    Collections --> Storage
-    Search --> Index
-    Index --> Storage
-    Index --> Compute
-    Storage --> Core
-    Core --> Compute
+    CLI --> Serving
+    Serving --> Collections
+    Serving --> Model
+    Collections --> Retrieval
+    Retrieval --> Database
+    Model --> Fusion
+    Database --> Core
+    Core --> Hardware
+    Model --> Hardware
+    Fusion --> Hardware
 ```
 
-`gpu` owns the device runtime so that both `compute` and `inference` can share one device, which is what lets vectors and model weights
-live in the same address space later.
+`hardware` depends on nothing else, so kernels can be benchmarked on their own and `model` can get
+a device without reaching through the retrieval math. `fusion` holds the seam retrieval enters
+generation through, and depends on neither half it joins.
 
 Built on Rust 1.87 with `axum` and `tokio` for the server, `serde` for the wire and disk formats,
 `wide` for SIMD kernels that lower to AVX2 and NEON, `memmap2` for zero-copy record reads,
@@ -138,7 +135,7 @@ the device — is what the single process is for. Retrieval before prefill costs
 does not need one.
 
 Piramid commits to the seam for that rather than to a particular mechanism.
-`inference::augment::RetrievalHook` says when retrieval may happen and what it may touch, not how
+`fusion::RetrievalHook` says when retrieval may happen and what it may touch, not how
 retrieved data gets combined. Chunked cross-attention, residual-stream gating, and learned index
 routing would all be implementations of the same trait. The trait exists before anything calls it
 because a forward-pass driver written without the seam is hard to retrofit with one.

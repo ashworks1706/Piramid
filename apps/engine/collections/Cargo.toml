@@ -12,10 +12,9 @@ rust-version.workspace = true
 [dependencies]
 tracing.workspace = true
 piramid-core.workspace = true
-piramid-compute.workspace = true
-piramid-storage.workspace = true
-piramid-index.workspace = true
-piramid-search.workspace = true
+piramid-hardware.workspace = true
+piramid-database.workspace = true
+piramid-retrieval.workspace = true
 serde.workspace = true
 serde_json.workspace = true
 uuid.workspace = true

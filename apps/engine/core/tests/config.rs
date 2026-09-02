@@ -4,11 +4,11 @@
     reason = "assertions in tests"
 )]
 
-use piramid_compute::Metric;
 use piramid_core::config::{
     AutoIndexConfig, Config, HardwareProfile, IndexConfig, IndexKind, LogLevel, QuantizationLevel,
     QuantizationStage,
 };
+use piramid_hardware::compute::Metric;
 
 #[test]
 fn the_default_config_round_trips_through_yaml() {
