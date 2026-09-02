@@ -20,6 +20,10 @@ pub struct SearchParams<'a> {
     pub filter_overfetch_override: Option<usize>,
     /// Recall/speed knobs for this query, overriding the configured value.
     pub search_config_override: Option<SearchConfig>,
+    /// Drop hits scoring below this. Asks a range question rather than a top-k one, so it must be
+    /// applied before `k` truncates — otherwise a qualifying document loses its place to a
+    /// higher-ranked one that does not qualify, and the caller sees fewer results than exist.
+    pub min_score: Option<f32>,
 }
 
 impl Default for SearchParams<'_> {
@@ -29,6 +33,7 @@ impl Default for SearchParams<'_> {
             filter: None,
             filter_overfetch_override: None,
             search_config_override: None,
+            min_score: None,
         }
     }
 }
@@ -58,13 +63,16 @@ pub fn search(
         .search_config_override
         .unwrap_or(target.default_config);
 
-    // With a filter, ask for more than `k` so enough survive post-filtering.
+    // Anything applied after the index returns is a post-filter, so ask for more than `k` and
+    // let the survivors compete. A score threshold narrows the set exactly like a metadata
+    // predicate does.
+    let post_filtered = params.filter.is_some() || params.min_score.is_some();
     let base_overfetch = effective_search.filter_overfetch.max(1);
     let expansion = params
         .filter_overfetch_override
         .unwrap_or(base_overfetch)
         .max(1);
-    let search_k = if params.filter.is_some() {
+    let search_k = if post_filtered {
         k.saturating_mul(expansion)
     } else {
         k
@@ -94,10 +102,14 @@ pub fn search(
         });
     }
 
+    if let Some(min_score) = params.min_score {
+        results.retain(|hit| hit.score >= min_score);
+    }
     if let Some(filter) = params.filter {
         results.retain(|hit| filter.matches(&hit.document.metadata));
-        rank_top_k(&mut results, k);
     }
+    // Unconditional: the index orders by its own traversal, and `score` is recomputed here.
+    rank_top_k(&mut results, k);
     Ok(results)
 }
 

@@ -80,6 +80,7 @@ pub fn search_vectors(
         filter: filter.as_ref(),
         filter_overfetch_override: tuning.filter_overfetch,
         search_config_override: Some(effective_search),
+        min_score: None,
     };
 
     let start = Instant::now();
@@ -164,13 +165,11 @@ pub fn range_search_vectors(
         filter: filter.as_ref(),
         filter_overfetch_override: tuning.filter_overfetch,
         search_config_override: Some(effective_search),
+        min_score: Some(min_score),
     };
 
     let start = Instant::now();
-    let mut batch_results = collection_guard.search_batch_with(&vectors, k, metric, params)?;
-    for results in &mut batch_results {
-        results.retain(|hit| hit.score >= min_score);
-    }
+    let batch_results = collection_guard.search_batch_with(&vectors, k, metric, params)?;
     let duration = start.elapsed();
 
     if duration.as_millis() > state.slow_query_ms() {

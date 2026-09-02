@@ -159,6 +159,7 @@ pub async fn search_by_text(
             filter: filter.as_ref(),
             filter_overfetch_override: req.tuning.filter_overfetch,
             search_config_override: Some(effective_search),
+            min_score: None,
         },
     )?;
     let duration = start.elapsed();
