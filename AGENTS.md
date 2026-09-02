@@ -1,6 +1,8 @@
 # Piramid — agent guide
 
-An inference-native retrieval engine in Rust. Read `docs/ARCHITECTURE.md` for crate boundaries and
+An inference engine for RAG, in Rust: one process holding documents, model weights and the KV cache
+on one device, so retrieval can run *during* generation rather than once before it. That is the
+thesis the roadmap is ordered around — read `docs/ARCHITECTURE.md` for crate boundaries and
 invariants, `docs/ROADMAP.md` for what we're building and in what order. Don't contradict either;
 propose an edit to the doc instead.
 

@@ -4,10 +4,16 @@ How the workspace is cut, why each boundary sits where it does, and what has to 
 
 ## The problem this shape solves
 
-Piramid runs retrieval and, eventually, transformer inference in one process. That single-process
-goal is exactly why internal boundaries matter: with no network between the layers, nothing keeps
-them from growing into each other except discipline, and discipline that nothing checks tends not
-to survive.
+Piramid runs retrieval and, eventually, transformer inference in one process, on one device, so
+that retrieval can happen *during* generation rather than once before it. Retrieving before prefill
+saves a service hop worth milliseconds against seconds of generation, which a separate vector store
+gets you most of; retrieving repeatedly inside a generation, overlapped with compute against
+device-resident state, cannot cross a service boundary at all. That is what the single process buys,
+and everything below is shaped by it.
+
+Which is also exactly why internal boundaries matter: with no network between the layers, nothing
+keeps them from growing into each other except discipline, and discipline that nothing checks tends
+not to survive.
 
 So the layering is physical. Each layer is a crate, and `scripts/check-deps.sh` fails CI on an edge
 that isn't in the rule below.

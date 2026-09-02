@@ -21,14 +21,13 @@
 
 ## What this is
 
-Today Piramid is a single-node vector database written in Rust. Collections, kNN and range
-search, metadata filtering, embedding ingestion, WAL durability, three ANN index families, and
-SIMD distance kernels. It runs as one binary with no external dependencies.
+Piramid is an inference engine for RAG: one process holding the documents, the model weights and
+the KV cache on one device, so retrieval can run *during* generation rather than once before it.
 
-The longer-term goal is to run retrieval and transformer inference in the same process, with
-retrieved vectors entering the model through cross-attention during the forward pass rather than
-being pasted into the prompt. That half is scaffolding: the seams are defined, there is no
-implementation behind them yet. See [Where this is going](#where-this-is-going).
+Today the retrieval half is real and the inference half is not. Collections, kNN and range search,
+metadata filtering, embedding ingestion, WAL durability, three ANN index families and SIMD distance
+kernels all work, as one binary with no external dependencies. Model execution is scaffolding: the
+seams are defined, nothing sits behind them. See [Where this is going](#where-this-is-going).
 
 https://github.com/user-attachments/assets/487cbc0f-c279-4a15-a160-9acd4666fbe6
 
@@ -135,9 +134,15 @@ view and `/metrics` for Prometheus.
 
 ## Where this is going
 
-The idea is that knowledge does not have to live in a model's weights, and it does not have to
-live in the prompt either. Retrieval that reaches the model through cross-attention costs no
-context window, and it can happen during generation rather than once before it.
+Knowledge does not have to live in a model's weights, and it does not have to live in the prompt
+either. Retrieval that reaches the model directly costs no context window, and it can happen
+during generation rather than once before it.
+
+That last part is the whole reason for the design. Retrieving once before prefill saves a service
+hop worth milliseconds against seconds of generation — real, but small, and a separate vector
+store gets you most of it. Retrieving repeatedly *inside* a single generation, overlapped with
+compute, against state that never leaves the device, cannot be done across a service boundary at
+all. The index lives in-process because it has to, not because Piramid is a database.
 
 Piramid commits to the seam for that rather than to a particular mechanism.
 `inference::augment::RetrievalHook` says when retrieval may happen and what it may touch, not how

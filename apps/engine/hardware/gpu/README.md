@@ -11,5 +11,12 @@ model execution need a device, and neither should depend on the other to get one
 
 This is the one crate where `unsafe` is expected. Every block carries a `// SAFETY:` note.
 
+One constraint on that leaf property, worth knowing before it bites: once `piramid-inference` loads
+candle, this crate's `cudarc` version has to match candle's exactly. Two versions means two
+unrelated `CudaDevice` types and possibly two contexts on one card, and every "shared device"
+operation silently routes through host memory instead — which is the one thing the whole design
+exists to avoid. So `gpu` stays a leaf in the dependency graph while its vendor pin is dictated
+from above.
+
 Part of [Piramid](https://github.com/ashworks1706/piramid). See
 [`docs/ARCHITECTURE.md`](../../../../docs/ARCHITECTURE.md) for how the crates fit together.
