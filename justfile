@@ -73,11 +73,11 @@ check-features: check-gpu check-inference
 serve *ARGS:
     cargo run -p piramid -- serve {{ARGS}}
 
-# The developer console: start units, tail their logs, run any recipe
+# The console: units, collections and config in one terminal UI
 cli:
     cargo run -p piramid
 
-# Any piramid subcommand: just piramid show config
+# The two subcommands that run without a terminal: serve, support-bundle
 piramid *ARGS:
     cargo run -p piramid -- {{ARGS}}
 

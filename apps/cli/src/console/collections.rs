@@ -1,9 +1,9 @@
-//! Dashboard state and the key map. Drawing is in ui; HTTP is in client.
+//! Collections view state and its key map. Drawing is in ui, HTTP is in client.
 
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
 
-use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{KeyCode, KeyEvent};
 
 use super::client::{Client, ClientError, CollectionHealth, CollectionMetrics, Snapshot, WalStats};
 
@@ -67,25 +67,8 @@ impl Pending {
     }
 }
 
-/// Everything that can wake the dashboard.
-#[derive(Debug)]
-pub enum Event {
-    /// A key press.
-    Key(KeyEvent),
-    /// Redraw timer.
-    Tick,
-    /// Terminal resized.
-    Resize,
-    /// A refresh finished.
-    Snapshot(Box<Result<Snapshot, ClientError>>),
-    /// A rebuild or compact finished, with the line to show for it.
-    Action(Result<String, String>),
-    /// The terminal stopped delivering input, leaving the dashboard undrivable.
-    InputLost(String),
-}
-
-/// All dashboard state.
-pub struct Dashboard {
+/// Collections view state.
+pub struct Collections {
     /// The server this dashboard talks to.
     pub client: Client,
     /// Version string for the status bar, empty until the version endpoint answers.
@@ -104,10 +87,6 @@ pub struct Dashboard {
     pub notice: Option<String>,
     /// An action waiting on a yes or no key.
     pub pending: Option<Pending>,
-    /// The help overlay is open.
-    pub help: bool,
-    /// Set by the quit key.
-    pub should_quit: bool,
     /// When the last refresh landed, for the elapsed-time indicator.
     pub last_refresh: Option<Instant>,
     /// A refresh is in flight, and a second one is not started on top of it.
@@ -118,8 +97,8 @@ pub struct Dashboard {
     pending_key: Option<char>,
 }
 
-impl Dashboard {
-    /// A dashboard over client, refreshing every interval.
+impl Collections {
+    /// A collections view over client, refreshing every interval.
     pub fn new(client: Client, interval: Duration) -> Self {
         Self {
             client,
@@ -131,8 +110,6 @@ impl Dashboard {
             history: HashMap::new(),
             notice: None,
             pending: None,
-            help: false,
-            should_quit: false,
             last_refresh: None,
             refreshing: false,
             interval,
@@ -153,23 +130,20 @@ impl Dashboard {
                 .is_none_or(|at| at.elapsed() >= self.interval)
     }
 
-    /// Applies one event, and reports whether an action should be dispatched.
-    pub fn handle(&mut self, event: Event) -> Option<Pending> {
-        match event {
-            Event::Key(key) => return self.key(key),
-            Event::Tick | Event::Resize => {}
-            Event::Snapshot(result) => self.snapshot(*result),
-            Event::Action(Ok(note)) => self.notice = Some(note),
-            Event::Action(Err(why)) => self.notice = Some(why),
-            Event::InputLost(why) => {
-                self.notice = Some(format!("terminal input ended ({why}); quitting"));
-                self.should_quit = true;
-            }
-        }
-        None
+    /// Applies a key press, and reports whether an action should be dispatched.
+    pub fn key(&mut self, key: KeyEvent) -> Option<Pending> {
+        self.on_key(key)
     }
 
-    fn snapshot(&mut self, result: Result<Snapshot, ClientError>) {
+    /// Records the outcome of a rebuild or compact.
+    pub fn acted(&mut self, outcome: Result<String, String>) {
+        self.notice = Some(match outcome {
+            Ok(note) | Err(note) => note,
+        });
+    }
+
+    /// Applies a refresh result.
+    pub fn snapshot(&mut self, result: Result<Snapshot, ClientError>) {
         self.refreshing = false;
         self.last_refresh = Some(Instant::now());
         match result {
@@ -225,22 +199,13 @@ impl Dashboard {
         self.rows = rows;
     }
 
-    fn key(&mut self, key: KeyEvent) -> Option<Pending> {
-        if self.help {
-            self.help = false;
-            return None;
-        }
+    fn on_key(&mut self, key: KeyEvent) -> Option<Pending> {
         if let Some(pending) = self.pending.clone() {
             return self.confirm(key, pending);
         }
         self.notice = None;
         let chord = self.pending_key.take() == Some('g');
         match key.code {
-            KeyCode::Char('q') => self.should_quit = true,
-            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
-                self.should_quit = true;
-            }
-            KeyCode::Char('?') => self.help = true,
             KeyCode::Esc => self.notice = None,
             KeyCode::Char('j') | KeyCode::Down => self.move_by(1),
             KeyCode::Char('k') | KeyCode::Up => self.move_by(-1),

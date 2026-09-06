@@ -1,17 +1,15 @@
 //! The piramid binary: subcommand parsing, server startup, and the developer console.
 
-use std::fs;
 use std::io::Write;
-use std::path::{Path, PathBuf};
+use std::path::PathBuf;
 use std::thread;
 use std::time::Duration;
 
-use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
+use clap::{Parser, Subcommand};
 mod animation;
 mod console;
 mod support;
-mod top;
-use piramid::config::{self, Config, StartupConfig};
+use piramid::config::StartupConfig;
 use piramid::observability;
 use piramid::state::AppState;
 use piramid::{embeddings, server};
@@ -26,92 +24,31 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
-    /// Start the server directly
+    /// Run the server in the foreground, with no terminal UI
     Serve {
-        /// Optional config file (sets CONFIG_FILE)
+        /// Config file to load
         #[arg(long)]
         config: Option<PathBuf>,
-        /// Override port (sets PORT)
+        /// Port to bind
         #[arg(long)]
         port: Option<u16>,
-        /// Override data dir (sets DATA_DIR)
+        /// Data directory
         #[arg(long)]
         data_dir: Option<PathBuf>,
     },
 
-    /// Generate a config file with defaults (YAML)
-    Init {
-        /// Path to write the config file
-        #[arg(long, short, default_value = "piramid.yaml")]
-        path: PathBuf,
-        /// Output format (yaml or json)
-        #[arg(long, value_enum, default_value_t = OutputFormat::Yaml)]
-        format: OutputFormat,
-    },
-
-    /// Watch a running server: collections, index state, latency, WAL and disk
-    Top {
-        /// Base URL of the server to watch
-        #[arg(long, env = "PIRAMID_URL", default_value = "http://localhost:6333")]
-        url: String,
-        /// Seconds between refreshes
-        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u64).range(1..=3600))]
-        interval: u64,
-    },
-
-    /// Show runtime/configuration information
-    Show {
-        #[command(subcommand)]
-        command: ShowCommands,
-    },
-
-    /// Write a diagnostic bundle to attach to a bug report. Secrets are redacted; review it first
+    /// Write a diagnostic bundle to attach to a bug report. Secrets are redacted, review it first
     SupportBundle {
         /// Where to write the bundle
         #[arg(long, short, default_value = "piramid-support-bundle.md")]
         output: PathBuf,
-        /// Optional config file to load (overrides CONFIG_FILE)
+        /// Config file to load
         #[arg(long)]
         config: Option<PathBuf>,
-        /// Data directory to inspect (overrides DATA_DIR)
+        /// Data directory to inspect
         #[arg(long)]
         data_dir: Option<PathBuf>,
     },
-}
-
-#[derive(Subcommand)]
-enum ShowCommands {
-    /// Print the resolved configuration
-    Config(ShowConfigArgs),
-    /// Print collection and WAL metrics from local data dir
-    Metrics(ShowMetricsArgs),
-}
-
-#[derive(Args)]
-struct ShowConfigArgs {
-    /// Optional config file to load (overrides CONFIG_FILE)
-    #[arg(long)]
-    config: Option<PathBuf>,
-    #[arg(long, value_enum, default_value_t = OutputFormat::Yaml)]
-    format: OutputFormat,
-}
-
-#[derive(Args)]
-struct ShowMetricsArgs {
-    /// Optional config file to load (overrides CONFIG_FILE)
-    #[arg(long)]
-    config: Option<PathBuf>,
-    /// Optional data directory (overrides DATA_DIR)
-    #[arg(long)]
-    data_dir: Option<PathBuf>,
-    #[arg(long, value_enum, default_value_t = OutputFormat::Json)]
-    format: OutputFormat,
-}
-
-#[derive(Copy, Clone, ValueEnum)]
-enum OutputFormat {
-    Yaml,
-    Json,
 }
 
 /// Run action, printing context and exiting 1 on failure.
@@ -125,13 +62,6 @@ fn run_or_exit(action: impl FnOnce() -> std::io::Result<()>, context: &str) {
 fn main() {
     let cli = Cli::parse();
     match cli.command {
-        Some(Commands::Init { path, format }) => {
-            run_or_exit(
-                || write_config_file(&path, format),
-                "Failed to write config",
-            );
-            println!("Wrote config to {}", path.display());
-        }
         Some(Commands::SupportBundle {
             output,
             config,
@@ -140,18 +70,6 @@ fn main() {
             run_or_exit(
                 || support_bundle(output, config, data_dir),
                 "Failed to write support bundle",
-            );
-        }
-        Some(Commands::Top { url, interval }) => {
-            run_or_exit(
-                || top::run(&url, Duration::from_secs(interval)),
-                "Failed to start the dashboard",
-            );
-        }
-        Some(Commands::Show { command }) => {
-            run_or_exit(
-                || handle_show_command(command),
-                "Failed to show information",
             );
         }
         Some(Commands::Serve {
@@ -171,26 +89,24 @@ fn main() {
             }
             run_or_exit(start_server_inline, "Failed to start the server");
         }
-        // No subcommand opens the developer console inside a checkout, and prints help outside
-        // one.
-        None => match std::env::current_dir()
-            .ok()
-            .and_then(|cwd| console::repo_root(&cwd))
-        {
-            Some(root) => run_or_exit(|| console::run(root), "Failed to start the console"),
-            None => {
-                let mut command = Cli::command();
-                run_or_exit(|| command.print_help(), "Failed to print help");
-                println!();
-            }
-        },
-    }
-}
-
-fn handle_show_command(command: ShowCommands) -> std::io::Result<()> {
-    match command {
-        ShowCommands::Config(args) => show_config(args),
-        ShowCommands::Metrics(args) => show_metrics(args),
+        // No subcommand opens the console. Inside a checkout it can drive the repo as well as
+        // the server; an installed binary gets the views that need only a server.
+        None => {
+            let root = std::env::current_dir()
+                .ok()
+                .and_then(|cwd| console::repo_root(&cwd));
+            let (profile, root) = match root {
+                Some(root) => (console::Profile::Developer, root),
+                None => (
+                    console::Profile::Production,
+                    std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
+                ),
+            };
+            run_or_exit(
+                || console::run(profile, root),
+                "Failed to start the console",
+            );
+        }
     }
 }
 
@@ -198,14 +114,6 @@ fn handle_show_command(command: ShowCommands) -> std::io::Result<()> {
 fn exit_on_config_error<T>(error: piramid::error::ConfigError) -> T {
     eprintln!("piramid: {error}");
     std::process::exit(1);
-}
-
-fn show_config(args: ShowConfigArgs) -> std::io::Result<()> {
-    if let Some(path) = args.config {
-        std::env::set_var("CONFIG_FILE", path);
-    }
-    let cfg = config::loader::load().unwrap_or_else(exit_on_config_error);
-    print_serialized(&cfg, args.format)
 }
 
 fn support_bundle(
@@ -234,23 +142,6 @@ fn support_bundle(
     Ok(())
 }
 
-fn show_metrics(args: ShowMetricsArgs) -> std::io::Result<()> {
-    if let Some(path) = args.config {
-        std::env::set_var("CONFIG_FILE", path);
-    }
-    if let Some(dir) = args.data_dir {
-        std::env::set_var("DATA_DIR", dir);
-    }
-    let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
-    let state = std::sync::Arc::new(
-        AppState::new(config, embeddings::EmbeddingsManager::disabled())
-            .map_err(std::io::Error::other)?,
-    );
-    preload_collections_for_metrics(&state)?;
-    let metrics = piramid::services::admin::metrics(&state).map_err(std::io::Error::other)?;
-    print_serialized(&metrics, args.format)
-}
-
 fn preload_collections_for_metrics(state: &std::sync::Arc<AppState>) -> std::io::Result<()> {
     for collection_name in state.collection_manager.discover_on_disk() {
         if let Err(error) = state.get_existing_collection(&collection_name) {
@@ -258,17 +149,6 @@ fn preload_collections_for_metrics(state: &std::sync::Arc<AppState>) -> std::io:
         }
     }
     Ok(())
-}
-
-fn write_config_file(path: &Path, fmt: OutputFormat) -> std::io::Result<()> {
-    let cfg = Config::default();
-    let contents = serialize_to_string(&cfg, fmt)?;
-    if let Some(parent) = path.parent() {
-        if !parent.as_os_str().is_empty() {
-            fs::create_dir_all(parent)?;
-        }
-    }
-    fs::write(path, contents)
 }
 
 fn start_server_inline() -> std::io::Result<()> {
@@ -327,22 +207,6 @@ fn init_thread_pool(startup: &StartupConfig) {
     {
         tracing::warn!(target: "piramid::config", %error, "thread_pool_already_built");
     }
-}
-
-fn serialize_to_string<T: serde::Serialize>(
-    value: &T,
-    fmt: OutputFormat,
-) -> std::io::Result<String> {
-    match fmt {
-        OutputFormat::Yaml => serde_yaml::to_string(value).map_err(std::io::Error::other),
-        OutputFormat::Json => serde_json::to_string_pretty(value).map_err(std::io::Error::other),
-    }
-}
-
-fn print_serialized<T: serde::Serialize>(value: &T, fmt: OutputFormat) -> std::io::Result<()> {
-    let rendered = serialize_to_string(value, fmt)?;
-    println!("{rendered}");
-    Ok(())
 }
 
 fn animate() {

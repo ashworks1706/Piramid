@@ -68,16 +68,6 @@ fn tasks() -> Vec<Unit> {
         task_static(&["bench"], "criterion, results in target/criterion"),
         task_static(&["audit"], "advisories, bans, licences, sources"),
         named(
-            "config",
-            &["piramid", "show", "config"],
-            "the configuration as resolved",
-        ),
-        named(
-            "metrics",
-            &["piramid", "show", "metrics"],
-            "metrics without a running server",
-        ),
-        named(
             "support-bundle",
             &["piramid", "support-bundle"],
             "diagnostics for a bug report",

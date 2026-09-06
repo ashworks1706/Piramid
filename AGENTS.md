@@ -24,8 +24,7 @@ just check-rust         cargo fmt --check, clippy -D warnings, test, scripts/che
 just check-features     compile-check --features gpu-cuda, inference-candle, otel
 just fmt                format everything in place
 just serve              run the server on :6333
-just cli                the developer console: run units, tail logs, run recipes
-just piramid show config        any piramid subcommand
+just cli                the console: units, collections, config in one terminal UI
 just piramid support-bundle     diagnostics to attach to a bug report
 just doc                rustdoc, warnings are errors
 just bench              criterion

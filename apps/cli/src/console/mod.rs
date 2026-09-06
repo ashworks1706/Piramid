@@ -5,6 +5,8 @@
 //! prints help instead. Each action shells out to the recipe rather than reimplementing it.
 
 mod app;
+mod client;
+mod collections;
 mod health;
 mod logs;
 mod run;
@@ -16,6 +18,7 @@ mod units;
 
 pub use run::run;
 pub use settings::repo_root;
+pub use types::Profile;
 
 #[cfg(test)]
 mod tests;

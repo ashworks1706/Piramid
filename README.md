@@ -78,8 +78,8 @@ Or with Docker:
 docker run -p 6333:6333 -v piramid-data:/data ghcr.io/ashworks1706/piramid:main
 ```
 
-`piramid --help` lists the rest: `init` writes a config file, `show config` and `show metrics`
-print resolved state, and `support-bundle` collects diagnostics for a bug report.
+`piramid` with no subcommand opens the console, described below. `piramid serve` runs the server
+in the foreground and `piramid support-bundle` writes diagnostics for a bug report.
 
 ## Usage
 
@@ -116,35 +116,40 @@ curl -X POST http://localhost:6333/api/collections/docs/search \
 Operational endpoints: `/api/health`, `/api/readyz`, `/api/version`, `/api/metrics` for the JSON
 view and `/metrics` for Prometheus.
 
-### Watching a running server
+### The console
 
 ```bash
-piramid top                                   # or --url http://host:6333, or PIRAMID_URL
+piramid
 ```
 
-A live view of the server: every collection on disk, whether it is open, its index and tuning, how
-much memory it holds, search and lock latency as a running sparkline, WAL size and checkpoint age,
-and disk headroom. `r` rebuilds the selected collection's index and `c` compacts it, each after a
-`y`/`n`; `?` lists the keys. It reads the HTTP API rather than the data directory, so it watches
-the process actually serving traffic and never contends with it for a collection.
+With no subcommand, `piramid` opens a terminal UI over the server: every collection on disk,
+whether it is open, its index and tuning, memory, search and lock latency as a running sparkline,
+WAL size and checkpoint age, and the configuration as the server resolved it. Digits switch view,
+`r` rebuilds a collection index and `c` compacts it after a `y`/`n`, and `?` lists the keys.
 
 ```
- piramid  v0.2.0  ● live ● ready  http://localhost:6333  updated 0s ago
-╭ collections · 2 ─────────────────╮╭ docs · hnsw · 12,430 vectors ─────────────╮
-│ ● docs                   12,430  ││  index                                    │
-│ ○ notes                     902  ││  type              hnsw                   │
-│                                  ││  ef_search         64                     │
-│                                  ││  memory            41.2 MB                │
-│                                  ││                                           │
-│                                  ││  latency                                  │
-│                                  ││  search            0.41 ms                │
-│                                  ││  lock read         0.01 ms                │
-│                                  ││                                           │
-│                                  ││  durability                               │
-│                                  ││  last checkpoint   5s ago                 │
-╰──────────────────────────────────╯╰───────────────────────────────────────────╯
- j/k move r rebuild index c compact R refresh now ? help q quit
+ piramid  NORMAL  1 collections  2 config  v0.2.0  * server * ready
++-- collections 2 ---------------++-- docs Flat 12,430 vectors ----------------+
+| * docs                 12,430  ||  index                                     |
+| o notes                   902  ||  type              hnsw                    |
+|                                ||  ef_search         64                      |
+|                                ||  memory            41.2 MB                 |
+|                                ||                                            |
+|                                ||  latency                                   |
+|                                ||  search            0.31 ms                 |
+|                                ||  lock read         0.01 ms                 |
+|                                ||                                            |
+|                                ||  durability                                |
+|                                ||  last checkpoint   5s ago                  |
++--------------------------------++--------------------------------------------+
+ j/k move  r rebuild index  c compact  R refresh  ? help  q quit
 ```
+
+Run inside a checkout it gains a third view, `units`, which drives every recipe in the justfile
+and the compose services. An installed binary has no justfile to drive, so that view is hidden.
+
+Two things run without a terminal, because they have to: `piramid serve` is what the container
+runs, and `piramid support-bundle` collects diagnostics on a host where you cannot drive a UI.
 
 ## Where this is going
 
@@ -181,18 +186,18 @@ users install, and it has no idea `just` exists.
 
 ```bash
 just bootstrap   # .env, git hooks, dependencies
-just cli         # the developer console: start units, tail logs, run any recipe
+just cli         # the console, with the units view a checkout unlocks
 just doctor      # check your tooling
 just check       # the gate: fmt, clippy, tests, layering
 just serve       # run the server from source
 just web         # the site on :3000
 ```
 
-`just cli` is the one to reach for. It runs `piramid` with no subcommand, which opens a modal
-console over the whole repo: the server, the website, the compose services, and every recipe in
-the justfile, each with its output streaming into a pane beside it. Nothing here is reimplemented
-— starting the server runs `just serve`, exactly what you would type — so it cannot drift from the
-justfile.
+`just cli` is the one to reach for. It runs `piramid` with no subcommand, which opens the same
+console users get, plus a `units` view over the whole repo: the server, the website, the compose
+services, and every recipe in the justfile, each with its output streaming into a pane beside it.
+Nothing here is reimplemented. Starting the server runs `just serve`, exactly what you would type,
+so it cannot drift from the justfile.
 
 ```
  piramid  NORMAL  ● server ● ready ○ web  started serve

@@ -7,11 +7,14 @@ use std::time::Instant;
 use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
 use tokio::sync::mpsc::UnboundedSender;
 
+use crate::console::client::Client;
+use crate::console::collections::{Collections, Pending};
 use crate::console::logs::{LogBuffer, LogWriter};
 use crate::console::runner::Runner;
 use crate::console::settings::Settings;
 use crate::console::types::{
-    Command, Event, Focus, Health, Kind, LogLine, Mode, ServiceState, Status, Stream, Unit,
+    Command, Event, Focus, Health, Kind, LogLine, Mode, Profile, ServiceState, Status, Stream,
+    Unit, View,
 };
 use crate::console::units;
 
@@ -37,6 +40,16 @@ pub struct UnitState {
 
 /// All console state.
 pub struct App {
+    /// How much of the repo this console can drive.
+    pub profile: Profile,
+    /// The view keys act on.
+    pub view: View,
+    /// Collections on a running server.
+    pub collections: Collections,
+    /// The resolved configuration, once it has been fetched.
+    pub config: Option<Result<String, String>>,
+    /// First visible line of the config view.
+    pub config_scroll: usize,
     settings: Settings,
     runner: Runner,
     log_writer: LogWriter,
@@ -64,6 +77,8 @@ pub struct App {
     pub log_rows: usize,
     /// Set by the quit key and the quit command.
     pub should_quit: bool,
+    /// An action the collections view confirmed, for the loop to dispatch.
+    pub pending_action: Option<Pending>,
     /// First half of a two-key chord such as gg.
     pending_key: Option<char>,
 }
@@ -72,6 +87,7 @@ impl App {
     /// A console over the repo at root.
     pub fn new(
         settings: Settings,
+        profile: Profile,
         root: PathBuf,
         tx: &UnboundedSender<Event>,
     ) -> std::io::Result<Self> {
@@ -80,7 +96,18 @@ impl App {
             .into_iter()
             .map(|unit| UnitState::new(unit, settings.log_lines))
             .collect();
+        let client = Client::new(&settings.base_url, std::time::Duration::from_secs(15))
+            .map_err(std::io::Error::other)?;
         Ok(Self {
+            profile,
+            view: profile
+                .views()
+                .first()
+                .copied()
+                .unwrap_or(View::Collections),
+            collections: Collections::new(client, settings.health_interval),
+            config: None,
+            config_scroll: 0,
             runner: Runner::new(root, tx.clone()),
             settings,
             log_writer,
@@ -96,6 +123,7 @@ impl App {
             notice: None,
             log_rows: 20,
             should_quit: false,
+            pending_action: None,
             pending_key: None,
         })
     }
@@ -136,6 +164,9 @@ impl App {
             Event::Services(Ok(states)) => self.services(&states),
             Event::Services(Err(why)) => self.notice = Some(why),
             Event::Health(health) => self.health = *health,
+            Event::Snapshot(result) => self.collections.snapshot(*result),
+            Event::Acted(outcome) => self.collections.acted(outcome),
+            Event::Config(result) => self.config = Some(result),
             Event::InputLost(why) => {
                 self.notice = Some(format!("terminal input ended ({why}); quitting"));
                 self.should_quit = true;
@@ -220,11 +251,61 @@ impl App {
 
     fn key_normal(&mut self, key: KeyEvent) {
         let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
+        match key.code {
+            KeyCode::Char('q') => {
+                self.should_quit = true;
+                return;
+            }
+            KeyCode::Char('c') if ctrl => {
+                self.should_quit = true;
+                return;
+            }
+            KeyCode::Char('?') => {
+                self.help = true;
+                return;
+            }
+            KeyCode::Char(digit @ '1'..='9') => {
+                self.select_view(digit);
+                return;
+            }
+            _ => {}
+        }
+        match self.view {
+            View::Units => self.key_units(key),
+            View::Collections => self.pending_action = self.collections.key(key),
+            View::Config => self.key_config(key),
+        }
+    }
+
+    /// Switches to the view a digit names, if this profile offers one there.
+    fn select_view(&mut self, digit: char) {
+        let index = digit.to_digit(10).unwrap_or(0).saturating_sub(1) as usize;
+        match self.profile.views().get(index) {
+            Some(view) => {
+                self.view = *view;
+                self.notice = None;
+            }
+            None => self.notice = Some(format!("no view {digit}")),
+        }
+    }
+
+    fn key_config(&mut self, key: KeyEvent) {
+        match key.code {
+            KeyCode::Char('j') | KeyCode::Down => self.config_scroll += 1,
+            KeyCode::Char('k') | KeyCode::Up => {
+                self.config_scroll = self.config_scroll.saturating_sub(1);
+            }
+            KeyCode::Char('g') => self.config_scroll = 0,
+            KeyCode::Char('R') => self.config = None,
+            KeyCode::Esc => self.notice = None,
+            _ => {}
+        }
+    }
+
+    fn key_units(&mut self, key: KeyEvent) {
+        let ctrl = key.modifiers.contains(KeyModifiers::CONTROL);
         let chord = self.pending_key.take() == Some('g');
         match key.code {
-            KeyCode::Char('q') => self.should_quit = true,
-            KeyCode::Char('c') if ctrl => self.should_quit = true,
-            KeyCode::Char('?') => self.help = true,
             KeyCode::Esc => self.notice = None,
             KeyCode::Char('j') | KeyCode::Down => self.down(1),
             KeyCode::Char('k') | KeyCode::Up => self.up(1),

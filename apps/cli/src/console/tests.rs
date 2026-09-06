@@ -8,7 +8,7 @@ use super::app::parse_command;
 use super::logs::{LogBuffer, LogWriter};
 use super::runner::{parse_ps, sanitize_line};
 use super::settings::{repo_root, Settings};
-use super::types::{Command, Group, LogLine, ServiceState, Status, Stream};
+use super::types::{Command, Group, LogLine, Profile, ServiceState, Status, Stream, View};
 use super::units::catalog;
 
 #[test]
@@ -55,11 +55,13 @@ fn the_catalog_is_unique_and_every_unit_is_runnable() {
         .all(|u| u.service().is_some() || !u.args.is_empty()));
     assert!(units.iter().any(|u| u.id == "serve"));
     // A named task keeps its name rather than its command line.
-    let config = units
+    let bundle = units
         .iter()
-        .find(|u| u.id == "config")
-        .expect("the catalog offers the resolved configuration");
-    assert_eq!(config.args, ["piramid", "show", "config"]);
+        .find(|u| u.id == "support-bundle")
+        .expect("the catalog offers a support bundle");
+    assert_eq!(bundle.args, ["piramid", "support-bundle"]);
+    // The resolved configuration is a view now, not a recipe to shell out to.
+    assert!(!units.iter().any(|u| u.id == "config"));
     assert!(
         !units.iter().any(|u| u.id.starts_with("piramid ")),
         "a unit is showing its command line as its name"
@@ -102,7 +104,8 @@ fn every_catalog_recipe_exists_in_the_justfile() {
 fn console() -> super::app::App {
     let root = std::env::temp_dir().join(format!("piramid-console-{}", std::process::id()));
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    super::app::App::new(Settings::default(), root, &tx).expect("the log directory is creatable")
+    super::app::App::new(Settings::default(), Profile::Developer, root, &tx)
+        .expect("the log directory is creatable")
 }
 
 fn press(key: char) -> super::types::Event {
@@ -275,4 +278,52 @@ fn the_repo_root_is_found_from_a_nested_directory() {
     assert!(root.join("justfile").is_file());
     // An installed binary run from outside a checkout finds nothing, and prints help instead.
     assert!(repo_root(std::path::Path::new("/")).is_none());
+}
+
+#[test]
+fn a_production_console_hides_the_views_that_need_a_checkout() {
+    // The units view drives just recipes and compose, neither of which exists outside a checkout.
+    assert_eq!(
+        Profile::Production.views(),
+        [View::Collections, View::Config]
+    );
+    assert_eq!(
+        Profile::Developer.views(),
+        [View::Units, View::Collections, View::Config]
+    );
+    // The first view is what the console opens on, and every profile has one.
+    assert!(!Profile::Production.views().is_empty());
+    assert!(!Profile::Developer.views().is_empty());
+}
+
+#[test]
+fn a_digit_switches_view_and_an_absent_one_says_so() {
+    let mut app = console();
+    assert_eq!(app.view, View::Units);
+
+    app.handle(press('2'));
+    assert_eq!(app.view, View::Collections);
+    app.handle(press('3'));
+    assert_eq!(app.view, View::Config);
+    app.handle(press('1'));
+    assert_eq!(app.view, View::Units);
+
+    app.handle(press('9'));
+    assert_eq!(app.view, View::Units, "an absent view must not switch");
+    assert_eq!(app.notice.as_deref(), Some("no view 9"));
+}
+
+#[test]
+fn keys_reach_the_view_that_is_showing() {
+    let mut app = console();
+
+    // j moves the unit selection while units is showing.
+    app.handle(press('j'));
+    assert_eq!(app.current().unit.id, "web");
+
+    // On the config view the same key scrolls instead, and leaves the unit selection alone.
+    app.handle(press('3'));
+    app.handle(press('j'));
+    assert_eq!(app.config_scroll, 1);
+    assert_eq!(app.current().unit.id, "web");
 }

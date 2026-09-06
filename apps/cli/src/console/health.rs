@@ -30,7 +30,9 @@ impl Targets {
 }
 
 /// Probes forever on the configured interval, sending each result to the UI.
-pub async fn poll(targets: Targets, tx: UnboundedSender<Event>) {
+///
+/// The website probe is skipped where there is no checkout to serve one from.
+pub async fn poll(targets: Targets, probe_web: bool, tx: UnboundedSender<Event>) {
     let Ok(http) = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(2))
         // Readiness opens every collection on disk and can be slow on a large data directory.
@@ -40,11 +42,12 @@ pub async fn poll(targets: Targets, tx: UnboundedSender<Event>) {
         return;
     };
     loop {
-        let (live, ready, web) = tokio::join!(
-            probe(&http, &targets.live),
-            probe(&http, &targets.ready),
-            probe(&http, &targets.web)
-        );
+        let (live, ready) = tokio::join!(probe(&http, &targets.live), probe(&http, &targets.ready));
+        let web = if probe_web {
+            probe(&http, &targets.web).await
+        } else {
+            Probe::Unknown
+        };
         if tx
             .send(Event::Health(Box::new(Health { live, ready, web })))
             .is_err()

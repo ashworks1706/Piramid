@@ -153,6 +153,47 @@ impl LogLine {
     }
 }
 
+/// How much of the repo the console can drive.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum Profile {
+    /// Started inside a checkout. Every view is available, including the repo units.
+    Developer,
+    /// Started from an installed binary. Views that drive just recipes and compose are absent.
+    Production,
+}
+
+impl Profile {
+    /// The views this profile offers, in tab order.
+    pub fn views(self) -> &'static [View] {
+        match self {
+            Self::Developer => &[View::Units, View::Collections, View::Config],
+            Self::Production => &[View::Collections, View::Config],
+        }
+    }
+}
+
+/// One screen of the console.
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum View {
+    /// Repo units: the server, the website, containers, recipes.
+    Units,
+    /// Collections on a running server, with index state and latency.
+    Collections,
+    /// The configuration as the server resolved it.
+    Config,
+}
+
+impl View {
+    /// Tab label.
+    pub fn title(self) -> &'static str {
+        match self {
+            Self::Units => "units",
+            Self::Collections => "collections",
+            Self::Config => "config",
+        }
+    }
+}
+
 /// Input mode, vim-style.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum Mode {
@@ -259,6 +300,12 @@ pub enum Event {
     Services(Result<HashMap<String, ServiceState>, String>),
     /// Fresh probes.
     Health(Box<Health>),
+    /// A collections refresh finished.
+    Snapshot(Box<Result<super::client::Snapshot, super::client::ClientError>>),
+    /// A rebuild or compact finished, with the line to show for it.
+    Acted(Result<String, String>),
+    /// The configuration as the server resolved it, or why it could not be read.
+    Config(Result<String, String>),
     /// The terminal stopped delivering input, leaving the console undrivable.
     InputLost(String),
 }

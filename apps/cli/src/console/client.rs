@@ -142,11 +142,6 @@ impl Client {
         })
     }
 
-    /// The server this client talks to.
-    pub fn base(&self) -> &str {
-        &self.base
-    }
-
     /// Build identity, read once.
     pub async fn version(&self) -> Result<Version, ClientError> {
         self.get("/api/version").await
@@ -159,6 +154,17 @@ impl Client {
             metrics: metrics?,
             ready: ready?,
         })
+    }
+
+    /// The configuration the server resolved, rendered as YAML.
+    ///
+    /// The response nests the configuration under one key, which is unwrapped here so the view
+    /// shows the same shape as the file on disk.
+    pub async fn config(&self) -> Result<String, ClientError> {
+        let value: serde_json::Value = self.get("/api/config").await?;
+        let config = value.get("app_config").unwrap_or(&value);
+        serde_yaml::to_string(config)
+            .map_err(|e| ClientError::Decode("/api/config".to_owned(), e.to_string()))
     }
 
     /// Asks for an index rebuild and returns once the server accepts it.

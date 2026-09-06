@@ -3,11 +3,14 @@
 use ratatui::layout::{Alignment, Constraint, Layout, Rect};
 use ratatui::style::{Color, Modifier, Style, Stylize};
 use ratatui::text::{Line, Span};
-use ratatui::widgets::{Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph};
+use ratatui::widgets::{
+    Block, BorderType, Borders, Clear, List, ListItem, ListState, Paragraph, Sparkline,
+};
 use ratatui::Frame;
 
 use crate::console::app::{App, UnitState};
-use crate::console::types::{Focus, Group, Mode, Probe, Status, Stream};
+use crate::console::collections::Row;
+use crate::console::types::{Focus, Group, Mode, Probe, Profile, Status, Stream, View};
 
 const ACCENT: Color = Color::Cyan;
 const DIM: Color = Color::DarkGray;
@@ -21,16 +24,221 @@ pub fn draw(frame: &mut Frame, app: &mut App) {
         Constraint::Length(1),
     ])
     .areas(frame.area());
-    let [side, right] =
-        Layout::horizontal([Constraint::Length(SIDEBAR), Constraint::Min(20)]).areas(body);
-
     status_bar(frame, app, bar);
-    sidebar(frame, app, side);
-    logs(frame, app, right);
+    match app.view {
+        View::Units => {
+            let [side, right] =
+                Layout::horizontal([Constraint::Length(SIDEBAR), Constraint::Min(20)]).areas(body);
+            sidebar(frame, app, side);
+            logs(frame, app, right);
+        }
+        View::Collections => collections(frame, app, body),
+        View::Config => config(frame, app, body),
+    }
     bottom_line(frame, app, bottom);
     if app.help {
-        help(frame, frame.area());
+        help(frame, app, frame.area());
     }
+}
+
+/// The collection list beside the detail of the selected one.
+fn collections(frame: &mut Frame, app: &App, area: Rect) {
+    let [left, right] =
+        Layout::horizontal([Constraint::Length(SIDEBAR), Constraint::Min(24)]).areas(area);
+    let view = &app.collections;
+
+    let width = usize::from(left.width.saturating_sub(4)).max(12);
+    let items: Vec<ListItem> = view
+        .rows
+        .iter()
+        .map(|row| {
+            let count = thousands(row.vectors());
+            let name_width = width.saturating_sub(count.len() + 3);
+            let (glyph, color) = match (row.problem().is_some(), row.loaded()) {
+                (true, _) => ("!", Color::Red),
+                (false, true) => ("*", Color::Green),
+                (false, false) => ("o", DIM),
+            };
+            ListItem::new(Line::from(vec![
+                Span::styled(format!(" {glyph} "), Style::default().fg(color)),
+                Span::raw(format!("{:<name_width$}", truncate(&row.name, name_width))),
+                Span::styled(count, Style::default().fg(DIM)),
+            ]))
+        })
+        .collect();
+    let title = format!(" collections {} ", view.rows.len());
+    if items.is_empty() {
+        let note = if view.snapshot.is_some() {
+            "  no collections in the data directory"
+        } else {
+            "  waiting for the server"
+        };
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(note, Style::default().fg(DIM))))
+                .block(pane(&title, true)),
+            left,
+        );
+    } else {
+        let list = List::new(items).block(pane(&title, true)).highlight_style(
+            Style::default()
+                .bg(Color::Rgb(40, 44, 52))
+                .add_modifier(Modifier::BOLD),
+        );
+        let mut state = ListState::default().with_selected(Some(view.selected));
+        frame.render_stateful_widget(list, left, &mut state);
+    }
+
+    let [detail, latency] =
+        Layout::vertical([Constraint::Min(3), Constraint::Length(9)]).areas(right);
+    match view.current() {
+        Some(row) => {
+            let title = match &row.metrics {
+                Some(metrics) => format!(
+                    " {} {} {} vectors ",
+                    row.name,
+                    metrics.index_type,
+                    thousands(metrics.vector_count)
+                ),
+                None => format!(" {} not open ", row.name),
+            };
+            frame.render_widget(
+                Paragraph::new(collection_detail(row)).block(pane(&title, true)),
+                detail,
+            );
+        }
+        None => frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                "  select a collection",
+                Style::default().fg(DIM),
+            )))
+            .block(pane(" collection ", true)),
+            detail,
+        ),
+    }
+
+    let history: Vec<u64> = view
+        .current()
+        .and_then(|row| view.history.get(&row.name))
+        .map(|h| h.iter().copied().collect())
+        .unwrap_or_default();
+    if history.is_empty() {
+        frame.render_widget(
+            Paragraph::new(Line::from(Span::styled(
+                "  no search has been measured yet",
+                Style::default().fg(DIM),
+            )))
+            .block(pane(" search latency ", false)),
+            latency,
+        );
+    } else {
+        let peak = history.iter().copied().max().unwrap_or(0);
+        let width = usize::from(latency.width.saturating_sub(2)).max(1);
+        let visible = &history[history.len().saturating_sub(width)..];
+        frame.render_widget(
+            Sparkline::default()
+                .block(pane(
+                    &format!(" search latency peak {} ", micros(peak)),
+                    false,
+                ))
+                .data(visible)
+                .style(Style::default().fg(ACCENT)),
+            latency,
+        );
+    }
+}
+
+fn collection_detail(row: &Row) -> Vec<Line<'static>> {
+    let mut lines = Vec::new();
+    if let Some(problem) = row.problem() {
+        lines.push(Line::from(Span::styled(
+            format!("  {problem}"),
+            Style::default().fg(Color::Red).bold(),
+        )));
+        lines.push(Line::default());
+    }
+    let Some(metrics) = &row.metrics else {
+        lines.push(Line::from(Span::styled(
+            "  on disk, not open. The server loads a collection on first use.",
+            Style::default().fg(DIM),
+        )));
+        return lines;
+    };
+    lines.push(heading("index"));
+    lines.push(field("type", &metrics.index_type, 18));
+    if let Some(ef) = metrics.hnsw_ef_search {
+        lines.push(field("ef_search", &ef.to_string(), 18));
+    }
+    if let Some(nprobe) = metrics.ivf_nprobe {
+        lines.push(field("nprobe", &nprobe.to_string(), 18));
+    }
+    lines.push(field(
+        "memory",
+        &bytes(metrics.memory_usage_bytes as u64),
+        18,
+    ));
+    lines.push(Line::default());
+    lines.push(heading("latency"));
+    lines.push(field("search", &millis(metrics.search_latency_ms), 18));
+    lines.push(field("insert", &millis(metrics.insert_latency_ms), 18));
+    lines.push(field("lock read", &millis(metrics.lock_read_ms), 18));
+    lines.push(field("lock write", &millis(metrics.lock_write_ms), 18));
+    lines.push(Line::default());
+    lines.push(heading("durability"));
+    let (age, size) = row
+        .wal
+        .as_ref()
+        .map_or((None, None), |w| (w.checkpoint_age_secs, w.wal_size_bytes));
+    lines.push(field(
+        "last checkpoint",
+        &age.map_or_else(|| "never".to_owned(), |s| format!("{} ago", duration(s))),
+        18,
+    ));
+    lines.push(field(
+        "wal size",
+        &size.map_or_else(|| "none".to_owned(), bytes),
+        18,
+    ));
+    lines
+}
+
+/// The configuration as the server resolved it.
+fn config(frame: &mut Frame, app: &App, area: Rect) {
+    let body = match &app.config {
+        Some(Ok(text)) if text.is_empty() => Paragraph::new(Line::from(Span::styled(
+            "  reading the configuration from the server",
+            Style::default().fg(DIM),
+        ))),
+        Some(Ok(text)) => {
+            let rows = usize::from(area.height.saturating_sub(2)).max(1);
+            let lines: Vec<Line> = text
+                .lines()
+                .skip(app.config_scroll)
+                .take(rows)
+                .map(|line| {
+                    let indent = line.len() - line.trim_start().len();
+                    let style = if line.trim_end().ends_with(':') {
+                        Style::default().fg(ACCENT)
+                    } else {
+                        Style::default()
+                    };
+                    Line::from(vec![
+                        Span::raw(" ".repeat(2 + indent)),
+                        Span::styled(line.trim_start().to_owned(), style),
+                    ])
+                })
+                .collect();
+            Paragraph::new(lines)
+        }
+        Some(Err(why)) => Paragraph::new(Line::from(Span::styled(
+            format!("  {why}"),
+            Style::default().fg(Color::Red),
+        ))),
+        None => Paragraph::new(Line::from(Span::styled(
+            "  not loaded",
+            Style::default().fg(DIM),
+        ))),
+    };
+    frame.render_widget(body.block(pane(" config ", true)), area);
 }
 
 fn status_bar(frame: &mut Frame, app: &App, area: Rect) {
@@ -45,10 +253,31 @@ fn status_bar(frame: &mut Frame, app: &App, area: Rect) {
             Style::default().fg(Color::Black).bg(ACCENT).bold(),
         ),
         Span::styled(mode, Style::default().fg(Color::Black).bg(Color::White)),
-        probe_span("server", &app.health.live),
-        probe_span("ready", &app.health.ready),
-        probe_span("web", &app.health.web),
     ];
+    // One digit per view, so the tabs are also their own key hints.
+    for (index, view) in app.profile.views().iter().enumerate() {
+        let selected = *view == app.view;
+        let style = if selected {
+            Style::default().fg(Color::Black).bg(Color::White).bold()
+        } else {
+            Style::default().fg(DIM)
+        };
+        spans.push(Span::styled(
+            format!(" {} {} ", index + 1, view.title()),
+            style,
+        ));
+    }
+    if !app.collections.version.is_empty() {
+        spans.push(Span::styled(
+            format!(" {} ", app.collections.version),
+            Style::default().fg(DIM),
+        ));
+    }
+    spans.push(probe_span("server", &app.health.live));
+    spans.push(probe_span("ready", &app.health.ready));
+    if app.profile == Profile::Developer {
+        spans.push(probe_span("web", &app.health.web));
+    }
     if let Probe::Degraded(why) = &app.health.ready {
         spans.push(Span::styled(
             format!("  {why}"),
@@ -206,6 +435,23 @@ fn logs(frame: &mut Frame, app: &mut App, area: Rect) {
 }
 
 fn bottom_line(frame: &mut Frame, app: &App, area: Rect) {
+    // A confirmation takes the line over, whichever view raised it.
+    if let Some(pending) = &app.collections.pending {
+        frame.render_widget(
+            Paragraph::new(Line::from(vec![
+                Span::styled(
+                    " confirm ",
+                    Style::default().fg(Color::Black).bg(Color::Yellow),
+                ),
+                Span::styled(
+                    format!(" {}", pending.question()),
+                    Style::default().fg(Color::Yellow),
+                ),
+            ])),
+            area,
+        );
+        return;
+    }
     let line = match app.mode {
         Mode::Command => Line::from(vec![
             Span::styled(":", Style::default().fg(ACCENT)),
@@ -219,17 +465,25 @@ fn bottom_line(frame: &mut Frame, app: &App, area: Rect) {
         ]),
         Mode::Normal => {
             let mut spans: Vec<Span> = Vec::new();
-            for (key, what) in [
-                ("j/k", "move"),
-                ("⏎", "start/stop"),
-                ("r", "restart"),
-                ("l/h", "logs/units"),
-                ("/", "search"),
-                (":", "command"),
-                ("o", "open url"),
-                ("?", "help"),
-                ("q", "quit"),
-            ] {
+            let hints: &[(&str, &str)] = match app.view {
+                View::Units => &[
+                    ("j/k", "move"),
+                    ("⏎", "start/stop"),
+                    ("r", "restart"),
+                    ("l/h", "logs/units"),
+                    ("/", "search"),
+                    (":", "command"),
+                    ("o", "open url"),
+                ],
+                View::Collections => &[
+                    ("j/k", "move"),
+                    ("r", "rebuild index"),
+                    ("c", "compact"),
+                    ("R", "refresh"),
+                ],
+                View::Config => &[("j/k", "scroll"), ("g", "top"), ("R", "reload")],
+            };
+            for (key, what) in hints.iter().copied().chain([("?", "help"), ("q", "quit")]) {
                 spans.push(Span::styled(
                     format!(" {key}"),
                     Style::default().fg(ACCENT).bold(),
@@ -237,7 +491,12 @@ fn bottom_line(frame: &mut Frame, app: &App, area: Rect) {
                 spans.push(Span::styled(format!(" {what}"), Style::default().fg(DIM)));
             }
             spans.push(Span::styled(
-                format!("   {} · {}", app.base_url(), app.web_url()),
+                match app.profile {
+                    Profile::Developer => {
+                        format!("   {} · {}", app.base_url(), app.web_url())
+                    }
+                    Profile::Production => format!("   {}", app.base_url()),
+                },
                 Style::default().fg(DIM),
             ));
             Line::from(spans)
@@ -246,41 +505,66 @@ fn bottom_line(frame: &mut Frame, app: &App, area: Rect) {
     frame.render_widget(Paragraph::new(line), area);
 }
 
-fn help(frame: &mut Frame, area: Rect) {
-    let keys = [
-        ("j / k, ↑ / ↓", "move selection, or scroll the focused pane"),
-        ("gg / G", "top / bottom (G on logs resumes following)"),
-        ("ctrl-d / ctrl-u", "half page in logs"),
-        ("enter / s", "start or stop the selected unit"),
-        ("x / r", "stop / restart the selected unit"),
-        ("h / l, tab", "focus units / logs"),
-        ("/ then n / N", "search the selected unit's logs"),
-        ("C", "clear the selected unit's logs"),
-        ("o", "open the unit's URL in a browser"),
-        (
-            ":start x  :stop x  :restart x",
-            "by unit id, e.g. :start serve",
-        ),
-        (":<recipe> [args]", "run any just recipe, e.g. :check-gpu"),
-        (":q, q", "quit: host processes stop, containers stay up"),
+fn help(frame: &mut Frame, app: &App, area: Rect) {
+    let shared: &[(&str, &str)] = &[
+        ("1 to 9", "switch view, numbered as in the bar above"),
+        ("?", "this help"),
+        ("q, ctrl-c", "quit"),
     ];
+    let per_view: &[(&str, &str)] = match app.view {
+        View::Units => &[
+            ("j / k", "move selection, or scroll the log pane"),
+            ("gg / G", "top, bottom. G on logs resumes following"),
+            ("ctrl-d / ctrl-u", "half page in logs"),
+            ("enter / s", "start or stop the selected unit"),
+            ("x / r", "stop, restart the selected unit"),
+            ("h / l, tab", "focus units, logs"),
+            ("/ then n / N", "search the logs of the selected unit"),
+            ("C", "clear the logs of the selected unit"),
+            ("o", "open the URL of the unit in a browser"),
+            (":start x  :stop x", "act on a unit by name"),
+            (":<recipe> [args]", "run any just recipe"),
+        ],
+        View::Collections => &[
+            ("j / k", "move between collections"),
+            ("gg / G", "first, last collection"),
+            (
+                "r",
+                "rebuild the index of the selected collection, after y or n",
+            ),
+            ("c", "compact the selected collection, after y or n"),
+            ("R", "refresh now instead of waiting for the interval"),
+        ],
+        View::Config => &[
+            ("j / k", "scroll"),
+            ("g", "top"),
+            ("R", "read the configuration again"),
+        ],
+    };
+
     let mut lines = vec![
-        Line::from(Span::styled("keys", Style::default().fg(ACCENT).bold())),
+        Line::from(Span::styled(
+            format!("{} view", app.view.title()),
+            Style::default().fg(ACCENT).bold(),
+        )),
         Line::default(),
     ];
-    for (key, what) in keys {
+    for (key, what) in per_view.iter().chain(shared) {
         lines.push(Line::from(vec![
-            Span::styled(format!("  {key:<30}"), Style::default().fg(Color::Yellow)),
-            Span::raw(what),
+            Span::styled(format!("  {key:<24}"), Style::default().fg(Color::Yellow)),
+            Span::raw((*what).to_owned()),
         ]));
     }
     lines.push(Line::default());
     lines.push(Line::from(Span::styled(
-        "  every unit runs the same just recipe you would type; full output is kept under",
-        Style::default().fg(DIM),
-    )));
-    lines.push(Line::from(Span::styled(
-        "  target/console-logs even after the pane scrolls past it.",
+        match app.profile {
+            Profile::Developer => {
+                "  Running inside a checkout, so the units view can drive the repo."
+            }
+            Profile::Production => {
+                "  Running outside a checkout. The units view needs a justfile and is hidden."
+            }
+        },
         Style::default().fg(DIM),
     )));
     lines.push(Line::default());
@@ -326,4 +610,72 @@ fn truncate(text: &str, width: usize) -> String {
     let mut out: String = text.chars().take(width.saturating_sub(1)).collect();
     out.push('…');
     out
+}
+
+fn heading(text: &str) -> Line<'static> {
+    Line::from(Span::styled(
+        format!("  {text}"),
+        Style::default().fg(DIM).add_modifier(Modifier::BOLD),
+    ))
+}
+
+fn field(key: &str, value: &str, width: usize) -> Line<'static> {
+    Line::from(vec![
+        Span::styled(format!("  {key:<width$}"), Style::default().fg(DIM)),
+        Span::raw(value.to_owned()),
+    ])
+}
+
+/// A count with thousands separators.
+pub fn thousands(n: usize) -> String {
+    thousands_u64(n as u64)
+}
+
+/// A u64 count with thousands separators.
+pub fn thousands_u64(n: u64) -> String {
+    let digits = n.to_string();
+    let mut out = String::with_capacity(digits.len() + digits.len() / 3);
+    for (i, c) in digits.chars().enumerate() {
+        if i > 0 && (digits.len() - i).is_multiple_of(3) {
+            out.push(',');
+        }
+        out.push(c);
+    }
+    out
+}
+
+/// A byte count at the largest unit that keeps it under four digits.
+pub fn bytes(n: u64) -> String {
+    const UNITS: [&str; 5] = ["B", "KB", "MB", "GB", "TB"];
+    let mut value = n as f64;
+    let mut unit = 0;
+    while value >= 1024.0 && unit + 1 < UNITS.len() {
+        value /= 1024.0;
+        unit += 1;
+    }
+    if unit == 0 {
+        format!("{n} B")
+    } else {
+        format!("{value:.1} {}", UNITS[unit])
+    }
+}
+
+/// A millisecond measurement, or a placeholder when nothing has been measured.
+pub fn millis(ms: Option<f32>) -> String {
+    ms.map_or_else(|| "none".to_owned(), |v| format!("{v:.2} ms"))
+}
+
+/// A microsecond measurement rendered in milliseconds.
+pub fn micros(us: u64) -> String {
+    format!("{:.2} ms", us as f64 / 1000.0)
+}
+
+/// A span of seconds at the coarsest unit that still says something.
+pub fn duration(secs: u64) -> String {
+    match secs {
+        0..=59 => format!("{secs}s"),
+        60..=3599 => format!("{}m", secs / 60),
+        3600..=86_399 => format!("{}h", secs / 3600),
+        _ => format!("{}d", secs / 86_400),
+    }
 }
