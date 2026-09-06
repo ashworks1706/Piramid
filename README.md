@@ -181,11 +181,39 @@ users install, and it has no idea `just` exists.
 
 ```bash
 just bootstrap   # .env, git hooks, dependencies
+just cli         # the developer console: start units, tail logs, run any recipe
 just doctor      # check your tooling
 just check       # the gate: fmt, clippy, tests, layering
 just serve       # run the server from source
 just web         # the site on :3000
 ```
+
+`just cli` is the one to reach for. It runs `piramid` with no subcommand, which opens a modal
+console over the whole repo: the server, the website, the compose services, and every recipe in
+the justfile, each with its output streaming into a pane beside it. Nothing here is reimplemented
+— starting the server runs `just serve`, exactly what you would type — so it cannot drift from the
+justfile.
+
+```
+ piramid  NORMAL  ● server ● ready ○ web  started serve
+╭ units ─────────────────────────╮╭ serve · running · 12s · 11 lines · follow ──────────────╮
+│ apps                           ││23:05:09 $ setsid just serve                             │
+│  ● serve                  :6333││23:05:09 cargo run -p piramid -- serve                   │
+│  ○ web                    :3000││23:05:10      Running `target/debug/piramid serve`        │
+│  ○ web-preview            :3000││23:05:10  INFO piramid::config: server_starting          │
+│ containers                     ││23:05:13  INFO piramid::http: http_request …             │
+│  ○ piramid                :6333││                                                         │
+│  ○ ollama                :11434││                                                         │
+│ tasks                          ││                                                         │
+│  ✓ doctor                      ││                                                         │
+│  ○ check                       ││                                                         │
+╰────────────────────────────────╯╰──────────────── the engine and its HTTP surface ────────╯
+ j/k move ⏎ start/stop r restart l/h logs/units / search : command o open url ? help q quit
+```
+
+`:` takes any recipe the sidebar does not list, so `:check-gpu` or `:bench --save-baseline main`
+runs as a task of its own. Quitting stops the host processes it started — `setsid` means the whole
+tree goes, not just `just` — and leaves containers up.
 
 [AGENTS.md](AGENTS.md) covers the layout, the dependency rule, and the conventions.
 [docs/SETUP.md](docs/SETUP.md) has the full list.

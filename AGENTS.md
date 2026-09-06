@@ -24,8 +24,9 @@ just check-rust         cargo fmt --check, clippy -D warnings, test, scripts/che
 just check-features     compile-check --features gpu-cuda, inference-candle, otel
 just fmt                format everything in place
 just serve              run the server on :6333
-just cli show config    any CLI subcommand
-just cli support-bundle diagnostics to attach to a bug report
+just cli                the developer console: run units, tail logs, run recipes
+just piramid show config        any piramid subcommand
+just piramid support-bundle     diagnostics to attach to a bug report
 just doc                rustdoc, warnings are errors
 just bench              criterion
 just audit              cargo-deny: advisories, bans, licences, sources

@@ -6,6 +6,7 @@ use std::time::Duration;
 
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
+mod console;
 mod support;
 mod top;
 use piramid::config::{self, Config, StartupConfig};
@@ -168,11 +169,20 @@ fn main() {
             }
             run_or_exit(start_server_inline, "Failed to start the server");
         }
-        None => {
-            let mut command = Cli::command();
-            run_or_exit(|| command.print_help(), "Failed to print help");
-            println!();
-        }
+        // No subcommand opens the developer console, which is what you want from inside a
+        // checkout. It drives `just`, so outside one there is nothing for it to run and the
+        // help is the useful answer instead.
+        None => match std::env::current_dir()
+            .ok()
+            .and_then(|cwd| console::repo_root(&cwd))
+        {
+            Some(root) => run_or_exit(|| console::run(root), "Failed to start the console"),
+            None => {
+                let mut command = Cli::command();
+                run_or_exit(|| command.print_help(), "Failed to print help");
+                println!();
+            }
+        },
     }
 }
 
@@ -335,6 +345,11 @@ fn print_serialized<T: serde::Serialize>(value: &T, fmt: OutputFormat) -> std::i
 }
 
 fn animate() {
+    // Cursor moves and screen clears are meaningless to a pipe, and the console captures stdout
+    // line by line — the splash arrived there as 280 lines of banner ahead of the first log.
+    if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
+        return;
+    }
     print!("\x1b[2J\x1b[H\x1b[?25l");
     let _ = std::io::stdout().flush();
 
