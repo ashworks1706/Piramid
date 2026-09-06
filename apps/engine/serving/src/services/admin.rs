@@ -82,7 +82,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
         };
 
         collection_metrics.push(CollectionMetrics {
-            name: collection_name,
+            name: collection_name.clone(),
             vector_count: count,
             index_type,
             memory_usage_bytes,
@@ -101,7 +101,10 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
             .last_checkpoint()
             .and_then(|timestamp| piramid_core::clock::unix_secs().checked_sub(timestamp));
         wal_stats.push(WalStats {
-            collection: collection_guard.path.clone(),
+            // The name, not `collection_guard.path`: every other field keyed by collection uses
+            // the name, and a path here made a Prometheus label that joins with nothing and
+            // publishes the server's data directory to whoever scrapes it.
+            collection: collection_name,
             last_checkpoint: collection_guard.checkpoint.last_checkpoint(),
             checkpoint_age_secs,
             wal_size_bytes: wal_size,
