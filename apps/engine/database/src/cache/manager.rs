@@ -29,19 +29,14 @@ impl CacheManager {
         &self.store
     }
 
-    /// All resident vectors, keyed by id.
-    pub fn vectors(&self) -> &std::collections::HashMap<Uuid, Vec<f32>> {
-        self.store.vectors()
-    }
-
     /// All cached metadata, keyed by id.
     pub fn metadata(&self) -> &std::collections::HashMap<Uuid, Metadata> {
         self.metadata.entries()
     }
 
     /// Insert or replace the resident vector for `id`.
-    pub fn put_vector(&mut self, id: Uuid, vector: Vec<f32>) {
-        self.store.put(id, vector);
+    pub fn put_vector(&mut self, id: Uuid, vector: &[f32]) -> piramid_core::error::Result<()> {
+        self.store.put(id, vector)
     }
 
     /// Cache metadata for `id`, evicting oldest entries past the configured bound.
@@ -82,6 +77,11 @@ impl CacheManager {
     }
 }
 
+/// Forwards the whole trait to the store.
+///
+/// Every method, not the ones that happen to be needed: this is what a collection hands to an
+/// index, so a method left to its default here withdraws that capability from every index in the
+/// tree while the store underneath still has it.
 impl VectorReader for CacheManager {
     fn get(&self, id: &Uuid) -> Option<&[f32]> {
         self.store.get(id)
@@ -93,5 +93,48 @@ impl VectorReader for CacheManager {
 
     fn len(&self) -> usize {
         VectorReader::len(&self.store)
+    }
+
+    fn dim(&self) -> Option<usize> {
+        VectorReader::dim(&self.store)
+    }
+
+    fn as_slab(&self) -> Option<(&[f32], usize)> {
+        self.store.as_slab()
+    }
+
+    fn gather_into(&self, ids: &[Uuid], out: &mut [f32]) -> Option<()> {
+        self.store.gather_into(ids, out)
+    }
+}
+
+#[cfg(test)]
+#[allow(
+    clippy::unwrap_used,
+    reason = "a failed assertion is the point of a test"
+)]
+mod tests {
+    use super::*;
+
+    /// The collection hands an index this, not the store, so anything the wrapper drops is gone
+    /// from every index whatever the store underneath can do.
+    #[test]
+    fn the_wrapper_forwards_every_reader_method_to_the_store() {
+        let mut cache = CacheManager::new(CacheConfig::default());
+        let id = Uuid::new_v4();
+        cache.put_vector(id, &[1.0, 2.0]).unwrap();
+        cache.put_vector(Uuid::new_v4(), &[3.0, 4.0]).unwrap();
+
+        assert_eq!(VectorReader::len(&cache), 2);
+        assert_eq!(VectorReader::dim(&cache), Some(2));
+        assert_eq!(cache.get(&id), Some([1.0, 2.0].as_slice()));
+
+        let (slab, dim) = cache.as_slab().expect("the store underneath is contiguous");
+        assert_eq!(dim, 2);
+        assert_eq!(slab.len(), 4);
+
+        let mut out = [0.0; 2];
+        cache.gather_into(&[id], &mut out).unwrap();
+        assert_eq!(out, [1.0, 2.0]);
     }
 }

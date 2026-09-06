@@ -135,7 +135,15 @@ got another has no way to know its numbers came from somewhere else.
 How an index reads vectors it doesn't own, so the backing store can change without touching any
 index. `as_slab()` is the fast path; a reader over scattered allocations returns `None` rather than
 silently copying, because hiding that cost would make the CPU/device choice unmeasurable.
-`gather_into()` is the portable fallback. Both have defaults, so a new reader costs nothing.
+`gather_into()` is the portable fallback. Both have defaults, so a new reader costs nothing — but a
+wrapper that forwards the trait must forward every method, or it withdraws a capability the reader
+underneath still has.
+
+`VectorStore` is the contiguous one: one `Vec<f32>` at a fixed stride with a `Uuid → u32` ordinal
+map, so hot structures can hold a 4-byte handle instead of a 16-byte key. Ordinals are stable — a
+removed row becomes a hole rather than being filled by moving the last row into it, because a moved
+row invalidates every adjacency list referencing it. A hole holds stale floats a batch kernel cannot
+skip, so `as_slab` reports `None` until an insert reuses it or compaction rebuilds the store.
 
 ### `model::fusion::RetrievalHook`
 

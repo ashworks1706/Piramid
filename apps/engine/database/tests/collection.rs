@@ -482,10 +482,10 @@ fn metadata_cache_is_bounded_without_evicting_vectors() {
         ))
         .unwrap();
 
-    assert_eq!(storage.get_vectors().len(), 2);
+    assert_eq!(storage.vector_reader().len(), 2);
     assert_eq!(storage.metadata_view().len(), 1);
-    assert!(storage.get_vectors().contains_key(&id_a));
-    assert!(storage.get_vectors().contains_key(&id_b));
+    assert!(storage.vector_reader().get(&id_a).is_some());
+    assert!(storage.vector_reader().get(&id_b).is_some());
 
     drop(storage);
     cleanup_test_files(&files);
@@ -677,4 +677,54 @@ fn a_wal_past_max_log_size_triggers_a_checkpoint() {
         "the size trigger never fired; WAL is {wal_len} bytes"
     );
     assert_eq!(collection.count(), 12);
+}
+
+#[test]
+fn a_collection_hands_its_vectors_over_as_one_slab() {
+    ensure_test_dir();
+    let test_path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_slab.db");
+    let files = vec![
+        test_path,
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_slab.db.offsets.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_slab.db.wal.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_slab.db.vecindex.db"),
+        concat!(env!("CARGO_TARGET_TMPDIR"), "/test_slab.db.manifest.db"),
+    ];
+    cleanup_test_files(&files);
+
+    let mut storage = Collection::open(test_path).unwrap();
+
+    let ids: Vec<_> = (0..4)
+        .map(|i| {
+            storage
+                .insert(Document::new(vec![i as f32, 1.0, 2.0], format!("doc {i}")))
+                .unwrap()
+        })
+        .collect();
+
+    // The device-upload seam: contiguous, so a batch kernel takes the whole candidate set in one
+    // copy instead of gathering it row by row.
+    let (slab, dim) = storage
+        .vector_reader()
+        .as_slab()
+        .expect("a collection with no deletes is contiguous");
+    assert_eq!(dim, 3);
+    assert_eq!(slab.len(), 4 * 3);
+
+    // A delete leaves a stale row the kernel cannot skip, so the fast path is withdrawn until an
+    // insert reuses it.
+    storage.delete(&ids[1]).unwrap();
+    assert!(storage.vector_reader().as_slab().is_none());
+
+    storage
+        .insert(Document::new(vec![9.0, 9.0, 9.0], "refill".to_string()))
+        .unwrap();
+    let (slab, _) = storage
+        .vector_reader()
+        .as_slab()
+        .expect("the hole was reused, so the slab is whole again");
+    assert_eq!(slab.len(), 4 * 3);
+
+    drop(storage);
+    cleanup_test_files(&files);
 }

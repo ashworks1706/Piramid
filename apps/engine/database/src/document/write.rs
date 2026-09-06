@@ -24,7 +24,7 @@ pub fn insert_internal(collection: &mut Collection, entry: Document) -> Result<U
         piramid_core::validation::validate_dimensions(&raw_vec, expected_dim)?;
     }
 
-    collection.cache.put_vector(id, raw_vec.clone());
+    collection.cache.put_vector(id, &raw_vec)?;
     collection.cache.put_metadata(id, entry.metadata.clone());
     collection
         .vector_index
@@ -104,7 +104,7 @@ pub fn insert_batch(collection: &mut Collection, mut entries: Vec<Document>) -> 
             piramid_core::validation::validate_dimensions(&vec_f32, expected_dim)?;
         }
         collection.cache.put_metadata(id, metadata);
-        collection.cache.put_vector(id, vec_f32.clone());
+        collection.cache.put_vector(id, &vec_f32)?;
         collection
             .vector_index
             .insert(id, &vec_f32, &collection.cache)?;
@@ -202,7 +202,7 @@ pub fn update_vector(collection: &mut Collection, id: &Uuid, vector: Vec<f32>) -
 
         let index_entry = collection.record_store.append(&bytes)?;
         collection.index.insert(*id, index_entry);
-        collection.cache.put_vector(*id, vector.clone());
+        collection.cache.put_vector(*id, &vector)?;
         collection.cache.put_metadata(*id, entry.metadata.clone());
         collection.vector_index.remove(id);
         collection

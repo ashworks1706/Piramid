@@ -116,7 +116,7 @@ async fn cache_budget_evicts_metadata_without_dropping_vectors() {
                 metadata([("kind", "b".into())]),
             ))
             .unwrap();
-        assert_eq!(collection_guard.get_vectors().len(), 2);
+        assert_eq!(collection_guard.vector_reader().len(), 2);
         assert_eq!(collection_guard.metadata_view().len(), 2);
     }
 
@@ -124,7 +124,7 @@ async fn cache_budget_evicts_metadata_without_dropping_vectors() {
 
     {
         let collection_guard = collection.read();
-        assert_eq!(collection_guard.get_vectors().len(), 2);
+        assert_eq!(collection_guard.vector_reader().len(), 2);
         assert_eq!(collection_guard.metadata_view().len(), 0);
         assert_eq!(collection_guard.count(), 2);
     }

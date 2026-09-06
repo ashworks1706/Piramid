@@ -1,9 +1,9 @@
 # Roadmap
 
+## v0.3.0 — a retrieval path worth measuring
 
 - [ ] make the batch kernels reachable from search, instead of per-vector loops
 - [ ] settle the execution modes against the bench: keep what wins, drop what doesn't
-- [ ] store vectors contiguously, so a candidate set can reach a device in one copy
 - [ ] a real CUDA device — allocate, upload, run a batch kernel, take the top-k on the device
 - [ ] keep the candidate set device-resident across queries, and measure it against per-call upload
 - [ ] quantize on the device, with recall reported alongside the speedup

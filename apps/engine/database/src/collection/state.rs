@@ -95,10 +95,6 @@ impl Collection {
         }
     }
 
-    pub fn vectors_view(&self) -> &HashMap<Uuid, Vec<f32>> {
-        self.cache.vectors()
-    }
-
     pub fn vector_reader(&self) -> &dyn VectorReader {
         &self.cache
     }
@@ -125,7 +121,7 @@ impl Collection {
         let mut cache = CacheManager::new(self.config.cache);
         for id in self.index.keys() {
             if let Some(entry) = crate::document::get(self, id)? {
-                cache.put_vector(*id, entry.vector().to_vec());
+                cache.put_vector(*id, entry.vector())?;
                 cache.put_metadata(*id, entry.metadata.clone());
             }
         }
@@ -215,10 +211,6 @@ impl Collection {
         params: crate::search::SearchParams,
     ) -> Result<Vec<Vec<Hit>>> {
         super::search_target::search_batch(self, queries, k, metric, params)
-    }
-
-    pub fn get_vectors(&self) -> &HashMap<Uuid, Vec<f32>> {
-        self.vectors_view()
     }
 
     pub fn checkpoint(&mut self) -> Result<()> {

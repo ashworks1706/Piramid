@@ -27,9 +27,13 @@ pub trait VectorReader: Sync {
 
     /// The whole vector set as one contiguous row-major `(data, dim)` slice, if stored that way.
     ///
-    /// The device-upload seam (ADR 0005): a reader that is already contiguous returns its buffer
-    /// and a batch kernel or `cudaMemcpy` takes it in one copy. Nothing implements it yet — the
-    /// contiguous store is a v0.3.0 roadmap item — so every reader falls back to `gather_into`.
+    /// The device-upload seam: a reader that is already contiguous returns its buffer and a batch
+    /// kernel or `cudaMemcpy` takes it in one copy. [`VectorStore`](crate::VectorStore) is stored
+    /// that way; a reader over scattered allocations returns `None` rather than silently copying,
+    /// because hiding that cost would make the host/device choice unmeasurable.
+    ///
+    /// A wrapper forwarding this trait must forward this method too. Leaving it to the default
+    /// withdraws the fast path from every caller while the reader underneath still has it.
     fn as_slab(&self) -> Option<(&[f32], usize)> {
         None
     }
