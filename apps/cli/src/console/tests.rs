@@ -54,6 +54,16 @@ fn the_catalog_is_unique_and_every_unit_is_runnable() {
         .iter()
         .all(|u| u.service().is_some() || !u.args.is_empty()));
     assert!(units.iter().any(|u| u.id == "serve"));
+    // A task is named for what it is, not for the command line that runs it.
+    let config = units
+        .iter()
+        .find(|u| u.id == "config")
+        .expect("the catalog offers the resolved configuration");
+    assert_eq!(config.args, ["piramid", "show", "config"]);
+    assert!(
+        !units.iter().any(|u| u.id.starts_with("piramid ")),
+        "a unit is showing its command line as its name"
+    );
     assert!(units.iter().any(|u| u.id == "check"));
     assert!(units
         .iter()

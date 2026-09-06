@@ -211,8 +211,8 @@ justfile.
  j/k move ⏎ start/stop r restart l/h logs/units / search : command o open url ? help q quit
 ```
 
-`:` takes any recipe the sidebar does not list, so `:check-gpu` or `:bench --save-baseline main`
-runs as a task of its own. Quitting stops the host processes it started — `setsid` means the whole
+`:` takes any recipe the sidebar does not list, so `:check-gpu`, `:web-preview` or
+`:bench --save-baseline main` runs as a task of its own. Quitting stops the host processes it started — `setsid` means the whole
 tree goes, not just `just` — and leaves containers up.
 
 [AGENTS.md](AGENTS.md) covers the layout, the dependency rule, and the conventions.

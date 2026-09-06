@@ -26,13 +26,7 @@ fn processes() -> Vec<Unit> {
         process(
             "web",
             &["web"],
-            "website dev server, hot reload",
-            Some("http://localhost:3000"),
-        ),
-        process(
-            "web-preview",
-            &["web-preview"],
-            "the production bundle; catches what dev hides",
+            "dev server, hot reload; :web-preview for the real build",
             Some("http://localhost:3000"),
         ),
     ]
@@ -74,15 +68,18 @@ fn tasks() -> Vec<Unit> {
         task_static(&["doc"], "rustdoc, warnings are errors"),
         task_static(&["bench"], "criterion, results in target/criterion"),
         task_static(&["audit"], "advisories, bans, licences, sources"),
-        task_static(
+        named(
+            "config",
             &["piramid", "show", "config"],
             "the configuration as resolved",
         ),
-        task_static(
+        named(
+            "metrics",
             &["piramid", "show", "metrics"],
             "metrics without a running server",
         ),
-        task_static(
+        named(
+            "support-bundle",
             &["piramid", "support-bundle"],
             "diagnostics for a bug report",
         ),
@@ -122,6 +119,17 @@ pub fn task(args: &[String], hint: &str) -> Unit {
 fn task_static(args: &[&str], hint: &str) -> Unit {
     let args: Vec<String> = args.iter().map(|arg| (*arg).into()).collect();
     task(&args, hint)
+}
+
+/// A task whose name is not its command line.
+///
+/// `just piramid show config` is how it runs; `config` is what it is. The sidebar and `:start`
+/// take the name, so a subcommand's spelling stays in one place.
+fn named(id: &str, args: &[&str], hint: &str) -> Unit {
+    Unit {
+        id: id.into(),
+        ..task_static(args, hint)
+    }
 }
 
 fn process(id: &str, args: &[&str], hint: &str, url: Option<&str>) -> Unit {
