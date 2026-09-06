@@ -327,3 +327,19 @@ fn keys_reach_the_view_that_is_showing() {
     assert_eq!(app.config_scroll, 1);
     assert_eq!(app.current().unit.id, "web");
 }
+
+#[test]
+fn an_unreachable_server_is_reported_rather_than_left_blank() {
+    use super::client::ClientError;
+
+    let mut app = console();
+    app.collections.snapshot(Err(ClientError::Unreachable(
+        "/api/metrics".into(),
+        "Connection refused".into(),
+    )));
+
+    // The status bar and the empty list both read this, so a console pointed at nothing says so
+    // instead of waiting forever.
+    assert!(app.collections.error.is_some());
+    assert!(app.collections.rows.is_empty());
+}

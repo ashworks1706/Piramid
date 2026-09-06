@@ -68,16 +68,44 @@ fn collections(frame: &mut Frame, app: &App, area: Rect) {
         .collect();
     let title = format!(" collections {} ", view.rows.len());
     if items.is_empty() {
-        let note = if view.snapshot.is_some() {
-            "  no collections in the data directory"
-        } else {
-            "  waiting for the server"
+        let note: Vec<Line> = match (&view.error, view.snapshot.is_some()) {
+            (Some(_), _) => vec![
+                Line::from(Span::styled(
+                    "  no server at",
+                    Style::default().fg(Color::Red),
+                )),
+                Line::from(Span::styled(
+                    format!("  {}", app.base_url()),
+                    Style::default().fg(Color::Red),
+                )),
+                Line::default(),
+                Line::from(Span::styled(
+                    "  Start one with piramid",
+                    Style::default().fg(DIM),
+                )),
+                Line::from(Span::styled(
+                    "  serve, or point this",
+                    Style::default().fg(DIM),
+                )),
+                Line::from(Span::styled(
+                    "  console at another with",
+                    Style::default().fg(DIM),
+                )),
+                Line::from(Span::styled(
+                    "  PIRAMID_CONSOLE__BASE_URL.",
+                    Style::default().fg(DIM),
+                )),
+            ],
+            (None, true) => vec![Line::from(Span::styled(
+                "  no collections yet",
+                Style::default().fg(DIM),
+            ))],
+            (None, false) => vec![Line::from(Span::styled(
+                "  connecting",
+                Style::default().fg(DIM),
+            ))],
         };
-        frame.render_widget(
-            Paragraph::new(Line::from(Span::styled(note, Style::default().fg(DIM))))
-                .block(pane(&title, true)),
-            left,
-        );
+        frame.render_widget(Paragraph::new(note).block(pane(&title, true)), left);
     } else {
         let list = List::new(items).block(pane(&title, true)).highlight_style(
             Style::default()
@@ -108,7 +136,11 @@ fn collections(frame: &mut Frame, app: &App, area: Rect) {
         }
         None => frame.render_widget(
             Paragraph::new(Line::from(Span::styled(
-                "  select a collection",
+                if view.error.is_some() {
+                    "  nothing to show until a server answers"
+                } else {
+                    "  select a collection"
+                },
                 Style::default().fg(DIM),
             )))
             .block(pane(" collection ", true)),
@@ -282,6 +314,14 @@ fn status_bar(frame: &mut Frame, app: &App, area: Rect) {
         spans.push(Span::styled(
             format!("  {why}"),
             Style::default().fg(Color::Yellow),
+        ));
+    }
+    // A failed refresh is the whole story on a console that only watches a server, so it goes in
+    // the bar rather than staying inside the view that collected it.
+    if let Some(error) = &app.collections.error {
+        spans.push(Span::styled(
+            format!("  {error}"),
+            Style::default().fg(Color::Red),
         ));
     }
     if let Some(notice) = &app.notice {
