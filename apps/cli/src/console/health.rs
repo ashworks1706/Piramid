@@ -22,9 +22,7 @@ impl Targets {
             live: format!("{base}/api/health"),
             ready: format!("{base}/api/readyz"),
             web: settings.web_url.clone(),
-            every: settings
-                .health_interval
-                .max(std::time::Duration::from_secs(1)),
+            every: settings.refresh.max(std::time::Duration::from_secs(1)),
         }
     }
 }

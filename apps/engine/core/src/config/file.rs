@@ -1,23 +1,26 @@
-//! The configuration file: two blocks, split by when a setting takes effect.
+//! The configuration file: blocks split by when a setting takes effect.
 
 use serde::{Deserialize, Serialize};
 
-use super::{CollectionConfig, RuntimeConfig, StartupConfig};
+use super::{CollectionConfig, ConsoleConfig, RuntimeConfig, StartupConfig};
 
 /// The whole of config.yaml.
 ///
-/// [StartupConfig] is baked into the process at boot, [RuntimeConfig] is re-read on reload.
+/// [StartupConfig] is baked into the process at boot, [RuntimeConfig] is re-read on reload, and
+/// [ConsoleConfig] is read by the terminal UI when it starts.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields, default)]
 pub struct Config {
     pub startup: StartupConfig,
     pub runtime: RuntimeConfig,
+    pub console: ConsoleConfig,
 }
 
 impl Config {
     pub fn validate(&self) -> Result<(), String> {
         self.startup.validate()?;
         self.runtime.validate()?;
+        self.console.validate()?;
         if self.startup.hardware.gpu_enabled()
             && matches!(self.runtime.execution, super::ExecutionMode::Scalar)
         {

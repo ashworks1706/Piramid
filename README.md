@@ -148,6 +148,10 @@ WAL size and checkpoint age, and the configuration as the server resolved it. Di
 Run inside a checkout it gains a third view, `units`, which drives every recipe in the justfile
 and the compose services. An installed binary has no justfile to drive, so that view is hidden.
 
+It reads the same configuration file the server does, under `console:`. There is nothing to set for
+the common case: `console.base_url` is empty by default and follows the address `startup.bind`
+names, so a server moved to another port is watched without saying so twice.
+
 Two things run without a terminal, because they have to: `piramid serve` is what the container
 runs, and `piramid support-bundle` collects diagnostics on a host where you cannot drive a UI.
 

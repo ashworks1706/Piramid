@@ -315,3 +315,15 @@ runtime:
       # device | host | disk.
       storage: host
       recompute_ratio: 0.15
+
+# The terminal UI. Read when `piramid` starts with no subcommand.
+console:
+  # Server to watch. Empty follows startup.bind, so moving the port is said once.
+  base_url: ""
+  # Website to probe. Shown only inside a checkout.
+  web_url: http://localhost:3000
+  # Lines kept in memory per unit. Full output goes to log_dir regardless.
+  log_lines: 5000
+  log_dir: target/console-logs
+  # Seconds between health probes and collection refreshes.
+  refresh_secs: 5

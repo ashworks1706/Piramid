@@ -92,18 +92,14 @@ fn main() {
         // No subcommand opens the console. Inside a checkout it can drive the repo as well as
         // the server; an installed binary gets the views that need only a server.
         None => {
-            let root = std::env::current_dir()
-                .ok()
-                .and_then(|cwd| console::repo_root(&cwd));
-            let (profile, root) = match root {
+            let config = piramid::config::loader::load().unwrap_or_else(exit_on_config_error);
+            let cwd = std::env::current_dir().unwrap_or_else(|_| PathBuf::from("."));
+            let (profile, root) = match console::repo_root(&cwd) {
                 Some(root) => (console::Profile::Developer, root),
-                None => (
-                    console::Profile::Production,
-                    std::env::current_dir().unwrap_or_else(|_| PathBuf::from(".")),
-                ),
+                None => (console::Profile::Production, cwd),
             };
             run_or_exit(
-                || console::run(profile, root),
+                || console::run(&config, profile, root),
                 "Failed to start the console",
             );
         }

@@ -84,15 +84,11 @@ fn collections(frame: &mut Frame, app: &App, area: Rect) {
                     Style::default().fg(DIM),
                 )),
                 Line::from(Span::styled(
-                    "  serve, or point this",
+                    "  serve, or set console.",
                     Style::default().fg(DIM),
                 )),
                 Line::from(Span::styled(
-                    "  console at another with",
-                    Style::default().fg(DIM),
-                )),
-                Line::from(Span::styled(
-                    "  PIRAMID_CONSOLE__BASE_URL.",
+                    "  base_url to watch another.",
                     Style::default().fg(DIM),
                 )),
             ],

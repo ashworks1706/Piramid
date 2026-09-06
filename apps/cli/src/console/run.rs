@@ -14,13 +14,14 @@ use crate::console::runner::Runner;
 use crate::console::settings::Settings;
 use crate::console::types::{Event, Profile};
 use crate::console::{health, ui};
+use piramid_core::config::Config;
 
 /// How often docker compose ps is re-read.
 const SERVICES_INTERVAL: Duration = Duration::from_secs(3);
 
 /// Runs the console over the repo at root.
-pub fn run(profile: Profile, root: PathBuf) -> std::io::Result<()> {
-    let settings = Settings::from_env().map_err(std::io::Error::other)?;
+pub fn run(config: &Config, profile: Profile, root: PathBuf) -> std::io::Result<()> {
+    let settings = Settings::from_config(config);
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async move {
         let (tx, mut rx) = mpsc::unbounded_channel();

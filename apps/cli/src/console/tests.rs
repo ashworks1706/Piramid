@@ -104,8 +104,14 @@ fn every_catalog_recipe_exists_in_the_justfile() {
 fn console() -> super::app::App {
     let root = std::env::temp_dir().join(format!("piramid-console-{}", std::process::id()));
     let (tx, _rx) = tokio::sync::mpsc::unbounded_channel();
-    super::app::App::new(Settings::default(), Profile::Developer, root, &tx)
-        .expect("the log directory is creatable")
+    let config = piramid_core::config::Config::default();
+    super::app::App::new(
+        Settings::from_config(&config),
+        Profile::Developer,
+        root,
+        &tx,
+    )
+    .expect("the log directory is creatable")
 }
 
 fn press(key: char) -> super::types::Event {
@@ -261,13 +267,25 @@ fn full_output_is_kept_on_disk_after_the_pane_scrolls_past_it() {
 }
 
 #[test]
-fn settings_default_to_the_ports_the_justfile_uses() {
-    let settings = Settings::default();
+fn console_settings_come_from_the_one_configuration_file() {
+    let config = piramid_core::config::Config::default();
+    let settings = Settings::from_config(&config);
+
+    // Unset, the console follows the address the server in the same file binds, so a deployment
+    // that moves the port does not have to say so twice.
+    assert_eq!(config.console.base_url, "");
     assert_eq!(settings.base_url, "http://localhost:6333");
     assert_eq!(settings.web_url, "http://localhost:3000");
     assert_eq!(
         settings.log_dir_under(std::path::Path::new("/repo")),
         std::path::Path::new("/repo/target/console-logs")
+    );
+
+    let mut moved = piramid_core::config::Config::default();
+    moved.startup.bind = "0.0.0.0:7000".to_owned();
+    assert_eq!(
+        Settings::from_config(&moved).base_url,
+        "http://localhost:7000"
     );
 }
 

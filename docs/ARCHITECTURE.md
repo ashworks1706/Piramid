@@ -209,12 +209,17 @@ builder loads sidecars, opens the record store, initializes the WAL, and replays
 
 ## Configuration
 
-One file, two blocks, split by *when a setting takes effect* rather than by which subsystem owns it:
+One file, blocks split by *when a setting takes effect* rather than by which subsystem owns it:
 
 ```yaml
 startup:   # applied once at boot; changing one needs a restart
 runtime:   # re-read on POST /config/reload
+console:   # read when the terminal UI starts
 ```
+
+`console` is in the same file because the terminal UI is part of Piramid, not a second product with
+a configuration system of its own. Its `base_url` defaults to the address `startup.bind` names, so
+moving the port is said once.
 
 The split is by lifecycle because grouping by subsystem had already produced a bug: a reload
 returned 200 and silently changed nothing. Which block a key is in is now the answer to "do I need

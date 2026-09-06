@@ -5,6 +5,7 @@
 
 mod cache;
 mod collection;
+mod console;
 mod disk;
 mod embedding;
 mod file;
@@ -26,6 +27,7 @@ pub use cache::{
     CacheConfig, EmbeddingCacheConfig, EvictionPolicy, MetadataCacheConfig, VectorCacheConfig,
 };
 pub use collection::CollectionConfig;
+pub use console::ConsoleConfig;
 pub use disk::DiskConfig;
 pub use embedding::EmbeddingConfig;
 pub use file::Config;

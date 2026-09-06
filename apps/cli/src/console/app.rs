@@ -105,7 +105,7 @@ impl App {
                 .first()
                 .copied()
                 .unwrap_or(View::Collections),
-            collections: Collections::new(client, settings.health_interval),
+            collections: Collections::new(client, settings.refresh),
             config: None,
             config_scroll: 0,
             runner: Runner::new(root, tx.clone()),
