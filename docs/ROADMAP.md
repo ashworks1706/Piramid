@@ -1,12 +1,5 @@
 # Roadmap
 
-Piramid is an inference engine for RAG: one process holding the documents, the model weights and the
-KV cache on one device, so retrieval can run during generation rather than once before it.
-
-The order below is what it takes to measure that against a colocated split stack and publish the
-number. Each release is a goal, not a task list — how to reach it is decided when it is picked up.
-
-## v0.3.0 — a retrieval path worth measuring
 
 - [ ] make the batch kernels reachable from search, instead of per-vector loops
 - [ ] settle the execution modes against the bench: keep what wins, drop what doesn't
