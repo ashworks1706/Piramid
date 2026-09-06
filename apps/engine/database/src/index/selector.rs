@@ -1,6 +1,6 @@
 //! Build an index from its configuration.
 //!
-//! Config types live in `core::config`; this is the only place that turns them into instances.
+//! Config types live in core::config, and this is the only place that turns them into instances.
 
 use crate::index::VectorIndex;
 use crate::index::{FlatIndex, HnswIndex, IvfIndex};
@@ -8,7 +8,7 @@ use piramid_core::config::{
     ExecutionMode, FlatConfig, HnswConfig, IndexConfig, IndexKind, IvfConfig,
 };
 
-/// Construct the index `config` describes, sized for `num_vectors`.
+/// Construct the index the config describes, sized for num_vectors.
 pub fn create_index(
     config: &IndexConfig,
     execution: ExecutionMode,
@@ -25,7 +25,7 @@ pub fn create_index(
         })),
         IndexKind::Hnsw => Box::new(HnswIndex::new(match config {
             IndexConfig::Hnsw { params, .. } => HnswConfig { mode, ..*params },
-            // Auto-selected: graph shape from the auto thresholds, configured metric and mode.
+            // Graph shape comes from the auto thresholds, with the configured metric and mode.
             _ => HnswConfig {
                 metric,
                 mode,
@@ -34,7 +34,7 @@ pub fn create_index(
         })),
         IndexKind::Ivf => Box::new(IvfIndex::new(match config {
             IndexConfig::Ivf { params, .. } => IvfConfig { mode, ..*params },
-            // Auto-selected: cluster counts from collection size, with explicit overrides on top.
+            // Cluster counts come from the collection size, with explicit overrides on top.
             _ => {
                 let sized = IvfConfig::auto(num_vectors);
                 IvfConfig {

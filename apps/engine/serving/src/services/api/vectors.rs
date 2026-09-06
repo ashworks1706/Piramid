@@ -7,7 +7,7 @@ pub struct InsertRequest {
     pub vectors: Vec<Vec<f32>>,
     pub texts: Vec<String>,
     /// One map per vector. Empty means no metadata on any of them; otherwise it must be the same
-    /// length as `vectors`.
+    /// length as the vector list.
     #[serde(default)]
     pub metadata: Vec<HashMap<String, serde_json::Value>>,
     #[serde(default)]

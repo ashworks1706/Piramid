@@ -37,7 +37,7 @@ fn build_entries(req: InsertRequest) -> Result<Vec<Document>> {
         ))
         .into());
     }
-    // A short list would silently leave the tail of the batch unlabelled.
+    // Metadata is either absent or one entry per vector.
     if !metadata.is_empty() && metadata.len() != vectors.len() {
         return Err(ServerError::InvalidRequest(format!(
             "metadata length mismatch: {} vectors, {} metadata entries",

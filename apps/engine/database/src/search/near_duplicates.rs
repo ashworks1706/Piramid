@@ -1,8 +1,7 @@
 //! Finding pairs of documents that are near-copies of each other.
 //!
-//! An all-pairs neighbour scan: ask the index for each document's neighbours, score each pair
-//! once, keep the ones at or above a threshold. It lives beside `search` because it is the same
-//! work — traverse, then score — differing only in that the query is every stored vector rather
+//! An all-pairs neighbour scan: ask the index for the neighbours of each document, score each
+//! pair once, and keep the pairs at or above a threshold. The query is every stored vector rather
 //! than one supplied by a caller.
 
 use std::collections::HashSet;
@@ -27,16 +26,16 @@ pub struct DuplicatePair {
 pub struct DuplicateParams {
     /// Report pairs scoring at or above this.
     pub threshold: f32,
-    /// Neighbours examined per document. Includes the document's own hit, so a value of `n`
-    /// compares against at most `n - 1` others.
+    /// Neighbours examined per document. Counts the hit of the document itself, so a value of n
+    /// compares against at most n - 1 others.
     pub neighbors: usize,
-    /// Stop after this many pairs, highest score first. `None` reports all of them.
+    /// Stop after this many pairs, highest score first. None reports all of them.
     pub limit: Option<usize>,
-    /// Recall knobs for the traversal, overriding the target's defaults.
+    /// Recall knobs for the traversal, overriding the defaults of the target.
     pub search_config_override: Option<SearchConfig>,
 }
 
-/// Scan `target` for pairs of near-identical documents.
+/// Scan a target for pairs of near-identical documents.
 pub fn near_duplicates(
     target: &SearchTarget<'_>,
     metric: Metric,
@@ -49,7 +48,7 @@ pub fn near_duplicates(
         .unwrap_or(target.default_config);
 
     let ids: Vec<Uuid> = target.vectors.iter().map(|(id, _)| id).collect();
-    // Asking for more neighbours than exist wastes traversal; asking for none finds nothing.
+    // The neighbour count is clamped to the number of documents stored.
     let neighbors = params.neighbors.min(ids.len().saturating_sub(1)).max(1);
 
     let mut seen = HashSet::new();

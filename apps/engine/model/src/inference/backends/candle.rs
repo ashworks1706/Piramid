@@ -1,8 +1,8 @@
-//! Candle-backed model execution. Compiled only under `inference-candle`.
+//! Candle-backed model execution. Compiled only under inference-candle.
 
 use piramid_hardware::gpu::error::{GpuError, GpuResult};
 
-/// Candle model-execution runtime; the shape `gpu::DeviceRuntime` has, for models.
+/// Candle model-execution runtime, shaped like gpu::DeviceRuntime for models.
 #[derive(Debug, Default)]
 pub struct CandleRuntime;
 

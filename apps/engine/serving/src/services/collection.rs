@@ -124,7 +124,7 @@ pub fn index_stats(state: &SharedState, collection: String) -> Result<IndexStats
     })
 }
 
-/// Rebuild a collection's ANN index from stored records.
+/// Rebuild the ANN index of a collection from stored records.
 #[tracing::instrument(
     name = "rebuild_index",
     target = "piramid::indexing",
@@ -237,7 +237,7 @@ pub fn find_duplicates(
     Ok(DuplicateResponse { pairs })
 }
 
-/// Rewrite a collection's record store, dropping dead entries.
+/// Rewrite the record store of a collection, dropping dead entries.
 #[tracing::instrument(
     name = "compact",
     target = "piramid::writes",

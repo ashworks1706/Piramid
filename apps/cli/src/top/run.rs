@@ -11,18 +11,15 @@ use super::dashboard::{verb, Dashboard, Event, Pending};
 use super::ui;
 
 /// How long a poll may take before it is abandoned and reported.
-///
-/// Readiness opens every collection on disk, so this is generous; what it protects against is a
-/// hung server, not a slow one.
 const REQUEST_TIMEOUT: Duration = Duration::from_secs(15);
 
-/// Runs the dashboard against `base_url` until the operator quits.
+/// Runs the dashboard against base_url until the operator quits.
 pub fn run(base_url: &str, interval: Duration) -> std::io::Result<()> {
     let runtime = tokio::runtime::Runtime::new()?;
     runtime.block_on(async move {
         let client = Client::new(base_url, REQUEST_TIMEOUT).map_err(std::io::Error::other)?;
-        // One request before the terminal is taken over, so an unreachable server is an ordinary
-        // error message rather than an empty dashboard the operator has to quit out of to read.
+        // One request runs before the terminal is taken over, so an unreachable server is
+        // reported as an ordinary error.
         let version = client.version().await.map_err(std::io::Error::other)?;
         let mut dashboard = Dashboard::new(client, interval);
         dashboard.version = match version.git_commit {
@@ -89,8 +86,7 @@ fn refresh(dashboard: &mut Dashboard, tx: &UnboundedSender<Event>) {
 
 /// Runs a confirmed action, then reports what it did.
 ///
-/// A rebuild is accepted and then runs on the server, so the outcome is read back from the
-/// status endpoint rather than inferred from the acceptance.
+/// The outcome of a rebuild is read back from the status endpoint after the server accepts it.
 fn act(dashboard: &Dashboard, tx: &UnboundedSender<Event>, pending: Pending) {
     let client = dashboard.client.clone();
     let tx = tx.clone();
@@ -119,8 +115,7 @@ fn act(dashboard: &Dashboard, tx: &UnboundedSender<Event>, pending: Pending) {
     });
 }
 
-/// Redraws on a timer, so "updated Ns ago" and the refresh interval both advance while nothing
-/// else is happening.
+/// Redraws on a timer, advancing the elapsed-time indicators while nothing else happens.
 async fn ticker(tx: UnboundedSender<Event>) {
     let mut interval = tokio::time::interval(Duration::from_millis(500));
     loop {
@@ -138,8 +133,7 @@ async fn keys(tx: UnboundedSender<Event>) {
             Ok(TermEvent::Key(key)) if key.kind == KeyEventKind::Press => Event::Key(key),
             Ok(TermEvent::Resize(_, _)) => Event::Resize,
             Ok(_) => continue,
-            // Losing the keyboard leaves a dashboard that redraws but cannot be quit, so it says
-            // why and shuts down rather than sitting there.
+            // A lost keyboard is reported and shuts the dashboard down.
             Err(e) => Event::InputLost(e.to_string()),
         };
         if tx.send(mapped).is_err() {

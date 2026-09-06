@@ -61,7 +61,7 @@ fn rows_come_from_readiness_so_an_unopened_collection_is_still_listed() {
     let names: Vec<&str> = dash.rows.iter().map(|r| r.name.as_str()).collect();
     assert_eq!(names, ["docs", "notes"]);
     assert!(dash.rows[0].loaded());
-    // Listed from the data directory, never opened, so it has no counters and no vectors.
+    // A collection listed from the data directory but never opened has no counters.
     assert!(!dash.rows[1].loaded());
     assert_eq!(dash.rows[1].vectors(), 0);
 }
@@ -76,8 +76,7 @@ fn a_wal_stat_keyed_by_something_else_is_dropped_rather_than_listed() {
             wal_size_bytes: Some(8596),
             ..WalStats::default()
         },
-        // `/api/metrics` once keyed these by the collection's file path, which invented a
-        // collection per stat in the sidebar.
+        // A durability stat keyed by something other than a collection name is dropped.
         WalStats {
             collection: "/var/lib/piramid/docs.db".into(),
             wal_size_bytes: Some(8596),
@@ -105,7 +104,7 @@ fn the_cursor_stays_on_its_collection_when_the_list_changes() {
     dash.handle(press('j'));
     assert_eq!(dash.current().map(|r| r.name.as_str()), Some("c"));
 
-    // "a" is dropped, so index 2 would now be a different collection.
+    // The first collection is dropped, so the old index would name a different collection.
     dash.handle(Event::Snapshot(Box::new(Ok(snapshot(
         &["b", "c"],
         &["b", "c"],
@@ -140,7 +139,7 @@ fn mutating_keys_ask_before_they_act() {
     assert!(dash.handle(press('r')).is_none());
     assert_eq!(dash.pending, Some(Pending::Rebuild("docs".into())));
 
-    // Anything but y cancels.
+    // Any key other than the confirm key cancels.
     assert!(dash.handle(press('n')).is_none());
     assert_eq!(dash.pending, None);
 
@@ -232,7 +231,7 @@ fn numbers_render_the_way_an_operator_reads_them() {
     assert_eq!(duration(7200), "2h");
     assert_eq!(duration(180_000), "2d");
 
-    // A data directory is distinguished by its tail, so that is the half that survives.
+    // A data directory is truncated from the left, keeping its tail.
     assert_eq!(truncate_left("/var/lib/piramid", 19), "/var/lib/piramid");
     assert_eq!(
         truncate_left("/home/ash/projects/piramid/data", 19),
@@ -293,8 +292,7 @@ fn the_frame_renders_before_the_first_snapshot_lands() {
     let mut terminal = Terminal::new(TestBackend::new(100, 30))
         .expect("the test backend cannot fail to initialize");
 
-    // An empty dashboard is what the operator sees for the first refresh interval, and on a
-    // narrow terminal every pane is smaller than its content.
+    // An empty dashboard draws on a terminal narrower than its content.
     terminal
         .draw(|frame| super::ui::draw(frame, &dash))
         .expect("drawing an empty dashboard cannot fail");

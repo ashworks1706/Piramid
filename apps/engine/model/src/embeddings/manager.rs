@@ -10,8 +10,7 @@ use piramid_core::stats::EmbedMetrics;
 
 /// Owns the embedding stack and its throughput counters.
 ///
-/// One of these lives in `AppState`. Anything new the embedding domain holds — a second
-/// provider, a failover policy, per-collection models — becomes a field here.
+/// One of these lives in AppState, and holds every field the embedding domain owns.
 pub struct EmbeddingsManager {
     embedder: Option<Arc<dyn Embedder>>,
     metrics: EmbedMetrics,
@@ -28,9 +27,8 @@ impl EmbeddingsManager {
 
     /// Wrap an embedder the caller built, in the same cache-and-retry stack.
     ///
-    /// The seam for a provider this crate cannot construct: an in-process one needs a model
-    /// runtime, and `embeddings` must not depend on `inference`. The binary builds it and passes
-    /// it here, the same way a `RetrievalHook` implementation reaches `inference`.
+    /// The seam for a provider this crate cannot construct. The binary builds the embedder and
+    /// passes it here.
     pub fn with_embedder(embedder: Arc<dyn Embedder>) -> Self {
         Self {
             embedder: Some(Arc::new(RetryEmbedder::new(embedder))),
@@ -38,7 +36,7 @@ impl EmbeddingsManager {
         }
     }
 
-    /// Build the full stack `config` names: provider, response cache, retries.
+    /// Build the full stack config names: provider, response cache, retries.
     pub fn from_config(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let embedder = create_embedder(config)?;
         Ok(Self {

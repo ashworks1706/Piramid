@@ -1,4 +1,4 @@
-//! Dashboard state and the key map. Drawing is in `ui`; HTTP is in `client`.
+//! Dashboard state and the key map. Drawing is in ui; HTTP is in client.
 
 use std::collections::{HashMap, VecDeque};
 use std::time::{Duration, Instant};
@@ -15,7 +15,7 @@ const HISTORY: usize = 240;
 pub struct Row {
     /// Collection name.
     pub name: String,
-    /// Counters from `/api/metrics`, absent for a collection on disk that has never been opened.
+    /// Counters from the metrics response, absent for a collection that has never been opened.
     pub metrics: Option<CollectionMetrics>,
     /// Durability, from the same response.
     pub wal: Option<WalStats>,
@@ -47,7 +47,7 @@ impl Row {
 /// An action that changes the server, held until it is confirmed.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Pending {
-    /// Rebuild the collection's index from its stored records.
+    /// Rebuild the index of the collection from its stored records.
     Rebuild(String),
     /// Compact the collection, reclaiming space held by deleted records.
     Compact(String),
@@ -80,7 +80,7 @@ pub enum Event {
     Snapshot(Box<Result<Snapshot, ClientError>>),
     /// A rebuild or compact finished, with the line to show for it.
     Action(Result<String, String>),
-    /// The terminal stopped delivering input; the dashboard cannot be driven any more.
+    /// The terminal stopped delivering input, leaving the dashboard undrivable.
     InputLost(String),
 }
 
@@ -88,11 +88,11 @@ pub enum Event {
 pub struct Dashboard {
     /// The server this dashboard talks to.
     pub client: Client,
-    /// Version string for the status bar, empty until `/api/version` answers.
+    /// Version string for the status bar, empty until the version endpoint answers.
     pub version: String,
     /// Rows in display order.
     pub rows: Vec<Row>,
-    /// Index into `rows`.
+    /// Index into rows.
     pub selected: usize,
     /// Server-wide totals from the last successful refresh.
     pub snapshot: Option<Snapshot>,
@@ -102,24 +102,24 @@ pub struct Dashboard {
     pub history: HashMap<String, VecDeque<u64>>,
     /// One-line notice on the status bar.
     pub notice: Option<String>,
-    /// An action waiting on y/n.
+    /// An action waiting on a yes or no key.
     pub pending: Option<Pending>,
     /// The help overlay is open.
     pub help: bool,
-    /// Set by `q`.
+    /// Set by the quit key.
     pub should_quit: bool,
-    /// When the last refresh landed, for the "updated Ns ago" indicator.
+    /// When the last refresh landed, for the elapsed-time indicator.
     pub last_refresh: Option<Instant>,
-    /// A refresh is in flight; a second one is not started on top of it.
+    /// A refresh is in flight, and a second one is not started on top of it.
     pub refreshing: bool,
     /// Time between refreshes.
     pub interval: Duration,
-    /// First half of a two-key chord such as `gg`.
+    /// First half of a two-key chord such as gg.
     pending_key: Option<char>,
 }
 
 impl Dashboard {
-    /// A dashboard over `client`, refreshing every `interval`.
+    /// A dashboard over client, refreshing every interval.
     pub fn new(client: Client, interval: Duration) -> Self {
         Self {
             client,
@@ -178,16 +178,14 @@ impl Dashboard {
                 self.rebuild_rows(&snapshot);
                 self.snapshot = Some(snapshot);
             }
-            // The last good snapshot stays on screen. A dashboard that blanks the moment a poll
-            // times out loses exactly the numbers you were reading when the server got slow.
+            // The last good snapshot stays on screen when a poll fails.
             Err(e) => self.error = Some(e.to_string()),
         }
     }
 
     /// Folds metrics, WAL stats and readiness into one row per collection.
     ///
-    /// Readiness is the authority on which collections exist, because it walks the data directory
-    /// and metrics only reports the ones the server has opened.
+    /// Readiness decides which collections exist; metrics fills in the ones already open.
     fn rebuild_rows(&mut self, snapshot: &Snapshot) {
         let selected = self.current().map(|r| r.name.clone());
         let mut rows: HashMap<String, Row> = HashMap::new();
@@ -205,9 +203,7 @@ impl Dashboard {
             }
             row.metrics = Some(metrics.clone());
         }
-        // Attached to a row, never creating one. Readiness and metrics both answer "which
-        // collections exist"; a durability stat keyed by something else is a server bug, and the
-        // dashboard should show two collections and drop the stat rather than invent a third.
+        // A durability stat attaches to an existing row and never creates one.
         for wal in &snapshot.metrics.wal_stats {
             if let Some(row) = rows.get_mut(&wal.collection) {
                 row.wal = Some(wal.clone());
@@ -221,8 +217,7 @@ impl Dashboard {
             })
             .collect();
         rows.sort_by(|a, b| a.name.cmp(&b.name));
-        // Keep the cursor on the collection it was on, so a refresh cannot move an action from
-        // the collection you were looking at to the one that took its place in the list.
+        // The cursor stays on the collection it was on across a refresh.
         self.selected = selected
             .and_then(|name| rows.iter().position(|r| r.name == name))
             .unwrap_or(self.selected)

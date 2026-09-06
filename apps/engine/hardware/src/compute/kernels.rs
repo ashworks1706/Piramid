@@ -25,12 +25,12 @@ pub trait DistanceKernels: Send + Sync {
     /// L2 distance between two equal-length vectors.
     fn euclidean(&self, a: &[f32], b: &[f32]) -> f32;
 
-    /// Squared L2 distance, skipping the final `sqrt`.
+    /// Squared L2 distance, skipping the final sqrt.
     fn euclidean_squared(&self, a: &[f32], b: &[f32]) -> f32;
 
-    // Batch. Defaults loop over pairwise, which is right for CPU; devices override with a launch.
+    // Batch. Defaults loop over pairwise; devices override with a device launch.
 
-    /// Score `query` against every row of the row-major `candidates` slab.
+    /// Score query against every row of the row-major candidates slab.
     fn cosine_batch(
         &self,
         query: &[f32],
@@ -41,7 +41,7 @@ pub trait DistanceKernels: Send + Sync {
         batch_via_pairwise(query, candidates, dim, out, |a, b| self.cosine(a, b))
     }
 
-    /// Inner product of `query` against every row of the `candidates` slab.
+    /// Inner product of query against every row of the candidates slab.
     fn dot_batch(
         &self,
         query: &[f32],
@@ -52,7 +52,7 @@ pub trait DistanceKernels: Send + Sync {
         batch_via_pairwise(query, candidates, dim, out, |a, b| self.dot(a, b))
     }
 
-    /// L2 distance from `query` to every row of the `candidates` slab.
+    /// L2 distance from query to every row of the candidates slab.
     fn euclidean_batch(
         &self,
         query: &[f32],
@@ -64,7 +64,7 @@ pub trait DistanceKernels: Send + Sync {
     }
 }
 
-/// Validate the slab/`out` shape shared by every `*_batch` kernel; returns the row count.
+/// Validate the slab and out shape shared by every batch kernel; returns the row count.
 pub fn check_batch_shape(
     query: &[f32],
     candidates: &[f32],

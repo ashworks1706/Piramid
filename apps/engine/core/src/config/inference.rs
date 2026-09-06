@@ -1,9 +1,7 @@
 //! Model execution: the forward pass, its memory, and how retrieval enters it.
 //!
-//! None of this is implemented. The shape is settled now so the forward-pass work lands into a
-//! surface that already exists, and every knob is refused by [`InferenceConfig::validate`] until
-//! the code behind it is written — a setting that parses and then does nothing is worse than one
-//! that is missing, because the file claims it works.
+//! None of this is implemented. Every knob here is refused by [InferenceConfig::validate] until
+//! the code behind it is written.
 
 use serde::{Deserialize, Serialize};
 
@@ -11,7 +9,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct InferenceConfig {
-    /// Load a model at startup and serve `/api/infer`.
+    /// Load a model at startup and serve /api/infer.
     pub enabled: bool,
 
     /// Directory or file holding the weights.
@@ -20,10 +18,10 @@ pub struct InferenceConfig {
     /// Tokenizer location, when it does not sit beside the weights.
     pub tokenizer_path: Option<String>,
 
-    /// Which forked model file drives the pass. `None` reads it from the checkpoint.
+    /// Which forked model file drives the pass. None reads it from the checkpoint.
     pub architecture: Option<String>,
 
-    /// Device to load onto, as `cuda:0`. `None` follows `startup.hardware`.
+    /// Device to load onto, such as cuda:0. None follows startup.hardware.
     pub device: Option<String>,
 
     /// Precision weights are held at.
@@ -32,7 +30,7 @@ pub struct InferenceConfig {
     /// Longest prompt plus completion, in tokens.
     pub max_sequence_length: usize,
 
-    /// Run a throwaway pass at boot, so the first real request does not pay for allocation.
+    /// Run a throwaway pass at boot, allocating before the first real request.
     pub warmup: bool,
 
     pub batching: BatchingConfig,
@@ -62,8 +60,7 @@ impl Default for InferenceConfig {
     }
 }
 
-/// Numeric precision. Weights at fp16 halve the footprint against fp32 and are what the memory
-/// arithmetic in the roadmap assumes.
+/// Numeric precision weights are held at.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum Dtype {
@@ -82,23 +79,22 @@ pub struct BatchingConfig {
     /// Sequences in one forward pass.
     pub max_batch_size: usize,
 
-    /// Sequences admitted and waiting, across all passes. Distinct from `max_batch_size`, which
-    /// bounds one step.
+    /// Sequences admitted and waiting, across all passes. max_batch_size bounds one step.
     pub max_queue_depth: usize,
 
-    /// Token ceiling per step, so one long prefill cannot crowd out every decode.
+    /// Token ceiling per step.
     pub max_batched_tokens: usize,
 
     /// Keep admitting into a running batch instead of draining it first.
     pub continuous: bool,
 
-    /// Split a long prefill across steps, so decode is not starved while it runs.
+    /// Split a long prefill across steps.
     pub chunked_prefill: bool,
 
-    /// Tokens per prefill chunk when the above is on.
+    /// Tokens per prefill chunk when chunked_prefill is on.
     pub prefill_chunk_tokens: usize,
 
-    /// How long a request may wait for a slot before it is refused. `None` waits forever.
+    /// How long a request may wait for a slot before it is refused. None waits forever.
     pub queue_timeout_ms: Option<u64>,
 }
 
@@ -120,13 +116,13 @@ impl Default for BatchingConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct KvCacheConfig {
-    /// Total budget across every live sequence. `None` is unbounded.
+    /// Total budget across every live sequence. None is unbounded.
     pub max_bytes: Option<u64>,
 
     /// Tokens per page. Pages are the unit of allocation and eviction.
     pub page_size: usize,
 
-    /// Precision the cache is held at. The single largest lever on its size.
+    /// Precision the cache is held at.
     pub dtype: Dtype,
 
     /// Fraction of device memory left after weights that the cache may claim.
@@ -167,16 +163,16 @@ pub enum Preemption {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct SamplingConfig {
-    /// `0.0` is greedy.
+    /// Draw temperature. 0.0 is greedy.
     pub temperature: f32,
 
-    /// Nucleus cutoff. `None` disables it.
+    /// Nucleus cutoff. None disables it.
     pub top_p: Option<f32>,
 
-    /// Keep only this many highest-probability tokens. `None` disables it.
+    /// Keep only this many highest-probability tokens. None disables it.
     pub top_k: Option<usize>,
 
-    /// Penalty on tokens already produced. `1.0` is no penalty.
+    /// Penalty on tokens already produced. 1.0 is no penalty.
     pub repetition_penalty: f32,
 
     /// How far back the repetition penalty looks.
@@ -188,7 +184,7 @@ pub struct SamplingConfig {
     /// Strings that end a generation.
     pub stop: Vec<String>,
 
-    /// Fixed seed, so a benchmark's control arm is reproducible. `None` is nondeterministic.
+    /// Fixed seed for the sampler. None is nondeterministic.
     pub seed: Option<u64>,
 }
 
@@ -207,7 +203,7 @@ impl Default for SamplingConfig {
     }
 }
 
-/// Retrieval fused into the forward pass, through `piramid_model::fusion::RetrievalHook`.
+/// Retrieval fused into the forward pass, through piramid_model::fusion::RetrievalHook.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct FusionConfig {
@@ -217,7 +213,7 @@ pub struct FusionConfig {
     /// Which hook implementation to install, by registered name.
     pub hook: Option<String>,
 
-    /// Which collection the hook queries. `None` uses the request's.
+    /// Which collection the hook queries. None uses the one named by the request.
     pub collection: Option<String>,
 
     /// Where in the pass retrieval may fire.
@@ -226,38 +222,37 @@ pub struct FusionConfig {
     /// Neighbours fetched per hook call.
     pub top_k: usize,
 
-    /// Candidates fetched before filtering, as a multiple of `top_k`.
+    /// Candidates fetched before filtering, as a multiple of top_k.
     pub overfetch: usize,
 
-    /// Drop neighbours scoring below this. `None` keeps whatever the index returns.
+    /// Drop neighbours scoring below this. None keeps whatever the index returns.
     pub score_threshold: Option<f32>,
 
-    /// Tokens between calls when `point` is `chunk-boundary`.
+    /// Tokens between calls when point is chunk-boundary.
     pub chunk_tokens: usize,
 
-    /// Fire every Nth decoder layer when `point` is `layer-entry`.
+    /// Fire every Nth decoder layer when point is layer-entry.
     pub layer_stride: usize,
 
-    /// Hard ceiling on hook calls per generated sequence. `None` is unlimited.
+    /// Hard ceiling on hook calls per generated sequence. None is unlimited.
     pub max_calls_per_sequence: Option<usize>,
 
-    /// Abandon a retrieval that has not returned within this budget, rather than stalling the
-    /// pass waiting for it. `None` always waits.
+    /// Abandon a retrieval that has not returned within this budget. None always waits.
     pub deadline_us: Option<u64>,
 
     /// What a missed deadline does.
     pub on_deadline_miss: DeadlineMiss,
 
-    /// Run retrieval on its own device stream so it overlaps the pass it runs beside.
+    /// Run retrieval on its own device stream.
     pub own_stream: bool,
 
     /// Suppress a document already fused earlier in the same sequence.
     pub dedupe_across_calls: bool,
 
-    /// Tokens the prompt-stuffed control arm may spend, so a comparison is at equal budget.
+    /// Tokens the prompt-stuffed control arm may spend.
     pub token_budget: Option<usize>,
 
-    /// Store token ids for retrieved documents, so the hot path skips tokenization.
+    /// Store token ids for retrieved documents.
     pub pretokenize_documents: bool,
 
     /// Trained adapter weights, for architectures that have not been forked.
@@ -295,9 +290,9 @@ pub enum RetrievalPointKind {
     /// Once, before the first token.
     #[default]
     SequenceStart,
-    /// Every `chunk_tokens` generated tokens.
+    /// Every chunk_tokens generated tokens.
     ChunkBoundary,
-    /// Between decoder layers, every `layer_stride` of them.
+    /// Between decoder layers, every layer_stride of them.
     LayerEntry,
 }
 
@@ -316,14 +311,14 @@ pub enum DeadlineMiss {
 
 /// Precomputed key/value states for retrieved documents, reused at prefill.
 ///
-/// Document KV is not context-independent: position and preceding context change it, so states
-/// cannot simply be concatenated. `recompute_ratio` is the fraction repaired on reuse.
+/// Position and preceding context change these states, so they are not concatenated as they
+/// stand. recompute_ratio is the fraction repaired on reuse.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct DocumentKvConfig {
     pub enabled: bool,
 
-    /// Budget for the store. Competes with the live KV cache for the same device memory.
+    /// Budget for the store, drawn from the same device memory as the live KV cache.
     pub max_bytes: Option<u64>,
 
     /// Where the states are held.
@@ -348,7 +343,7 @@ impl Default for DocumentKvConfig {
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum DocumentKvStorage {
-    /// Device memory: fastest to reuse, scarcest.
+    /// Device memory.
     Device,
     /// Host memory.
     #[default]
@@ -358,10 +353,9 @@ pub enum DocumentKvStorage {
 }
 
 impl InferenceConfig {
-    /// Reject anything the build cannot honour, rather than ignoring it.
+    /// Reject anything the build cannot honour.
     ///
-    /// Everything here is scaffolding, so the check is deliberately blunt: turning the subsystem
-    /// on is an error naming the roadmap version that will implement it.
+    /// Turning the subsystem on is an error naming the roadmap version that will implement it.
     pub fn validate(&self) -> Result<(), String> {
         if self.enabled {
             return Err("runtime.inference.enabled: not implemented yet (roadmap v0.4.0)".into());
@@ -378,7 +372,7 @@ impl InferenceConfig {
             );
         }
 
-        // Shape checks, so a file that will be honoured later is still wrong now if it cannot be.
+        // Shape checks for the settings that are not yet honoured.
         if self.batching.max_batch_size == 0 {
             return Err("runtime.inference.batching.max_batch_size: must be >= 1".into());
         }

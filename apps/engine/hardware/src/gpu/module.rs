@@ -1,4 +1,5 @@
-//! Compiled kernel modules: [`KernelModule`] is a loaded image, [`LaunchConfig`] a launch's geometry.
+//! Compiled kernel modules: [KernelModule] is a loaded image, [LaunchConfig] the geometry of one
+//! launch.
 
 use crate::gpu::device::Device;
 use crate::gpu::error::GpuResult;
@@ -6,16 +7,16 @@ use crate::gpu::error::GpuResult;
 /// Grid and block geometry for a single kernel launch.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct LaunchConfig {
-    /// Blocks per grid, in `(x, y, z)`.
+    /// Blocks per grid, in x, y and z.
     pub grid: (u32, u32, u32),
-    /// Threads per block, in `(x, y, z)`.
+    /// Threads per block, in x, y and z.
     pub block: (u32, u32, u32),
     /// Dynamically allocated shared memory per block, in bytes.
     pub shared_memory_bytes: u32,
 }
 
 impl LaunchConfig {
-    /// One-dimensional geometry covering `n` elements at `block_size` threads per block.
+    /// One-dimensional geometry covering n elements at the given threads per block.
     pub fn for_elements(n: usize, block_size: u32) -> Self {
         let block_size = block_size.max(1);
         let blocks = n.div_ceil(block_size as usize).max(1) as u32;

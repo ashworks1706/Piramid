@@ -600,11 +600,7 @@ fn compaction_rewrites_live_records_through_temp_record_store() {
     cleanup_test_files(&files);
 }
 
-// `sync_on_write` is documented as the durability knob and was read by nothing: the WAL flushed
-// its BufWriter to the kernel and never reached the device, so `true` and `false` behaved
-// identically. Whether fsync actually happens is not observable from a test — a reopen reads the
-// page cache, and only power loss tells the two apart. This covers what is observable: the
-// setting is accepted and writes still replay.
+// A collection with sync_on_write enabled accepts writes and replays them on reopen.
 #[test]
 fn writes_replay_with_sync_on_write_enabled() {
     use piramid_core::config::CollectionConfig;
@@ -641,8 +637,7 @@ fn writes_replay_with_sync_on_write_enabled() {
     );
 }
 
-// max_log_size was declared and read by nothing, so a WAL could grow without bound between
-// checkpoints — a longer replay and a wider loss window than the file asked for.
+// A WAL that grows past max_log_size triggers a checkpoint.
 #[test]
 fn a_wal_past_max_log_size_triggers_a_checkpoint() {
     use piramid_core::config::CollectionConfig;
@@ -702,28 +697,27 @@ fn a_collection_hands_its_vectors_over_as_one_slab() {
         })
         .collect();
 
-    // The device-upload seam: contiguous, so a batch kernel takes the whole candidate set in one
-    // copy instead of gathering it row by row.
-    let (slab, dim) = storage
+    // The reader is contiguous, so a batch kernel takes the whole candidate set in one copy.
+    let slab = storage
         .vector_reader()
         .as_slab()
         .expect("a collection with no deletes is contiguous");
-    assert_eq!(dim, 3);
-    assert_eq!(slab.len(), 4 * 3);
+    assert_eq!(slab.dim, 3);
+    assert_eq!(slab.data.len(), 4 * 3);
+    assert_eq!(slab.rows(), 4);
 
-    // A delete leaves a stale row the kernel cannot skip, so the fast path is withdrawn until an
-    // insert reuses it.
+    // A delete withdraws the slab fast path until an insert reuses the hole.
     storage.delete(&ids[1]).unwrap();
     assert!(storage.vector_reader().as_slab().is_none());
 
     storage
         .insert(Document::new(vec![9.0, 9.0, 9.0], "refill".to_string()))
         .unwrap();
-    let (slab, _) = storage
+    let slab = storage
         .vector_reader()
         .as_slab()
         .expect("the hole was reused, so the slab is whole again");
-    assert_eq!(slab.len(), 4 * 3);
+    assert_eq!(slab.data.len(), 4 * 3);
 
     drop(storage);
     cleanup_test_files(&files);

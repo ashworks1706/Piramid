@@ -8,15 +8,14 @@ use uuid::Uuid;
 
 /// The caching domain entry for one collection.
 ///
-/// Owns the [`VectorStore`] and the [`MetadataCache`]; anything new that caches per-collection
-/// state gets a field here rather than a static somewhere else.
+/// Owns the [VectorStore] and the [MetadataCache].
 pub struct CacheManager {
     store: VectorStore,
     metadata: MetadataCache,
 }
 
 impl CacheManager {
-    /// Empty store and cache, bounded by `config`.
+    /// Empty store and cache, bounded by config.
     pub fn new(config: CacheConfig) -> Self {
         Self {
             store: VectorStore::new(),
@@ -24,7 +23,7 @@ impl CacheManager {
         }
     }
 
-    /// The resident vector store, as a [`VectorReader`] for indexes.
+    /// The resident vector store, as a [VectorReader] for indexes.
     pub fn vector_reader(&self) -> &dyn VectorReader {
         &self.store
     }
@@ -34,20 +33,20 @@ impl CacheManager {
         self.metadata.entries()
     }
 
-    /// Insert or replace the resident vector for `id`.
+    /// Insert or replace the resident vector for id.
     pub fn put_vector(&mut self, id: Uuid, vector: &[f32]) -> piramid_core::error::Result<()> {
         self.store.put(id, vector)
     }
 
-    /// Cache metadata for `id`, evicting oldest entries past the configured bound.
+    /// Cache metadata for id, evicting oldest entries past the configured bound.
     pub fn put_metadata(&mut self, id: Uuid, metadata: Metadata) {
         self.metadata.put(id, metadata);
     }
 
-    /// Drop `id` from the metadata cache, and from the store when `remove_vector` is set.
+    /// Drop id from the metadata cache, and from the store when remove_vector is set.
     ///
-    /// HNSW tombstones nodes instead of unlinking them, so its deletes keep the vector resident
-    /// for traversal — that is the case where `remove_vector` is false.
+    /// HNSW deletes tombstone a node and keep its vector resident for traversal, which is the case
+    /// where remove_vector is false.
     pub fn remove(&mut self, id: &Uuid, remove_vector: bool) {
         if remove_vector {
             self.store.remove(id);
@@ -77,11 +76,7 @@ impl CacheManager {
     }
 }
 
-/// Forwards the whole trait to the store.
-///
-/// Every method, not the ones that happen to be needed: this is what a collection hands to an
-/// index, so a method left to its default here withdraws that capability from every index in the
-/// tree while the store underneath still has it.
+/// Forwards every method of the trait to the store.
 impl VectorReader for CacheManager {
     fn get(&self, id: &Uuid) -> Option<&[f32]> {
         self.store.get(id)
@@ -99,7 +94,7 @@ impl VectorReader for CacheManager {
         VectorReader::dim(&self.store)
     }
 
-    fn as_slab(&self) -> Option<(&[f32], usize)> {
+    fn as_slab(&self) -> Option<crate::storage::vectors::VectorSlab<'_>> {
         self.store.as_slab()
     }
 
@@ -116,8 +111,6 @@ impl VectorReader for CacheManager {
 mod tests {
     use super::*;
 
-    /// The collection hands an index this, not the store, so anything the wrapper drops is gone
-    /// from every index whatever the store underneath can do.
     #[test]
     fn the_wrapper_forwards_every_reader_method_to_the_store() {
         let mut cache = CacheManager::new(CacheConfig::default());
@@ -129,9 +122,10 @@ mod tests {
         assert_eq!(VectorReader::dim(&cache), Some(2));
         assert_eq!(cache.get(&id), Some([1.0, 2.0].as_slice()));
 
-        let (slab, dim) = cache.as_slab().expect("the store underneath is contiguous");
-        assert_eq!(dim, 2);
-        assert_eq!(slab.len(), 4);
+        let slab = cache.as_slab().expect("the store underneath is contiguous");
+        assert_eq!(slab.dim, 2);
+        assert_eq!(slab.data.len(), 4);
+        assert_eq!(slab.rows(), 2);
 
         let mut out = [0.0; 2];
         cache.gather_into(&[id], &mut out).unwrap();

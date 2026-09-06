@@ -1,4 +1,4 @@
-//! What `/api/metrics` reports.
+//! What /api/metrics reports.
 
 use serde::Serialize;
 

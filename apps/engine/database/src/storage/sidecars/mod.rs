@@ -1,4 +1,4 @@
-//! Sidecar and mmap helpers. [`SidecarManager`] is the entry point.
+//! Sidecar and mmap helpers. [SidecarManager] is the entry point.
 
 mod manager;
 mod mmap;

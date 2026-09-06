@@ -33,7 +33,7 @@ impl Targets {
 pub async fn poll(targets: Targets, tx: UnboundedSender<Event>) {
     let Ok(http) = reqwest::Client::builder()
         .connect_timeout(std::time::Duration::from_secs(2))
-        // Readiness opens every collection on disk, so it can be slow on a large data directory.
+        // Readiness opens every collection on disk and can be slow on a large data directory.
         .timeout(std::time::Duration::from_secs(8))
         .build()
     else {

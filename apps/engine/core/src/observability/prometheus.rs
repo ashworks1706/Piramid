@@ -2,7 +2,7 @@
 
 use std::fmt::Write;
 
-/// Metric type, as declared in a `# TYPE` line.
+/// Metric type, as declared in a TYPE line.
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MetricType {
     /// Monotonically increasing total.
@@ -76,7 +76,7 @@ impl Registry {
     }
 }
 
-/// The `Content-Type` a Prometheus scrape expects.
+/// The Content-Type a Prometheus scrape expects.
 pub const CONTENT_TYPE: &str = "text/plain; version=0.0.4; charset=utf-8";
 
 /// Render a float the way Prometheus expects: integers without a decimal point.

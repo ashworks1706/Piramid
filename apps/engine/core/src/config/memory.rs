@@ -5,10 +5,10 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct MemoryConfig {
-    /// Byte ceiling per collection. `None` is unbounded.
+    /// Byte ceiling per collection. None is unbounded.
     pub max_memory_per_collection: Option<usize>,
 
-    /// Size the data file is first mapped at; it grows from here.
+    /// Size the data file is first mapped at. It grows from here.
     pub initial_mmap_size: usize,
 
     /// Map the data file. With this off, records go through ordinary file reads.

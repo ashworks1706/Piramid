@@ -1,8 +1,8 @@
 //! Model execution.
 //!
-//! Depends on `hardware::gpu` for the device runtime and on `fusion` for the seam
-//! retrieval enters through, and on nothing in the retrieval stack. Every module here is a
-//! boundary with no implementation behind it yet.
+//! Depends on hardware::gpu for the device runtime and on fusion for the seam retrieval enters
+//! through, and on nothing in the retrieval stack. Every module here is a boundary with no
+//! implementation behind it yet.
 
 pub mod architecture;
 pub mod backends;

@@ -2,7 +2,7 @@
 
 use serde::Serialize;
 
-/// Binary version, plus the build's git hash when one was baked in.
+/// Binary version, plus the git hash of the build when one was baked in.
 #[derive(Serialize)]
 pub struct VersionResponse {
     pub version: &'static str,

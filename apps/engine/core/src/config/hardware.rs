@@ -4,9 +4,9 @@ use serde::{Deserialize, Serialize};
 
 /// Which hardware to run on, and at what memory class.
 ///
-/// The memory-class profiles are presets: they name a machine size, and the settings they imply —
-/// index family, quantization, cache budget, search depth — are derived from that rather than
-/// spelled out one by one. An explicit setting always wins over what a profile would choose.
+/// The memory-class profiles are presets. They name a machine size, and index family,
+/// quantization, cache budget and search depth follow from it. An explicit setting wins over
+/// what a profile would choose.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "kebab-case")]
 pub enum HardwareProfile {
@@ -31,7 +31,7 @@ pub enum HardwareProfile {
 impl HardwareProfile {
     /// Host memory this profile assumes, when it names one.
     ///
-    /// `None` for the profiles that describe *which* hardware rather than *how much* of it.
+    /// None for the profiles that name which hardware to use rather than how much of it.
     pub fn memory_class_bytes(&self) -> Option<u64> {
         const GB: u64 = 1024 * 1024 * 1024;
         match self {
@@ -60,10 +60,10 @@ impl HardwareProfile {
 pub struct HardwareConfig {
     pub profile: HardwareProfile,
 
-    /// Host memory the process will use. `None` takes the profile's memory class, or is unbounded.
+    /// Host memory the process will use. None takes the profile's memory class, or is unbounded.
     pub memory_budget_bytes: Option<u64>,
 
-    /// Device memory to claim. `None` is unbounded.
+    /// Device memory to claim. None is unbounded.
     pub gpu_memory_budget_bytes: Option<u64>,
 
     pub gpu: GpuConfig,
@@ -72,8 +72,7 @@ pub struct HardwareConfig {
 }
 
 impl HardwareConfig {
-    /// Whether to acquire a device. The profile is the only switch; there is no separate flag to
-    /// disagree with it.
+    /// Whether to acquire a device. The profile is the only switch.
     pub fn gpu_enabled(&self) -> bool {
         matches!(self.profile, HardwareProfile::Gpu)
     }
@@ -95,7 +94,7 @@ pub struct GpuConfig {
     /// Threads per block for distance kernels. Tuned per architecture; 256 suits most.
     pub distance_block_size: u32,
 
-    /// Streams to create. Retrieval and the forward pass want their own, so they overlap.
+    /// Streams to create. Retrieval and the forward pass each take one.
     pub streams: usize,
 
     /// Device bytes held back for fragmentation and library workspaces.
@@ -113,11 +112,7 @@ impl Default for GpuConfig {
     }
 }
 
-/// How device memory is divided between the three things that want it.
-///
-/// A 7B model at fp16 is ~14 GB and an 8k KV cache ~2 GB, which leaves single-digit gigabytes for
-/// the index on a 24 GB card. Whoever allocates first otherwise wins, and the loser fails at a
-/// point unrelated to the cause.
+/// How device memory is divided between model weights, the KV cache and the index.
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct VramSplit {
@@ -133,8 +128,7 @@ pub struct VramSplit {
     /// Share for the index and its candidate slab.
     pub index_ratio: f32,
 
-    /// Fraction of retrieval-side bandwidth to allow while a forward pass is decoding. Decode
-    /// reads every weight per token, so a search kernel streaming the slab contends with it.
+    /// Fraction of retrieval-side bandwidth to allow while a forward pass is decoding.
     pub retrieval_bandwidth_share: f32,
 }
 
@@ -151,7 +145,7 @@ impl Default for VramSplit {
 }
 
 impl VramSplit {
-    /// Reject a split that cannot be honoured, rather than silently scaling it.
+    /// Reject a split that cannot be honoured.
     pub fn validate(&self) -> Result<(), String> {
         if !self.enabled {
             return Ok(());

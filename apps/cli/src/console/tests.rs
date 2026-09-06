@@ -26,7 +26,7 @@ fn commands_parse_into_actions() {
 
 #[test]
 fn an_unrecognised_word_is_handed_to_just() {
-    // The command line is the whole justfile, not a list kept in sync with it by hand.
+    // An unrecognised head word is passed through to just.
     assert_eq!(
         parse_command("check-gpu"),
         Command::Just(vec!["check-gpu".into()])
@@ -39,7 +39,7 @@ fn an_unrecognised_word_is_handed_to_just() {
             "main".into()
         ])
     );
-    // `start` with nothing to start is a recipe name, not a malformed start.
+    // The start word with no argument is a recipe name, not a malformed start.
     assert_eq!(parse_command("start"), Command::Just(vec!["start".into()]));
     assert_eq!(parse_command("   "), Command::Unknown(String::new()));
 }
@@ -49,12 +49,12 @@ fn the_catalog_is_unique_and_every_unit_is_runnable() {
     let units = catalog();
     let ids: std::collections::HashSet<&str> = units.iter().map(|u| u.id.as_str()).collect();
     assert_eq!(ids.len(), units.len(), "two units share an id");
-    // A unit is either a compose service or a just recipe; one with neither cannot be started.
+    // Every unit is either a compose service or a just recipe.
     assert!(units
         .iter()
         .all(|u| u.service().is_some() || !u.args.is_empty()));
     assert!(units.iter().any(|u| u.id == "serve"));
-    // A task is named for what it is, not for the command line that runs it.
+    // A named task keeps its name rather than its command line.
     let config = units
         .iter()
         .find(|u| u.id == "config")
@@ -199,7 +199,7 @@ fn ps_output_parses_as_an_array_or_as_lines() {
     assert_eq!(parsed["piramid"].exit_code, 1);
     assert_eq!(parsed["ollama"].status(), Status::Running);
     assert!(parse_ps("").is_ok_and(|m| m.is_empty()));
-    // Reporting "nothing running" when the query failed is how you start a second copy.
+    // A failed query returns an error rather than an empty set of services.
     assert!(parse_ps("not json").is_err());
 }
 
@@ -210,8 +210,7 @@ fn a_log_line_cannot_move_the_cursor_out_of_its_pane() {
         "   Compiling piramid"
     );
     assert_eq!(sanitize_line("plain"), "plain");
-    // compose rewrites its progress lines in place; a carriage return reaching the terminal
-    // returns the cursor to column 0 and overwrites whatever is drawn to the left.
+    // Carriage returns in compose progress lines are stripped.
     assert_eq!(
         sanitize_line("Container deploy-piramid-1  Recreated\r"),
         "Container deploy-piramid-1  Recreated"
@@ -236,8 +235,7 @@ fn the_log_buffer_drops_the_oldest_line_and_searches_wrapping() {
 
 #[test]
 fn full_output_is_kept_on_disk_after_the_pane_scrolls_past_it() {
-    // CARGO_TARGET_TMPDIR is only defined for integration tests, and a path relative to the
-    // crate would write into the source tree.
+    // Unit tests get their scratch directory from the system temp dir.
     let dir = std::env::temp_dir().join(format!("piramid-console-logs-{}", std::process::id()));
     let _ = std::fs::remove_dir_all(&dir);
     let mut writer = LogWriter::new(&dir).expect("the log directory is creatable");
@@ -245,7 +243,7 @@ fn full_output_is_kept_on_disk_after_the_pane_scrolls_past_it() {
     writer
         .append("serve", &LogLine::now(Stream::Out, "listening"))
         .expect("a line is writable");
-    // An ad-hoc task's id is a whole command line, which is not a filename.
+    // The id of an ad-hoc task is a whole command line, which is not a filename.
     writer
         .append(
             "bench --save-baseline main",

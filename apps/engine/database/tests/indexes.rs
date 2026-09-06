@@ -185,9 +185,7 @@ fn index_selector_prefers_expected_types() {
     assert_eq!(cfg.select_type(500_000), IndexKind::Hnsw);
 }
 
-// HNSW evaluates filters mid-traversal, unlike flat which post-filters. Every other filter test
-// in the workspace runs against a small collection, which auto-selects flat — so this is the only
-// coverage of `passes_filter` on the graph path.
+// HNSW evaluates filters during traversal rather than after it.
 #[test]
 fn hnsw_search_applies_a_filter_during_traversal() {
     use piramid_core::metadata::{metadata, Filter, Metadata};
@@ -235,4 +233,113 @@ fn hnsw_search_applies_a_filter_during_traversal() {
         .search(&[0.0, 1.0, 0.0], 10, 200, &reader, None, &metadatas)
         .unwrap();
     assert!(unfiltered.len() >= hits.len());
+}
+
+/// The flat scan reaches the kernel by slab or by gather, and a metric applies batched or one
+/// pair at a time. Every one of those paths ranks a collection the same way.
+#[test]
+fn every_flat_scoring_path_ranks_a_collection_the_same_way() {
+    use piramid_core::config::CacheConfig;
+    use piramid_database::index::VectorReader;
+    use piramid_database::{CacheManager, VectorStore};
+    use piramid_hardware::compute::strategies::for_mode;
+    use piramid_hardware::compute::Metric;
+
+    // Enough rows to cross the chunk boundary the gather path blocks on.
+    let dim = 16;
+    let rows: Vec<(Uuid, Vec<f32>)> = (0..2500)
+        .map(|i| {
+            let f = i as f32;
+            (
+                Uuid::new_v4(),
+                (0..dim).map(|d| ((f + d as f32) % 7.0) - 3.0).collect(),
+            )
+        })
+        .collect();
+    let query: Vec<f32> = (0..dim).map(|d| (d as f32 % 5.0) - 2.0).collect();
+    let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
+
+    for metric in [Metric::Cosine, Metric::Euclidean, Metric::DotProduct] {
+        let config = FlatConfig {
+            metric,
+            ..FlatConfig::default()
+        };
+
+        // Contiguous: the index owns every row the store does, so the buffer goes straight to
+        // the kernel.
+        let mut cache = CacheManager::new(CacheConfig::default());
+        let mut contiguous = FlatIndex::new(config);
+        for (id, vector) in &rows {
+            cache.put_vector(*id, vector).unwrap();
+        }
+        for (id, vector) in &rows {
+            contiguous.insert(*id, vector, &cache).unwrap();
+        }
+        assert!(
+            cache.as_slab().is_some(),
+            "the store should be offering its buffer"
+        );
+
+        // Scattered: no slab, so every block is gathered before it is scored.
+        let map: HashMap<Uuid, Vec<f32>> = rows.iter().cloned().collect();
+        let scattered_reader = HashMapVectorReader::new(&map);
+        assert!(scattered_reader.as_slab().is_none());
+        let mut scattered = FlatIndex::new(config);
+        for (id, vector) in &rows {
+            scattered.insert(*id, vector, &scattered_reader).unwrap();
+        }
+
+        // A hole withdraws the buffer, so the same index falls back mid-life.
+        let mut holed = VectorStore::new();
+        for (id, vector) in &rows {
+            holed.put(*id, vector).unwrap();
+        }
+        let evicted = Uuid::new_v4();
+        holed.put(evicted, &vec![0.0; dim]).unwrap();
+        holed.remove(&evicted);
+        assert!(holed.as_slab().is_none());
+
+        let k = 10;
+        let from_slab = contiguous
+            .search(IndexSearchRequest::new(
+                &query,
+                k,
+                &cache,
+                piramid_core::config::SearchConfig::default(),
+                &empty_meta,
+            ))
+            .unwrap();
+        let from_gather = scattered
+            .search(IndexSearchRequest::new(
+                &query,
+                k,
+                &scattered_reader,
+                piramid_core::config::SearchConfig::default(),
+                &empty_meta,
+            ))
+            .unwrap();
+        let from_holed = contiguous
+            .search(IndexSearchRequest::new(
+                &query,
+                k,
+                &holed,
+                piramid_core::config::SearchConfig::default(),
+                &empty_meta,
+            ))
+            .unwrap();
+
+        assert_eq!(from_slab.len(), k);
+        assert_eq!(from_slab, from_gather, "{metric:?}: slab vs gather");
+        assert_eq!(from_slab, from_holed, "{metric:?}: slab vs holed fallback");
+
+        // And against scoring one pair at a time.
+        let kernels = for_mode(config.mode).unwrap();
+        let mut pairwise: Vec<(Uuid, f32)> = rows
+            .iter()
+            .map(|(id, vector)| (*id, metric.calculate(&query, vector, kernels)))
+            .collect();
+        pairwise.sort_by(|a, b| b.1.partial_cmp(&a.1).unwrap_or(std::cmp::Ordering::Equal));
+        let expected: Vec<Uuid> = pairwise.into_iter().take(k).map(|(id, _)| id).collect();
+        assert_eq!(from_slab, expected, "{metric:?}: batch vs pairwise");
+    }
 }

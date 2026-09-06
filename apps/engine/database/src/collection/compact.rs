@@ -60,7 +60,7 @@ pub fn compact(collection: &mut Collection) -> Result<CompactStats> {
     sidecars.save_offsets(&collection.index)?;
     save_vector_index(&collection.path, collection.vector_index())?;
     sidecars.save_manifest(&collection.manifest)?;
-    // Sidecars are durable before we drop the WAL entries they made redundant.
+    // Sidecars are durable before the WAL entries they made redundant are dropped.
     collection.checkpoint.wal.rotate()?;
 
     Ok(CompactStats {

@@ -71,9 +71,7 @@ fn cosine_similarity_cases() {
     assert!(sim_orth.abs() < 1e-6);
 }
 
-// One spelling per metric. serde, `as_str` and `FromStr` previously disagreed: serde rendered
-// DotProduct as "dotproduct" while the HTTP layer accepted only "dot", so the same value was
-// spelled differently in the config file and on the wire.
+// A metric spells its name the same way through serde, as_str and FromStr.
 #[test]
 fn a_metric_spells_the_same_everywhere() {
     use piramid_hardware::compute::Metric;

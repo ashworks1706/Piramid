@@ -11,14 +11,14 @@ pub enum QuantizationLevel {
     None,
     /// 8-bit integer, scaled per vector.
     Int8,
-    /// Product quantization with `subquantizers` blocks.
+    /// Product quantization with a fixed number of blocks.
     Pq {
         /// Number of blocks the vector is split into.
         subquantizers: usize,
     },
-    /// 4-bit integer. Not implemented; rejected by `RuntimeConfig::validate`.
+    /// 4-bit integer. Not implemented; rejected by runtime config validation.
     Int4,
-    /// Half precision. Not implemented; rejected by `RuntimeConfig::validate`.
+    /// Half precision. Not implemented; rejected by runtime config validation.
     Float16,
 }
 
@@ -45,7 +45,7 @@ pub struct QuantizationConfig {
     /// The encoding to use.
     pub level: QuantizationLevel,
 
-    /// Compress on disk only. `false` also quantizes the in-memory copy.
+    /// Compress on disk only. When false, the in-memory copy is quantized as well.
     pub disk_only: bool,
 
     /// Where in the pipeline the encoding applies.

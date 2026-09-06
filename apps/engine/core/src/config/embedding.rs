@@ -6,13 +6,13 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct EmbeddingConfig {
-    /// Provider name: `openai` (including any server speaking that wire format) or `ollama`.
+    /// Provider name: openai, including any server speaking that wire format, or ollama.
     pub provider: String,
 
     /// Model identifier as the provider understands it.
     pub model: String,
 
-    /// API key. Set it through `OPENAI_API_KEY` rather than the file.
+    /// API key. OPENAI_API_KEY sets it from the environment.
     #[serde(default)]
     pub api_key: Option<String>,
 

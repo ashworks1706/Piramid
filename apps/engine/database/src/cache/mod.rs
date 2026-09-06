@@ -1,8 +1,8 @@
-//! This collection's in-memory state, behind one entry point: [`CacheManager`].
+//! In-memory state for one collection, behind one entry point: [CacheManager].
 //!
-//! Two different things live here, and the split is the point. [`VectorStore`] is *resident*
-//! working state — the ANN indexes resolve candidate ids through it, so evicting an entry breaks
-//! search. [`MetadataCache`] is a real cache: bounded, evicted oldest-first, safe to drop.
+//! [VectorStore] is resident working state. The ANN indexes resolve candidate ids through it, and
+//! evicting an entry breaks search. [MetadataCache] is bounded, evicted oldest-first, and safe to
+//! drop.
 
 mod manager;
 mod metadata_cache;

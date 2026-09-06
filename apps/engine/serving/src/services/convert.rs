@@ -10,8 +10,7 @@ use std::collections::HashMap;
 
 /// Resolve a requested metric name, defaulting when the caller omits one.
 ///
-/// Which names exist is `Metric`'s to say. This decides only that an absent metric means the
-/// default, and that an unknown one is a bad request rather than an unavailable backend.
+/// An absent metric resolves to the default. An unknown one is a bad request.
 pub fn parse_metric(metric: Option<String>) -> Result<Metric> {
     let Some(name) = metric else {
         return Ok(Metric::default());
@@ -27,7 +26,7 @@ fn require_nonzero(value: usize, name: &str) -> Result<usize> {
     Ok(value)
 }
 
-/// Layer per-request tuning onto a collection's configured defaults.
+/// Layer per-request tuning onto the configured defaults of a collection.
 pub fn apply_search_overrides(base: SearchConfig, tuning: &SearchTuning) -> Result<SearchConfig> {
     let mut cfg = base;
     if let Some(ef) = tuning.ef {
@@ -42,7 +41,7 @@ pub fn apply_search_overrides(base: SearchConfig, tuning: &SearchTuning) -> Resu
     Ok(cfg)
 }
 
-/// Build a [`Filter`] from `{"field": {"op": value}}`.
+/// Build a [Filter] from a map of field name to operator and value.
 pub fn parse_filter(
     raw: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
 ) -> Result<Option<Filter>> {
@@ -100,7 +99,7 @@ pub fn hit_to_response(hit: Hit) -> HitResponse {
     }
 }
 
-/// Convert one JSON value to a [`MetadataValue`], rejecting shapes metadata cannot hold.
+/// Convert one JSON value to a [MetadataValue], rejecting shapes metadata cannot hold.
 fn json_to_metadata_value(field: &str, value: serde_json::Value) -> Result<MetadataValue> {
     Ok(match value {
         serde_json::Value::String(s) => MetadataValue::String(s),

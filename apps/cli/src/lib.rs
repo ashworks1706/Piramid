@@ -1,5 +1,5 @@
-//! Umbrella crate: re-exports every workspace crate under one namespace. See `docs/ARCHITECTURE.md`
-//! for crate boundaries and the dependency rule.
+//! Umbrella crate: re-exports every workspace crate under one namespace. Crate boundaries and the
+//! dependency rule are in docs/ARCHITECTURE.md.
 
 pub use piramid_core::{config, document, error, metadata, observability, stats, validation};
 
@@ -12,8 +12,8 @@ pub use piramid_serving::{cluster, disk, http as server, services, state};
 pub use embeddings::EmbeddingsManager;
 pub use gpu::GpuManager;
 pub use inference::InferenceManager;
-/// Domain managers: one per crate with state to own, each in its crate's `manager.rs`
-/// `AppState` is the composition root that holds them, not one of them.
+/// Domain managers: one per crate with state to own, each in the manager.rs of that crate.
+/// AppState is the composition root that holds them.
 pub use piramid_database::{CacheManager, CheckpointManager, CollectionManager};
 pub use state::AppState;
 pub use storage::SidecarManager;

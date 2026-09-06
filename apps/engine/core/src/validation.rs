@@ -104,7 +104,7 @@ pub fn validate_collection_name(name: &str) -> Result<()> {
     Ok(())
 }
 
-/// Reject batches above `max`.
+/// Reject an empty batch and a batch above max_size.
 pub fn validate_batch_size(size: usize, max_size: usize, operation: &str) -> Result<()> {
     if size == 0 {
         return Err(

@@ -40,7 +40,7 @@ pub async fn embed_text(
     if texts.is_empty() {
         return Err(ServerError::InvalidRequest("texts must not be empty".to_string()).into());
     }
-    // A short list would silently leave the tail of the batch unlabelled.
+    // Metadata is either absent or one entry per text.
     if !metadata.is_empty() && metadata.len() != texts.len() {
         return Err(ServerError::InvalidRequest(format!(
             "metadata length mismatch: {} texts, {} metadata entries",

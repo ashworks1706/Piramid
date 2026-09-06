@@ -1,4 +1,4 @@
-//! Console state and the key map. Drawing is in `ui`; processes are in `runner`.
+//! Console state and the key map. Drawing is in ui; processes are in runner.
 
 use std::collections::HashMap;
 use std::path::PathBuf;
@@ -31,7 +31,7 @@ pub struct UnitState {
     pub started_at: Option<Instant>,
     /// Start again once the current instance has exited.
     restart_pending: bool,
-    /// The console asked it to stop; the exit that follows is not a failure.
+    /// The console asked it to stop, so the exit that follows is not a failure.
     stopping: bool,
 }
 
@@ -42,13 +42,13 @@ pub struct App {
     log_writer: LogWriter,
     /// Units in sidebar order.
     pub units: Vec<UnitState>,
-    /// Index into `units`.
+    /// Index into units.
     pub selected: usize,
     /// Input mode.
     pub mode: Mode,
     /// Pane keys act on.
     pub focus: Focus,
-    /// The `:` or `/` line being typed.
+    /// The command or search line being typed.
     pub input: String,
     /// Active log search.
     pub search: String,
@@ -62,14 +62,14 @@ pub struct App {
     pub notice: Option<String>,
     /// Rows the log pane had at the last draw; drives paging.
     pub log_rows: usize,
-    /// Set by `q` and `:q`.
+    /// Set by the quit key and the quit command.
     pub should_quit: bool,
-    /// First half of a two-key chord such as `gg`.
+    /// First half of a two-key chord such as gg.
     pending_key: Option<char>,
 }
 
 impl App {
-    /// A console over the repo at `root`.
+    /// A console over the repo at root.
     pub fn new(
         settings: Settings,
         root: PathBuf,
@@ -159,8 +159,8 @@ impl App {
                 return;
             };
             let note = match state.unit.kind {
-                // `compose up -d` exiting is the request finishing, not the container stopping;
-                // the container's own state arrives from `docker compose ps`.
+                // A compose up exit reports the request finishing, not the container stopping.
+                // Container state arrives from the compose ps poll.
                 Kind::Service { .. } => {
                     if let Some(code) = code.filter(|code| *code != 0) {
                         state.status = Status::Failed(format!("compose exited {code}"));
@@ -198,8 +198,7 @@ impl App {
             };
             match states.get(service) {
                 Some(observed) => state.status = observed.status(),
-                // A service asked to start but not yet visible to compose stays Starting rather
-                // than flicking back to Stopped for one poll.
+                // A service asked to start but not yet visible to compose stays Starting.
                 None if state.status == Status::Starting => {}
                 None => state.status = Status::Stopped,
             }
@@ -347,8 +346,8 @@ impl App {
         };
     }
 
-    /// Follows a running service's container logs when it is selected, so a container the console
-    /// did not start still shows its output.
+    /// Follows the container logs of a running service when it is selected, including containers
+    /// the console did not start.
     fn on_select(&mut self) {
         self.search_hit = None;
         let state = self.current();
@@ -504,8 +503,7 @@ impl App {
             return;
         };
         if self.units[index].status.is_active() || self.runner.owns(id) {
-            // The start has to wait for the exit, or the new process races the old one for the
-            // port it is about to release.
+            // The start waits for the exit to arrive.
             self.units[index].restart_pending = true;
             self.stop_by_id(id);
         } else {
@@ -549,10 +547,9 @@ impl UnitState {
     }
 }
 
-/// Parses the text typed after `:`.
+/// Parses the text typed on the command line.
 ///
-/// Anything the console does not recognise is passed to `just`, so the command line is the whole
-/// justfile rather than a list somebody has to keep in sync with it.
+/// Anything the console does not recognise is passed to just.
 pub fn parse_command(text: &str) -> Command {
     let mut words = text.split_whitespace();
     let Some(head) = words.next() else {

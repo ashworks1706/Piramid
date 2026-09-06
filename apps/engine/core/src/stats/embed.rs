@@ -1,4 +1,4 @@
-//! Embedding throughput counters, as atomics rather than a lock.
+//! Embedding throughput counters.
 
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::Duration;

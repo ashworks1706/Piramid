@@ -1,7 +1,7 @@
-//! Console settings, read from `PIRAMID_CONSOLE__*`.
+//! Console settings, read from the PIRAMID_CONSOLE__ prefix.
 //!
-//! Its own namespace, not the engine's `PIRAMID__*`, so nothing here can be mistaken for a
-//! setting the server reads. Every field has a default, so the console runs from a fresh clone.
+//! The namespace is separate from the PIRAMID__ prefix the server reads. Every field has a
+//! default.
 
 use std::path::{Path, PathBuf};
 use std::time::Duration;
@@ -9,9 +9,9 @@ use std::time::Duration;
 /// Where the console looks and how often.
 #[derive(Debug, Clone)]
 pub struct Settings {
-    /// Base URL of the server, probed and opened with `o`.
+    /// Base URL of the server, probed and opened with the open key.
     pub base_url: String,
-    /// Base URL of the website, probed and opened with `o`.
+    /// Base URL of the website, probed and opened with the open key.
     pub web_url: String,
     /// Lines kept in memory per unit.
     pub log_lines: usize,
@@ -34,10 +34,9 @@ impl Default for Settings {
 }
 
 impl Settings {
-    /// Settings with every `PIRAMID_CONSOLE__*` override applied.
+    /// Settings with every PIRAMID_CONSOLE__ override applied.
     ///
-    /// An override that is set but unparseable is an error rather than a silent fall back to the
-    /// default, so a typo in a number is visible at startup instead of at 3am.
+    /// An override that is set but unparseable returns an error rather than the default.
     pub fn from_env() -> Result<Self, SettingsError> {
         let mut settings = Self::default();
         if let Some(value) = var("BASE_URL") {
@@ -58,7 +57,7 @@ impl Settings {
         Ok(settings)
     }
 
-    /// The log directory as an absolute path under `root`.
+    /// The log directory as an absolute path under root.
     pub fn log_dir_under(&self, root: &Path) -> PathBuf {
         if self.log_dir.is_absolute() {
             self.log_dir.clone()
@@ -92,10 +91,9 @@ fn parse<T: std::str::FromStr>(key: &'static str, value: &str) -> Result<T, Sett
     })
 }
 
-/// Walks up from `start` to the directory holding the repo's `justfile`.
+/// Walks up from start to the directory holding the justfile.
 ///
-/// The console drives `just` recipes, so it only means anything inside a checkout. An installed
-/// binary run from somewhere else finds nothing here and falls back to printing help.
+/// Returns None outside a checkout, where there is no justfile to find.
 pub fn repo_root(start: &Path) -> Option<PathBuf> {
     start
         .ancestors()

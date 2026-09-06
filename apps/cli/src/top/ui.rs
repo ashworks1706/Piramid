@@ -75,8 +75,7 @@ fn status_bar(frame: &mut Frame, dash: &Dashboard, area: Rect) {
     frame.render_widget(Line::from(spans), area);
 }
 
-/// A status dot. `degraded` marks a "no" that is only a warning because the thing it depends on
-/// is itself down — an unreachable server tells you nothing about readiness.
+/// A status dot. Setting degraded draws a down state as a warning rather than a failure.
 fn dot(name: &str, up: bool, degraded: bool) -> Span<'static> {
     let (glyph, color) = match (up, degraded) {
         (true, _) => ("●", Color::Green),
@@ -141,13 +140,11 @@ fn server(frame: &mut Frame, dash: &Dashboard, area: Rect) {
         (Some(free), Some(total)) => format!("{} / {}", bytes(free), bytes(total)),
         _ => "unknown".into(),
     };
-    // The tail of a data directory is what distinguishes one from another, so it survives and
-    // the leading path is what gets dropped.
+    // The data directory is truncated from the left, keeping its tail.
     let data_dir = truncate_left(&snapshot.ready.data_dir, 17);
     let embedding = &snapshot.metrics.embedding;
     let rows = [
-        // From the sidebar, not `metrics.total_collections`: metrics counts what the server has
-        // open, and this line sitting under a list of four saying "1" reads as a bug.
+        // Counted from the sidebar rows, which include collections the server has not opened.
         ("collections", thousands(dash.rows.len())),
         ("loaded", thousands(snapshot.ready.loaded_collections)),
         ("vectors", thousands(snapshot.metrics.total_vectors)),
@@ -286,7 +283,7 @@ fn latency_pane(frame: &mut Frame, dash: &Dashboard, area: Rect) {
         );
         return;
     }
-    // Newest on the right, so the sparkline scrolls the way a chart does.
+    // Newest sample on the right.
     let width = usize::from(area.width.saturating_sub(2)).max(1);
     let visible = &history[history.len().saturating_sub(width)..];
     frame.render_widget(
@@ -410,12 +407,12 @@ fn field(key: &str, value: &str, width: usize) -> Line<'static> {
     ])
 }
 
-/// A count with thousands separators, so six figures can be read at a glance.
+/// A count with thousands separators.
 pub fn thousands(n: usize) -> String {
     thousands_u64(n as u64)
 }
 
-/// A `u64` count with thousands separators.
+/// A u64 count with thousands separators.
 pub fn thousands_u64(n: u64) -> String {
     let digits = n.to_string();
     let mut out = String::with_capacity(digits.len() + digits.len() / 3);
@@ -464,7 +461,7 @@ pub fn duration(secs: u64) -> String {
     }
 }
 
-/// Keeps the last `width` characters, marking what was dropped from the front.
+/// Keeps the last width characters, marking what was dropped from the front.
 pub fn truncate_left(s: &str, width: usize) -> String {
     let count = s.chars().count();
     if count <= width {

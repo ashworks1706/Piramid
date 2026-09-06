@@ -14,7 +14,7 @@ pub struct SearchTuning {
     /// IVF partitions to scan.
     #[serde(default)]
     pub nprobe: Option<usize>,
-    /// Multiplier applied to `k` when a filter is present.
+    /// Multiplier applied to k when a filter is present.
     #[serde(default)]
     pub filter_overfetch: Option<usize>,
 }
@@ -27,7 +27,7 @@ pub struct SearchRequest {
     pub k: usize,
     #[serde(default)]
     pub metric: Option<String>,
-    /// Metadata predicate, as `{"field": {"op": value}}`.
+    /// Metadata predicate, mapping a field name to an operator and value.
     #[serde(default)]
     pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
     #[serde(flatten)]
@@ -49,7 +49,7 @@ pub struct SearchResponse {
     pub latency_ms: f32,
 }
 
-/// Search restricted to hits scoring at least `min_score`.
+/// Search restricted to hits scoring at least the requested minimum.
 #[derive(Deserialize)]
 pub struct RangeSearchRequest {
     pub vectors: Vec<Vec<f32>>,
@@ -58,7 +58,7 @@ pub struct RangeSearchRequest {
     pub metric: Option<String>,
     #[serde(default = "default_k")]
     pub k: usize,
-    /// Metadata predicate, as `{"field": {"op": value}}`.
+    /// Metadata predicate, mapping a field name to an operator and value.
     #[serde(default)]
     pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
     #[serde(flatten)]

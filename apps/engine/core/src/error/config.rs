@@ -5,7 +5,7 @@ use thiserror::Error;
 /// Configuration could not be loaded.
 #[derive(Debug, Clone, PartialEq, Eq, Error)]
 pub enum ConfigError {
-    /// `CONFIG_FILE` could not be read or parsed.
+    /// CONFIG_FILE could not be read or parsed.
     #[error("invalid configuration file: {0}")]
     File(String),
     /// An environment variable held a value the parser rejected.

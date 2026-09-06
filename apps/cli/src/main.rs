@@ -1,3 +1,5 @@
+//! The piramid binary: subcommand parsing, server startup, and the developer console.
+
 use std::fs;
 use std::io::Write;
 use std::path::{Path, PathBuf};
@@ -112,7 +114,7 @@ enum OutputFormat {
     Json,
 }
 
-/// Run `action`, printing `context` and exiting 1 on failure.
+/// Run action, printing context and exiting 1 on failure.
 fn run_or_exit(action: impl FnOnce() -> std::io::Result<()>, context: &str) {
     if let Err(e) = action() {
         eprintln!("{context}: {e}");
@@ -169,9 +171,8 @@ fn main() {
             }
             run_or_exit(start_server_inline, "Failed to start the server");
         }
-        // No subcommand opens the developer console, which is what you want from inside a
-        // checkout. It drives `just`, so outside one there is nothing for it to run and the
-        // help is the useful answer instead.
+        // No subcommand opens the developer console inside a checkout, and prints help outside
+        // one.
         None => match std::env::current_dir()
             .ok()
             .and_then(|cwd| console::repo_root(&cwd))
@@ -224,7 +225,7 @@ fn support_bundle(
         AppState::new(config.clone(), embeddings::EmbeddingsManager::disabled())
             .map_err(std::io::Error::other)?,
     );
-    // Best-effort: a broken collection shouldn't stop the bundle from being written.
+    // A broken collection is ignored so the bundle is still written.
     let _ = preload_collections_for_metrics(&state);
 
     let path = support::write(&config, &state, Some(output))?;
@@ -345,8 +346,7 @@ fn print_serialized<T: serde::Serialize>(value: &T, fmt: OutputFormat) -> std::i
 }
 
 fn animate() {
-    // Cursor moves and screen clears are meaningless to a pipe, and the console captures stdout
-    // line by line — the splash arrived there as 280 lines of banner ahead of the first log.
+    // The splash is skipped when stdout is not a terminal.
     if !std::io::IsTerminal::is_terminal(&std::io::stdout()) {
         return;
     }

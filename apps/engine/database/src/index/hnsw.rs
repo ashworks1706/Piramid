@@ -13,7 +13,7 @@ use piramid_core::error::{IndexError, Result};
 pub struct HnswStats {
     /// Live nodes, excluding tombstones.
     pub total_nodes: usize,
-    /// Highest layer index in use, `-1` when empty.
+    /// Highest layer index in use, -1 when empty.
     pub max_layer: isize,
     /// Node count per layer, lowest first.
     pub layer_sizes: Vec<usize>,
@@ -33,7 +33,7 @@ fn cmp_scores(a: f32, b: f32) -> Ordering {
 struct HnswNode {
     /// Neighbours per layer, layer 0 first.
     connections: Vec<Vec<Uuid>>,
-    /// Deleted, but edges are kept so traversal stays connected.
+    /// Deleted, with edges kept so traversal stays connected.
     tombstone: bool,
 }
 
@@ -47,7 +47,7 @@ struct SearchContext<'a> {
     vectors: &'a dyn VectorReader,
     filter: Option<&'a piramid_core::metadata::Filter>,
     metadatas: &'a dyn MetadataReader,
-    /// Resolved once per operation; traversal computes thousands of distances against it.
+    /// Resolved once per operation and reused for every distance in the traversal.
     kernels: &'a dyn DistanceKernels,
 }
 impl PartialEq for SearchCandidate {
@@ -66,7 +66,7 @@ impl PartialOrd for SearchCandidate {
 
 impl Ord for SearchCandidate {
     fn cmp(&self, other: &Self) -> Ordering {
-        // Reversed: BinaryHeap is a max-heap, and we want the closest first.
+        // Reversed, so the max-heap orders the closest first.
         cmp_scores(other.distance, self.distance)
     }
 }
@@ -98,14 +98,14 @@ impl HnswIndex {
             node.tombstone = true;
         }
     }
-    /// Draw a layer for a new node; exponential decay keeps upper layers sparse.
+    /// Draw a layer for a new node, with exponential decay keeping upper layers sparse.
     fn random_layer(&self) -> usize {
         // floor(-ln(uniform) * ml)
         let r: f32 = rand::random();
         (-r.ln() * self.config.ml).floor() as usize
     }
 
-    /// Insert `id`, linking it into each layer it occupies.
+    /// Insert an id, linking it into each layer it occupies.
     pub fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
         let kernels = for_mode(self.config.mode)?;
         let empty_meta: HashMap<Uuid, piramid_core::metadata::Metadata> = HashMap::new();
@@ -146,7 +146,7 @@ impl HnswIndex {
         }
 
         // Connect from the target layer down to 0. Connections are staged and applied after
-        // pruning so a failure cannot leave a half-linked node.
+        // pruning.
         let mut pending_connections = vec![Vec::new(); layer + 1];
         for lc in (0..=layer).rev() {
             current_entry = self.search_layer(
@@ -176,9 +176,9 @@ impl HnswIndex {
                     if lc < neighbor.connections.len() {
                         neighbor.connections[lc].push(id);
 
-                        // Degree is capped per node; prune the neighbour if this edge pushed it over.
+                        // Degree is capped per node, so prune the neighbour once it is over.
                         if neighbor.connections[lc].len() > m {
-                            // Cloned to release the borrow on `self.nodes` before pruning.
+                            // Cloned to release the borrow on self.nodes before pruning.
                             let neighbor_connections = neighbor.connections[lc].clone();
                             let neighbor_vec = vectors
                                 .get(&neighbor_id)
@@ -222,7 +222,7 @@ impl HnswIndex {
         Ok(())
     }
 
-    /// Find the `k` nearest neighbours of `query`, widening to `ef` candidates at layer 0.
+    /// Find the k nearest neighbours of the query, widening to ef candidates at layer 0.
     pub fn search(
         &self,
         query: &[f32],
@@ -274,14 +274,11 @@ impl HnswIndex {
         Ok(filtered)
     }
 
-    /// Search one layer, returning neighbour ids nearest-first.
-    /// Walk one layer, returning the nearest ids found.
+    /// Walk one layer, returning neighbour ids nearest-first.
     ///
-    /// `admit_all` is the difference between navigating and collecting. The greedy descent
-    /// through upper layers is pure navigation and must ignore the filter and tombstones
-    /// entirely: its job is to hand layer 0 a starting point, and a layer whose nodes happen not
-    /// to match would otherwise return nothing and strand the search. Only the layer-0 call
-    /// collects results, and only there does admission narrow.
+    /// With admit_all set, every node is admitted regardless of filter or tombstone, which is what
+    /// the greedy descent through the upper layers uses. The layer-0 call clears it, and only
+    /// there does admission narrow.
     fn search_layer(
         &self,
         query: &[f32],
@@ -300,8 +297,7 @@ impl HnswIndex {
                 continue;
             };
             let dist = self.distance(query, ep_vector, context.kernels);
-            // Always a stepping stone: a filter narrows the result set, never the graph. Refusing
-            // to traverse through a non-matching node strands the search at the entry point.
+            // Traversal continues through a node whether or not it is admitted.
             candidates.push(SearchCandidate {
                 id: ep,
                 distance: dist,
@@ -367,15 +363,15 @@ impl HnswIndex {
         result.into_iter().map(|c| c.id).collect()
     }
 
-    // Optimistic on purpose: `metadatas` is a bounded cache, so a miss is not proof of a
-    // non-match. `search::engine` settles it against the resolved document.
+    // The metadatas map is a bounded cache, so a miss is admitted here and settled by
+    // search::engine against the resolved document.
     fn passes_filter(&self, id: &Uuid, context: &SearchContext<'_>) -> bool {
         context
             .filter
             .is_none_or(|filter| filter.may_match(context.metadatas.get(id)))
     }
 
-    /// Pick the `m` closest candidates by distance only (no diversity heuristic).
+    /// Pick the m closest candidates by distance only, with no diversity heuristic.
     fn select_neighbors(
         &self,
         candidates: &[Uuid],
@@ -410,7 +406,7 @@ impl HnswIndex {
     fn distance(&self, a: &[f32], b: &[f32], kernels: &dyn DistanceKernels) -> f32 {
         let score = self.config.metric.calculate(a, b, kernels);
         match self.config.metric {
-            // Similarity metrics score higher for nearer; invert them.
+            // Similarity metrics score higher for nearer, so they are inverted.
             Metric::Cosine | Metric::DotProduct => 1.0 - score,
             Metric::Euclidean => score,
         }
@@ -486,7 +482,7 @@ impl HnswIndex {
         }
     }
 
-    /// Configured default for the search-time `ef` knob.
+    /// Configured default for the search-time ef knob.
     pub fn get_ef_search(&self) -> usize {
         self.config.ef_search
     }
@@ -494,15 +490,15 @@ impl HnswIndex {
 
 use crate::index::{IndexDetails, IndexSearchRequest, IndexStats, IndexType, VectorIndex};
 
-// `HnswIndex` has its own inherent `search` taking an explicit `ef`. This impl adapts the
-// generic trait call to it, resolving `ef` from the per-query config or the index default.
+// Adapts the generic trait call to the inherent search, resolving ef from the per-query config
+// or the index default.
 impl VectorIndex for HnswIndex {
     fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()> {
         self.insert(id, vector, vectors)
     }
 
     fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>> {
-        // Use the per-query `ef` override when present, otherwise the configured `ef_search`.
+        // Use the per-query ef override when present, otherwise the configured ef_search.
         let ef = request
             .config
             .ef

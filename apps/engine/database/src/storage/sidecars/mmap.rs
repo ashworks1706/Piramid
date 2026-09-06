@@ -12,10 +12,10 @@ pub fn ensure_file_size(file: &File, min_size: u64) -> Result<()> {
     Ok(())
 }
 
-/// Creates a mutable memory map over `file`; call [`ensure_file_size`] first.
+/// Creates a mutable memory map over a file. Call [ensure_file_size] first.
 #[allow(unsafe_code)]
 pub fn create_mmap(file: &File) -> Result<MmapMut> {
-    // SAFETY: caller guarantees exclusive ownership of `file` for the life of the mapping.
+    // SAFETY: the caller holds exclusive ownership of the file for the life of the mapping.
     unsafe { Ok(MmapOptions::new().map_mut(file)?) }
 }
 
@@ -35,11 +35,11 @@ pub fn grow_mmap_if_needed(
             file.set_len(new_size)?;
         }
     }
-    // Already large enough; nothing to do.
+    // Already large enough.
     Ok(())
 }
 
-/// Bytes currently addressable: the mapping's length, or the file's when there is no mapping.
+/// Bytes currently addressable: the length of the mapping, or of the file when there is none.
 pub fn mapped_or_file_len(mmap: Option<&[u8]>, file: &File) -> Result<u64> {
     match mmap {
         Some(mmap) => Ok(mmap.len() as u64),

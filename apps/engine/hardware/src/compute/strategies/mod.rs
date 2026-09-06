@@ -1,4 +1,4 @@
-//! Strategy registry: one file per strategy, one arm in [`for_mode`].
+//! Strategy registry: one file per strategy, one arm in [for_mode].
 
 mod binary;
 mod parallel;
@@ -28,9 +28,9 @@ static BINARY: BinaryStrategy = BinaryStrategy;
 #[cfg(feature = "gpu-cuda")]
 static CUDA: CudaStrategy = CudaStrategy;
 
-/// Every strategy compiled into this build, available or not, for admin/introspection surfaces.
+/// Every strategy compiled into this build, available or not.
 pub fn all() -> Vec<&'static dyn DistanceKernels> {
-    // `mut` is only used by the feature-gated push below.
+    // mut is only used by the feature-gated push below.
     #[allow(unused_mut)]
     let mut strategies: Vec<&'static dyn DistanceKernels> =
         vec![&SCALAR, &SIMD, &PARALLEL, &BINARY];
@@ -39,7 +39,7 @@ pub fn all() -> Vec<&'static dyn DistanceKernels> {
     strategies
 }
 
-/// The strategy serving `mode` (resolving `Auto` first); errors rather than silently falling back.
+/// The strategy serving a mode, resolving Auto first; an unavailable strategy is an error.
 pub fn for_mode(mode: ExecutionMode) -> ComputeResult<&'static dyn DistanceKernels> {
     let strategy: &'static dyn DistanceKernels = match mode.resolve() {
         ExecutionMode::Scalar | ExecutionMode::Auto => &SCALAR,

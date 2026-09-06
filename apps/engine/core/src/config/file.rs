@@ -4,11 +4,9 @@ use serde::{Deserialize, Serialize};
 
 use super::{CollectionConfig, RuntimeConfig, StartupConfig};
 
-/// The whole of `config.yaml`.
+/// The whole of config.yaml.
 ///
-/// The split is by lifecycle, not by subsystem: [`StartupConfig`] is baked into the process at
-/// boot, [`RuntimeConfig`] is re-read on reload. Which block a setting is in is the answer to
-/// "do I need to restart?", so it cannot drift the way a comment would.
+/// [StartupConfig] is baked into the process at boot, [RuntimeConfig] is re-read on reload.
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields, default)]
 pub struct Config {

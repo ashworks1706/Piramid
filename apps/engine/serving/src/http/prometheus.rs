@@ -1,4 +1,4 @@
-//! Renders `/api/metrics` JSON into the Prometheus text exposition format.
+//! Renders /api/metrics JSON into the Prometheus text exposition format.
 
 use piramid_core::observability::prometheus::{MetricType, Registry};
 
@@ -66,7 +66,7 @@ pub fn render(metrics: &MetricsResponse) -> String {
         by_collection(|c| c.lock_write_ms.map(f64::from)),
     );
 
-    // Index type is a string, so it's a label on a constant-1 "info metric" gauge.
+    // The index type is published as a label on a constant-1 gauge.
     registry.metric_family(
         "piramid_collection_index_info",
         "Index family in use for a collection.",

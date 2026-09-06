@@ -30,18 +30,16 @@ pub struct RebuildJobStatus {
     pub elapsed_ms: Option<u128>,
 }
 
-// One file per collection, so a DashMap keeps unrelated collections from contending.
+// Collections are held in a DashMap, one entry per collection.
 pub struct AppState {
     pub collection_manager: CollectionManager,
-    pub data_dir: String, // e.g. "./data"
+    pub data_dir: String, // e.g. ./data
     pub cluster_router: Arc<dyn ClusterRouter>,
     pub embeddings: EmbeddingsManager,
     pub shutting_down: Arc<AtomicBool>, // set on shutdown to reject new requests
     pub read_only: Arc<AtomicBool>,     // disk-pressure read-only mode
     pub app_config: Arc<RwLock<Config>>,
-    /// The startup block the process booted with. A reload that changes it is refused, because
-    /// nothing re-reads these after boot and accepting them would report a success that did
-    /// nothing.
+    /// The startup block the process booted with. A reload that changes it is refused.
     booted_with: StartupConfig,
     pub rebuild_jobs: Arc<DashMap<String, RebuildJobStatus>>,
     pub config_last_reload: Arc<AtomicU64>, // used to invalidate caches on reload
@@ -78,7 +76,7 @@ impl AppState {
         })
     }
 
-    /// Milliseconds above which a query is logged at `warn`.
+    /// Milliseconds above which a query is logged at warn level.
     pub fn slow_query_ms(&self) -> u128 {
         u128::from(self.booted_with.logging.slow_query_ms())
     }
@@ -130,8 +128,7 @@ impl AppState {
 
     /// Re-read configuration from disk and environment, swapping it in atomically.
     ///
-    /// Only the runtime block is swapped. A changed startup block is an error rather than a
-    /// silently ignored edit, so a 200 here always means the file on disk is what is running.
+    /// Only the runtime block is swapped. A changed startup block returns an error.
     pub fn reload_config(&self) -> Result<Config> {
         let new_cfg = piramid_core::config::loader::load()
             .map_err(|e| ServerError::InvalidRequest(e.to_string()))?;

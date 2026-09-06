@@ -65,7 +65,7 @@ impl PiramidError {
         Self::Other(msg.into())
     }
 
-    /// Transport-agnostic classification; mapping a kind onto a protocol status is the transport's job.
+    /// Transport-agnostic classification of this error.
     pub fn kind(&self) -> ErrorKind {
         match self {
             Self::Server(e) => e.kind(),

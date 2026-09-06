@@ -1,6 +1,6 @@
 use super::Result;
 
-/// Attach a message to an error or a `None`, so a failure says where it came from.
+/// Attach a message to an error or to a None.
 pub trait ErrorContext<T> {
     fn context<S: Into<String>>(self, msg: S) -> Result<T>;
     fn with_context<F, S>(self, f: F) -> Result<T>

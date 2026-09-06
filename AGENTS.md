@@ -144,7 +144,10 @@ retrieval stack.
   `tests/`. Test data goes to `CARGO_TARGET_TMPDIR`, never a path relative to the crate.
 - Every public item has a `///` comment saying what it is, not how it works. Every module has a
   `//!`.
-- Comments explain why, never what. If a comment restates the line below it, delete it.
+- Comments say what the code does, in plain ASCII, in one register. No backticks, quotation marks,
+  em dashes or other non-ASCII characters. No rationale, trade-offs, history or alternatives
+  considered: those go in the commit message or `docs/decisions`. No opening or closing flourishes.
+  See `.claude/skills/comment-style`.
 - One name, one meaning. Before naming a module, check the word isn't already used for something
   else in the tree. Repeating a word is fine when it means the same thing at each layer, as with
   `config/index.rs` and `error/index.rs`, and a problem when it doesn't. See `docs/decisions`.
@@ -161,8 +164,9 @@ retrieval stack.
 
 ## Skills
 
-`.claude/skills/README.md` lists them. Use `rust-skills` when writing Rust, `kernel-authoring` for
-compute backends and GPU kernels, `test-driven-development` for features and fixes,
+`.claude/skills/README.md` lists them. Use `rust-skills` when writing Rust, `comment-style` for any
+comment, `kernel-authoring` for compute backends and GPU kernels, `test-driven-development` for
+features and fixes,
 `systematic-debugging` for bugs, `verification-before-completion` before claiming anything works,
 `security-audit-standard` before a release, `/code-quality` for cleanup, `/adr` to record a
 decision. `/check` is the gate.

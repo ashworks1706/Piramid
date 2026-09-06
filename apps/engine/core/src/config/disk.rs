@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct DiskConfig {
-    /// Refuse writes below this much free space. `None` never checks.
+    /// Refuse writes below this much free space. None never checks.
     pub min_free_bytes: Option<u64>,
 
     /// Drop to read-only at the threshold instead of failing each write.

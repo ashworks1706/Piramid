@@ -1,7 +1,7 @@
 //! Configuration, resolved from defaults, an optional file, then the environment.
 //!
-//! The file has two blocks and the split is by lifecycle: [`StartupConfig`] is fixed at boot,
-//! [`RuntimeConfig`] is re-read on reload. See `config.example.yaml` for the whole surface.
+//! The file has two blocks: [StartupConfig] is fixed at boot, [RuntimeConfig] is re-read on
+//! reload. config.example.yaml carries the whole surface.
 
 mod cache;
 mod collection;
@@ -45,14 +45,13 @@ pub use startup::StartupConfig;
 pub use telemetry::{OtlpConfig, TelemetryConfig};
 pub use wal::WalConfig;
 
-// `ExecutionMode` and the quantization types are owned by `compute/` (they name kernel
-// behaviour, not app policy). Re-exported here so configuration callers keep one import path.
+// ExecutionMode and the quantization types are owned by compute and re-exported here.
 pub use piramid_hardware::compute::quantization::{
     QuantizationConfig, QuantizationLevel, QuantizationStage,
 };
 pub use piramid_hardware::compute::ExecutionMode;
 
-/// Shared `#[serde(default = ...)]` target for fields that default to on.
+/// Shared serde default target for fields that default to on.
 pub(crate) fn default_true() -> bool {
     true
 }

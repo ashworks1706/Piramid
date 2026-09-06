@@ -8,4 +8,4 @@ pub mod wal;
 
 pub use manifest::CollectionMetadata;
 pub use sidecars::SidecarManager;
-pub use vectors::{HashMapVectorReader, VectorReader};
+pub use vectors::{HashMapVectorReader, VectorReader, VectorSlab};

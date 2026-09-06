@@ -7,12 +7,12 @@ use std::path::Path;
 
 use crate::storage::SidecarManager;
 
-/// Sidecar path for a collection's index, owned by [`SidecarManager`].
+/// Sidecar path for the index of a collection, owned by [SidecarManager].
 fn get_index_file_path(collection_path: &str) -> String {
     SidecarManager::at(collection_path).vector_index_path()
 }
 
-/// Serialize `index` to its sidecar.
+/// Serialize an index to its sidecar.
 pub fn save_vector_index(collection_path: &str, index: &dyn VectorIndex) -> Result<()> {
     let serializable = index.to_serializable();
 

@@ -33,7 +33,7 @@ impl CollectionMetadata {
         self.updated_at = piramid_core::clock::unix_secs();
     }
 
-    /// Records the collection's vector width the first time a vector is stored.
+    /// Records the vector width of the collection the first time a vector is stored.
     pub fn set_dimensions(&mut self, dimensions: usize) -> Result<()> {
         match self.dimensions {
             None => {

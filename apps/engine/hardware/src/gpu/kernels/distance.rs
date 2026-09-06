@@ -1,19 +1,19 @@
 //! Batched distance kernels: one query against a contiguous slab of candidates. Not implemented;
-//! `distance.cu` beside this file is where the device code goes.
+//! the device code goes in distance.cu beside this file.
 
 use crate::gpu::buffer::DeviceBuffer;
 use crate::gpu::error::{GpuError, GpuResult};
 use crate::gpu::module::LaunchConfig;
 use crate::gpu::stream::Stream;
 
-/// Threads per block for the distance kernels; a starting point to tune once the kernel exists.
+/// Threads per block for the distance kernels.
 pub const BLOCK_SIZE: u32 = 256;
 
-/// Arguments for one batched distance launch; buffers are borrowed so slabs can stay resident.
+/// Arguments for one batched distance launch. The buffers are borrowed, not owned.
 pub struct DistanceLaunch<'a> {
-    /// Query vector, `dim` elements.
+    /// Query vector, dim elements.
     pub query: &'a DeviceBuffer<f32>,
-    /// Candidate slab, row-major, `rows * dim` elements.
+    /// Candidate slab, row-major, rows times dim elements.
     pub candidates: &'a DeviceBuffer<f32>,
     /// Output scores, one per row.
     pub out: &'a mut DeviceBuffer<f32>,

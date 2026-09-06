@@ -43,7 +43,7 @@ impl MetadataValue {
     }
 }
 
-// These exist so callers can write `metadata([("k", "v".into())])` without naming the variant.
+// Conversions that let a caller pass a plain value where a MetadataValue is expected.
 impl From<String> for MetadataValue {
     fn from(s: String) -> Self {
         MetadataValue::String(s)
@@ -88,7 +88,7 @@ impl From<bool> for MetadataValue {
 
 pub type Metadata = HashMap<String, MetadataValue>;
 
-/// Build a [`Metadata`] map from an array of pairs.
+/// Build a [Metadata] map from an array of pairs.
 pub fn metadata<const N: usize>(pairs: [(&str, MetadataValue); N]) -> Metadata {
     pairs.into_iter().map(|(k, v)| (k.to_string(), v)).collect()
 }

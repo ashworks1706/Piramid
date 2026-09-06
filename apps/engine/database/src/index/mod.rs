@@ -10,7 +10,7 @@ mod sidecar;
 mod stats;
 
 pub use contract::{
-    HashMapVectorReader, IndexSearchRequest, MetadataReader, VectorIndex, VectorReader,
+    HashMapVectorReader, IndexSearchRequest, MetadataReader, VectorIndex, VectorReader, VectorSlab,
 };
 pub use piramid_core::config::{AutoIndexConfig, IndexConfig, IndexKind};
 pub use selector::create_index;

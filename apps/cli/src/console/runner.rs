@@ -1,8 +1,7 @@
 //! Starts, stops and streams the output of units.
 //!
-//! Host processes run under `setsid` so a stop kills the whole tree — `just` spawns `cargo run`
-//! which spawns the binary, and signalling only the first leaves the other two holding the port.
-//! Compose services are driven through `docker compose` and followed with `logs -f`.
+//! Host processes run under setsid, and a stop signals the whole process group. Compose services
+//! are driven through docker compose and followed with its logs command.
 
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -16,7 +15,7 @@ use crate::console::types::{Event, Kind, LogLine, RunnerError, ServiceState, Str
 
 const COMPOSE_FILE: &str = "deploy/compose.yml";
 
-/// Every compose profile in `deploy/compose.yml`, so `ps` and `logs` see optional services too.
+/// Every compose profile in deploy/compose.yml, so ps and logs see optional services too.
 const PROFILES: [&str; 1] = ["ollama"];
 
 /// Owns the children the console started.
@@ -25,7 +24,7 @@ pub struct Runner {
     tx: UnboundedSender<Event>,
     /// Process-group ids of host processes and tasks, by unit id.
     groups: HashMap<String, u32>,
-    /// `docker compose logs -f` children, by service name.
+    /// Children following container logs, by service name.
     followers: HashMap<String, Child>,
 }
 
@@ -57,7 +56,7 @@ impl Runner {
         }
     }
 
-    /// Stops a unit. Host trees get SIGTERM; services get `compose stop`.
+    /// Stops a unit. Host trees get SIGTERM, services get a compose stop.
     pub fn stop(&mut self, unit: &Unit) -> Result<(), RunnerError> {
         match &unit.kind {
             Kind::Service { service, profile } => {
@@ -92,7 +91,7 @@ impl Runner {
         self.groups.remove(unit_id);
     }
 
-    /// Begins streaming a service's container logs, if not already.
+    /// Begins streaming the container logs of a service, if not already following.
     pub fn follow(&mut self, service: &str) -> Result<(), RunnerError> {
         if self.followers.contains_key(service) {
             return Ok(());
@@ -104,16 +103,14 @@ impl Runner {
         Ok(())
     }
 
-    /// Stops following a service's logs.
+    /// Stops following the logs of a service.
     pub fn unfollow(&mut self, service: &str) {
         if let Some(mut child) = self.followers.remove(service) {
             let _ = child.start_kill();
         }
     }
 
-    /// Kills every host process and follower. Compose services are left running, because a
-    /// container outlives the terminal that started it and stopping them on quit would surprise
-    /// anyone who opened the console just to look.
+    /// Kills every host process and follower. Compose services are left running.
     pub fn shutdown(&mut self) {
         let services: Vec<String> = self.followers.keys().cloned().collect();
         for service in services {
@@ -129,7 +126,7 @@ impl Runner {
         self.groups.clear();
     }
 
-    /// One `docker compose ps -a --format json` snapshot, keyed by service.
+    /// One docker compose ps snapshot, keyed by service.
     pub async fn service_states(root: &Path) -> Result<HashMap<String, ServiceState>, String> {
         let output = Command::new("docker")
             .args(["compose", "-f", COMPOSE_FILE])
@@ -166,8 +163,8 @@ impl Runner {
         cmd
     }
 
-    /// Spawns, streams both outputs as log lines and reports the exit; `track` records the
-    /// process group so `stop` can kill it.
+    /// Spawns, streams both outputs as log lines and reports the exit. Setting track records
+    /// the process group for a later stop.
     fn spawn_streaming(
         &mut self,
         unit_id: &str,
@@ -259,8 +256,7 @@ where
             let text = match lines.next_line().await {
                 Ok(Some(text)) => text,
                 Ok(None) => break,
-                // A pane that quietly stops updating while the process still runs is the worst
-                // failure this console can have, so it says why it stopped.
+                // A capture failure is reported into the pane rather than ending silently.
                 Err(e) => {
                     let _ = tx.send(Event::Log {
                         unit: unit.clone(),
@@ -299,8 +295,7 @@ pub fn sanitize_line(line: &str) -> String {
             }
             continue;
         }
-        // A carriage return or backspace reaching the terminal moves the cursor out of the pane
-        // and overwrites whatever is drawn beside it. Tabs are the only control a pane keeps.
+        // Tab is the only control character a pane keeps.
         if c.is_control() && c != '\t' {
             continue;
         }
@@ -309,9 +304,8 @@ pub fn sanitize_line(line: &str) -> String {
     out
 }
 
-/// Parses `docker compose ps --format json`: a JSON array on older releases, one object per line
-/// on newer ones. Anything else is an error, not an empty stack — reporting "nothing running"
-/// when the query failed is how you end up starting a second copy of something.
+/// Parses the JSON output of docker compose ps: an array on older releases, one object per line
+/// on newer ones. Anything else returns an error rather than an empty set of services.
 pub fn parse_ps(raw: &str) -> Result<HashMap<String, ServiceState>, String> {
     #[derive(serde::Deserialize)]
     struct Row {

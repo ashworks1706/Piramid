@@ -22,22 +22,17 @@ pub enum RetrievalPoint {
 
 /// Where the hidden state for the current position lives.
 ///
-/// The whole point of running retrieval and inference in one process is that neither has to copy
-/// through host memory to reach the other. A seam that could only hand out `&mut [f32]` would force
-/// a device-to-host-to-device round trip on every invocation — per layer, at `LayerEntry` — which
-/// costs more than the fusion saves. So the state is whichever it actually is, and a hook that only
-/// implements one path says so by erroring on the other.
+/// A hook that implements only one of the two paths returns an error on the other.
 #[derive(Debug)]
 pub enum HiddenState<'a> {
-    /// Host memory, laid out as `[batch, hidden_dim]`. The CPU path, and the only one a default
-    /// build can produce.
+    /// Host memory, laid out as batch by hidden_dim. The CPU path.
     Host(&'a mut [f32]),
     /// Device memory, same layout. Fusing into this must stay on the device.
     Device(&'a mut DeviceBuffer<f32>),
 }
 
-/// Read-only view handed to [`RetrievalHook::launch`]: enough to build a query, and deliberately
-/// no access to the hidden state, so launching cannot mutate the pass or block waiting for it.
+/// Read-only view handed to [RetrievalHook::launch]. Carries enough to build a query, and no
+/// access to the hidden state.
 #[derive(Debug)]
 pub struct RetrievalRequest<'a> {
     /// Where in the pass this invocation sits.
@@ -46,14 +41,14 @@ pub struct RetrievalRequest<'a> {
     pub tokens: &'a [u32],
     /// Width of the hidden dimension.
     pub hidden_dim: usize,
-    /// The stream the model's own work is queued on, when running on a device. A hook that issues
-    /// device work should use a stream of its own so the two overlap, and order against this one
-    /// only in [`PendingRetrieval::join`].
+    /// The stream that model work is queued on, when running on a device. A hook that issues
+    /// device work uses a stream of its own, and orders against this one in
+    /// [PendingRetrieval::join].
     pub stream: Option<&'a Stream>,
 }
 
-/// Mutable view of the forward pass, handed to [`PendingRetrieval::join`] at the point the result
-/// is actually needed.
+/// Mutable view of the forward pass, handed to [PendingRetrieval::join] when the result is
+/// needed.
 #[derive(Debug)]
 pub struct ForwardContext<'a> {
     /// Where in the pass this invocation sits.
@@ -62,30 +57,28 @@ pub struct ForwardContext<'a> {
     pub hidden: HiddenState<'a>,
     /// Width of the hidden dimension.
     pub hidden_dim: usize,
-    /// The model's stream, when running on a device.
+    /// The stream that model work is queued on, when running on a device.
     pub stream: Option<&'a Stream>,
 }
 
 /// Retrieval that has been started and not yet fused.
 ///
-/// Held by the driver across whatever model work it can do in the meantime. Splitting the seam here
-/// is what makes overlap expressible at all: a single `retrieve_and_fuse` call would serialize
-/// search behind the forward pass no matter how the implementation was written.
+/// Held by the driver across whatever model work it can do in the meantime.
 pub trait PendingRetrieval: Send {
-    /// Wait for the result and fuse it into `ctx.hidden`.
+    /// Wait for the result and fuse it into the hidden state carried by ctx.
     ///
-    /// On a device this should order the model's stream against the hook's own rather than
-    /// synchronizing the host, so the wait costs a stream dependency instead of a stall.
+    /// On a device this orders the model stream against the hook stream rather than
+    /// synchronizing the host.
     fn join(self: Box<Self>, ctx: &mut ForwardContext<'_>) -> Result<()>;
 }
 
-/// A retrieval strategy that participates in the forward pass. An implementation must live in
-/// its own crate — `inference` must never depend on the retrieval stack.
+/// A retrieval strategy that participates in the forward pass. An implementation lives in its
+/// own crate; inference never depends on the retrieval stack.
 pub trait RetrievalHook: Send + Sync {
     /// Name for logs and configuration.
     fn name(&self) -> &'static str;
 
-    /// Whether this hook wants to run at `point`.
+    /// Whether this hook runs at the given point.
     fn wants(&self, point: RetrievalPoint) -> bool;
 
     /// Start retrieval. Must return without waiting for the result.
@@ -110,7 +103,7 @@ impl RetrievalHook for NoopRetrievalHook {
     }
 }
 
-/// The pending half of [`NoopRetrievalHook`]; joining it leaves the pass untouched.
+/// The pending half of [NoopRetrievalHook]; joining it leaves the pass untouched.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct NoopPending;
 
@@ -176,7 +169,7 @@ mod tests {
             hidden_dim: hidden.len(),
             stream: None,
         };
-        // The driver may do model work between these two calls; that is the point of the split.
+        // The driver may do model work between these two calls.
         let pending = hook.launch(&request).unwrap();
 
         let mut ctx = ForwardContext {

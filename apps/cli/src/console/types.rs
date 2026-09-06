@@ -35,7 +35,7 @@ impl Group {
 /// How a unit is run and stopped.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Kind {
-    /// A docker compose service; `profile` gates the optional ones.
+    /// A docker compose service. The profile field gates the optional ones.
     Service {
         /// Compose service name.
         service: String,
@@ -57,7 +57,7 @@ pub struct Unit {
     pub group: Group,
     /// How to run it.
     pub kind: Kind,
-    /// Arguments after `just`, for processes and tasks.
+    /// Arguments passed to just, for processes and tasks.
     pub args: Vec<String>,
     /// One-line description.
     pub hint: String,
@@ -80,7 +80,7 @@ impl Unit {
 pub enum Status {
     /// Not running.
     Stopped,
-    /// Start requested; no confirmation yet.
+    /// Start requested, with no confirmation yet.
     Starting,
     /// Up.
     Running,
@@ -127,7 +127,7 @@ pub enum Stream {
     Out,
     /// Child stderr.
     Err,
-    /// The console's own note about the unit.
+    /// A note the console wrote about the unit.
     Meta,
 }
 
@@ -158,9 +158,9 @@ impl LogLine {
 pub enum Mode {
     /// Keys navigate and act.
     Normal,
-    /// Typing a `:` command.
+    /// Typing a command.
     Command,
-    /// Typing a `/` search over the selected unit's logs.
+    /// Typing a search over the logs of the selected unit.
     Search,
 }
 
@@ -173,19 +173,19 @@ pub enum Focus {
     Logs,
 }
 
-/// One row of `docker compose ps`.
+/// One row of docker compose ps.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ServiceState {
-    /// `running`, `exited`, `created`, `restarting`, `paused`, `dead`.
+    /// One of running, exited, created, restarting, paused, dead.
     pub state: String,
-    /// `healthy`, `unhealthy`, `starting`, or empty without a healthcheck.
+    /// One of healthy, unhealthy, starting, or empty without a healthcheck.
     pub health: String,
     /// Last exit code.
     pub exit_code: i32,
 }
 
 impl ServiceState {
-    /// Maps a compose row onto the console's status.
+    /// Maps a compose row onto a console status.
     pub fn status(&self) -> Status {
         match (self.state.as_str(), self.health.as_str()) {
             ("running", "unhealthy") => Status::Failed("unhealthy".into()),
@@ -214,9 +214,9 @@ pub enum Probe {
 /// Liveness of what the console watches.
 #[derive(Debug, Clone)]
 pub struct Health {
-    /// `/api/health`: the server process is up.
+    /// The health endpoint: the server process is up.
     pub live: Probe,
-    /// `/api/readyz`: every collection on disk opens and passes its integrity check.
+    /// The readiness endpoint: every collection on disk opens and passes its integrity check.
     pub ready: Probe,
     /// The website dev or preview server.
     pub web: Probe,
@@ -255,11 +255,11 @@ pub enum Event {
         /// Exit code, if the process was not killed by a signal.
         code: Option<i32>,
     },
-    /// Fresh compose service states by service name, or why `docker compose ps` failed.
+    /// Fresh compose service states by service name, or why docker compose ps failed.
     Services(Result<HashMap<String, ServiceState>, String>),
     /// Fresh probes.
     Health(Box<Health>),
-    /// The terminal stopped delivering input; the console cannot be driven any more.
+    /// The terminal stopped delivering input, leaving the console undrivable.
     InputLost(String),
 }
 
@@ -276,7 +276,7 @@ pub enum RunnerError {
     },
 }
 
-/// Parsed `:` command.
+/// A parsed command line.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum Command {
     /// Leave the console, stopping host processes.
@@ -291,7 +291,7 @@ pub enum Command {
     Just(Vec<String>),
     /// Show the key map.
     Help,
-    /// Clear the selected unit's logs.
+    /// Clear the logs of the selected unit.
     Clear,
     /// Not understood.
     Unknown(String),

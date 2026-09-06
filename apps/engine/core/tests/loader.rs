@@ -3,8 +3,8 @@
     clippy::expect_used,
     reason = "assertions in tests"
 )]
-//! Loading is a process-global operation (it reads `std::env`), so these run under one lock and
-//! clean up after themselves rather than in parallel.
+//! Configuration loading tests. Loading reads std::env, so these run under one lock and restore
+//! the environment afterwards.
 
 use std::sync::Mutex;
 
@@ -12,7 +12,7 @@ use piramid_core::config::loader;
 
 static ENV_LOCK: Mutex<()> = Mutex::new(());
 
-/// Run `body` with `vars` set and `CONFIG_FILE` pointing at `file`, restoring the environment.
+/// Run body with vars set and CONFIG_FILE pointing at file, restoring the environment.
 fn with_env<T>(file: Option<&str>, vars: &[(&str, &str)], body: impl FnOnce() -> T) -> T {
     let _guard = ENV_LOCK.lock().unwrap_or_else(|e| e.into_inner());
     let path = file.map(|contents| {

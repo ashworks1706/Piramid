@@ -17,7 +17,7 @@ pub struct WalConfig {
     /// Rotate once the log passes this many bytes.
     pub max_log_size: usize,
 
-    /// `fsync` every write. Durable across power loss, and much slower.
+    /// Call fsync on every write.
     pub sync_on_write: bool,
 }
 

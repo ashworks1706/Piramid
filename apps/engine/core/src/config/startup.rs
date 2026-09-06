@@ -1,8 +1,8 @@
 //! Settings applied once, when the process starts.
 //!
-//! Changing any of these needs a restart: the listener is bound, the thread pool built, and the
-//! tracing subscriber installed before the first request. `/config/reload` refuses a file whose
-//! startup block differs from the one the process booted with, rather than accepting it silently.
+//! Changing any of these needs a restart. The listener is bound, the thread pool built and the
+//! tracing subscriber installed before the first request, and /config/reload refuses a file whose
+//! startup block differs from the one the process booted with.
 
 use serde::{Deserialize, Serialize};
 
@@ -18,7 +18,7 @@ pub struct StartupConfig {
     /// Root directory for collection data.
     pub data_dir: String,
 
-    /// Worker threads for parallel search and indexing. `None` is one per core.
+    /// Worker threads for parallel search and indexing. None is one per core.
     pub threads: Option<usize>,
 
     pub logging: LoggingConfig,
@@ -26,7 +26,7 @@ pub struct StartupConfig {
     pub hardware: HardwareConfig,
     pub disk: DiskConfig,
 
-    /// Embedding provider, built once at boot. `None` disables server-side embedding.
+    /// Embedding provider, built once at boot. None disables server-side embedding.
     pub embedding: Option<EmbeddingConfig>,
 }
 
@@ -46,7 +46,7 @@ impl Default for StartupConfig {
 }
 
 impl StartupConfig {
-    /// Resolved worker-thread count. Zero means let rayon decide.
+    /// Resolved worker-thread count. Zero leaves the choice to rayon.
     pub fn num_threads(&self) -> usize {
         self.threads.unwrap_or_else(num_cpus::get)
     }

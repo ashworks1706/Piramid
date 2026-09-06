@@ -1,4 +1,4 @@
-//! HTTP error mapping: maps a transport-agnostic [`ErrorKind`] onto a status and JSON body.
+//! HTTP error mapping: maps a transport-agnostic [ErrorKind] onto a status and JSON body.
 
 use axum::http::StatusCode;
 use axum::response::{IntoResponse, Response};
@@ -6,7 +6,7 @@ use axum::Json;
 use piramid_core::error::{ErrorKind, PiramidError};
 use serde_json::json;
 
-/// A [`PiramidError`] rendered as an HTTP response.
+/// A [PiramidError] rendered as an HTTP response.
 #[derive(Debug)]
 pub struct ApiError(pub PiramidError);
 

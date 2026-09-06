@@ -101,9 +101,7 @@ pub fn metrics(state: &SharedState) -> Result<MetricsResponse> {
             .last_checkpoint()
             .and_then(|timestamp| piramid_core::clock::unix_secs().checked_sub(timestamp));
         wal_stats.push(WalStats {
-            // The name, not `collection_guard.path`: every other field keyed by collection uses
-            // the name, and a path here made a Prometheus label that joins with nothing and
-            // publishes the server's data directory to whoever scrapes it.
+            // Keyed by collection name, matching every other field keyed by collection.
             collection: collection_name,
             last_checkpoint: collection_guard.checkpoint.last_checkpoint(),
             checkpoint_age_secs,
@@ -163,8 +161,7 @@ pub fn readyz(state: &SharedState) -> Result<ReadyzResponse> {
         });
     }
 
-    // Collections load lazily, so one present on disk but not yet opened is normal rather than
-    // unhealthy — and readiness is what gates the traffic that would open it.
+    // Collections load lazily. One present on disk but not yet opened is reported as healthy.
     for name in state.collection_manager.discover_on_disk() {
         if state.collection_manager.contains_loaded(&name) {
             continue;

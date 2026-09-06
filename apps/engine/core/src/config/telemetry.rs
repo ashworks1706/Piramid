@@ -6,7 +6,7 @@ use serde::{Deserialize, Serialize};
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(deny_unknown_fields, default)]
 pub struct TelemetryConfig {
-    /// OTLP trace export. `None` disables it.
+    /// OTLP trace export. None disables it.
     pub otlp: Option<OtlpConfig>,
 
     /// Log a line when each instrumented operation finishes, with its duration and fields.
@@ -17,10 +17,10 @@ pub struct TelemetryConfig {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
 pub struct OtlpConfig {
-    /// Collector endpoint, e.g. `http://localhost:4317`.
+    /// Collector endpoint, such as http://localhost:4317.
     pub endpoint: String,
 
-    /// `service.name` attached to every span.
+    /// The service.name attached to every span.
     #[serde(default = "default_service_name")]
     pub service_name: String,
 }

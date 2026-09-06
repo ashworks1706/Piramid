@@ -2,7 +2,7 @@
 
 use std::time::{SystemTime, UNIX_EPOCH};
 
-/// Seconds since the Unix epoch; saturates at 0 rather than panicking on a pre-1970 clock.
+/// Seconds since the Unix epoch. A clock reading before 1970 yields 0.
 pub fn unix_secs() -> u64 {
     SystemTime::now()
         .duration_since(UNIX_EPOCH)

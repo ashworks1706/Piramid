@@ -1,4 +1,5 @@
-//! Explicitly vectorized CPU strategy using `wide`'s `f32x8` (AVX2 on x86_64, NEON on aarch64).
+//! Explicitly vectorized CPU strategy using the f32x8 type from wide (AVX2 on x86_64, NEON on
+//! aarch64).
 
 use wide::f32x8;
 
@@ -11,9 +12,7 @@ pub struct SimdStrategy;
 
 /// Load an exact 8-element chunk into a lane vector.
 ///
-/// Indexes rather than converting: callers only ever pass a `chunks_exact(8)` chunk, and if that
-/// invariant ever broke a bounds panic is the right answer. `try_into().unwrap_or([0.0; 8])` would
-/// silently score against zeros instead.
+/// Callers pass a chunk from chunks_exact(8); a shorter chunk panics on the index.
 #[inline(always)]
 fn load(chunk: &[f32]) -> f32x8 {
     f32x8::new([

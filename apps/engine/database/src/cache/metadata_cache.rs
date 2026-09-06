@@ -6,10 +6,9 @@ use piramid_core::config::CacheConfig;
 use piramid_core::metadata::{Metadata, MetadataValue};
 use uuid::Uuid;
 
-/// Cached per-document metadata, bounded by `CacheConfig::max_size` entries.
+/// Cached per-document metadata, bounded by CacheConfig::max_size entries.
 ///
-/// A miss re-reads the record store, so everything here is droppable — which is what lets the
-/// server's cache budget clear it under memory pressure without touching vectors.
+/// A miss re-reads the record store, so every entry here is droppable.
 pub struct MetadataCache {
     config: CacheConfig,
     entries: HashMap<Uuid, Metadata>,
@@ -17,7 +16,7 @@ pub struct MetadataCache {
 }
 
 impl MetadataCache {
-    /// An empty cache bounded by `config`.
+    /// An empty cache bounded by config.
     pub fn new(config: CacheConfig) -> Self {
         Self {
             config,
@@ -31,7 +30,7 @@ impl MetadataCache {
         &self.entries
     }
 
-    /// Cache metadata for `id`, evicting oldest entries past the bound.
+    /// Cache metadata for id, evicting oldest entries past the bound.
     pub fn put(&mut self, id: Uuid, metadata: Metadata) {
         if !self.config.metadata.enabled {
             return;
@@ -42,7 +41,7 @@ impl MetadataCache {
         self.enforce_item_limit();
     }
 
-    /// Drop the entry for `id`.
+    /// Drop the entry for id.
     pub fn remove(&mut self, id: &Uuid) {
         self.entries.remove(id);
         self.order.retain(|cached_id| cached_id != id);

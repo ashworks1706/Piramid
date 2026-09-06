@@ -35,7 +35,8 @@ impl IvfIndex {
         }
     }
 
-    /// Train centroids over `vectors` with Lloyd's algorithm; rebuilt periodically, not per insert.
+    /// Train centroids over the vectors with the Lloyd algorithm. Rebuilt periodically, not per
+    /// insert.
     pub fn build_clusters(&mut self, vectors: &dyn VectorReader) -> Result<()> {
         if vectors.is_empty() {
             return Ok(());
@@ -74,10 +75,8 @@ impl IvfIndex {
 
                 let new_centroid = self.compute_centroid(cluster);
 
-                // `Metric::calculate` normalises to higher-is-closer, so this is a similarity
-                // rather than a distance. The threshold is only meaningful for a bounded metric:
-                // `DotProduct` is unbounded, so convergence there is decided by magnitude rather
-                // than by centroid movement.
+                // Metric::calculate normalises to higher-is-closer, so this is a similarity
+                // rather than a distance. The threshold is meaningful only for a bounded metric.
                 let similarity =
                     self.config
                         .metric
@@ -106,7 +105,7 @@ impl IvfIndex {
         Ok(())
     }
 
-    /// Index of the centroid nearest `vector`; errors if there are no centroids yet.
+    /// Index of the centroid nearest the vector. Errors when there are no centroids yet.
     fn find_nearest_centroid(
         &self,
         vector: &[f32],
@@ -149,7 +148,7 @@ impl VectorIndex for IvfIndex {
             return Ok(());
         }
 
-        // Online insert: assign to the nearest existing centroid rather than retraining.
+        // Online insert assigns to the nearest existing centroid rather than retraining.
         if self.centroids.is_empty() {
             self.pending_vectors.insert(id);
 
@@ -197,8 +196,7 @@ impl VectorIndex for IvfIndex {
 
         let nprobe = quality.nprobe.unwrap_or(self.config.num_probes);
 
-        // Only the nprobe nearest partitions are scanned. Both the speedup and the recall loss
-        // come from this.
+        // Only the nprobe nearest partitions are scanned.
         let mut candidates: Vec<(Uuid, f32)> = Vec::new();
 
         for (cluster_id, _) in centroid_distances.iter().take(nprobe) {

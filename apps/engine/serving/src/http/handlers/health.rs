@@ -21,7 +21,7 @@ pub async fn metrics(State(state): State<SharedState>) -> Result<Json<MetricsRes
     Ok(Json(admin::metrics(&state)?))
 }
 
-/// Prometheus scrape endpoint, served at `/metrics` outside the `/api` prefix.
+/// Prometheus scrape endpoint, served at /metrics outside the /api prefix.
 pub async fn prometheus_metrics(
     State(state): State<SharedState>,
 ) -> Result<([(axum::http::header::HeaderName, &'static str); 1], String)> {

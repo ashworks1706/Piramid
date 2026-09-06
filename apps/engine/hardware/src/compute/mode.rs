@@ -1,8 +1,8 @@
-//! Execution-mode selection: [`ExecutionMode`] names which strategy runs a kernel.
+//! Execution-mode selection: [ExecutionMode] names which strategy runs a kernel.
 
 use serde::{Deserialize, Serialize};
 
-/// Which execution strategy should run a kernel; `Auto` is a request, not a strategy.
+/// Which execution strategy should run a kernel; Auto is a request, not a strategy.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize, Default)]
 #[serde(rename_all = "lowercase")]
 pub enum ExecutionMode {
@@ -11,7 +11,7 @@ pub enum ExecutionMode {
     Auto,
     /// Portable scalar reference implementation.
     Scalar,
-    /// Explicitly vectorized CPU path (AVX2 / NEON via `wide`).
+    /// Explicitly vectorized CPU path (AVX2 or NEON via the wide crate).
     Simd,
     /// Rayon-parallel CPU path, for vectors large enough to amortize the fan-out.
     Parallel,
@@ -22,7 +22,7 @@ pub enum ExecutionMode {
 }
 
 impl ExecutionMode {
-    /// Resolve `Auto` into a concrete strategy using detected CPU features; other modes pass through.
+    /// Resolve Auto into a concrete strategy using detected CPU features; other modes pass through.
     pub fn resolve(&self) -> ExecutionMode {
         match self {
             ExecutionMode::Auto => {
@@ -75,7 +75,7 @@ impl ExecutionMode {
         }
     }
 
-    /// Parse a mode from a config string. Unknown values yield `None`.
+    /// Parse a mode from a config string. Unknown values yield None.
     pub fn from_name(name: &str) -> Option<ExecutionMode> {
         match name {
             "auto" => Some(ExecutionMode::Auto),

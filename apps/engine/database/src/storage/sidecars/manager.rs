@@ -1,4 +1,4 @@
-//! One owner for every sidecar path and format beside a collection's record file.
+//! One owner for every sidecar path and format beside the record file of a collection.
 
 use std::collections::HashMap;
 use std::fs;
@@ -12,9 +12,8 @@ use piramid_core::error::{Result, StorageError};
 
 /// The sidecar domain entry for one collection.
 ///
-/// Every file that sits beside `{base}` — offsets, manifest, WAL, WAL meta, vector index — gets
-/// its path and its serialization from here, so path knowledge lives in exactly one place. A new
-/// sidecar means a new method on this type, not a `format!` at a call site.
+/// Every file beside the base path gets its path and its serialization from here: offsets,
+/// manifest, WAL, WAL meta and vector index. A new sidecar is a new method on this type.
 #[derive(Clone, Copy)]
 pub struct SidecarManager<'a> {
     base: &'a str,
@@ -27,16 +26,14 @@ struct WalMeta {
 }
 
 impl<'a> SidecarManager<'a> {
-    /// The sidecars beside the record file at `base`.
+    /// The sidecars beside the record file at the base path.
     pub fn at(base: &'a str) -> Self {
         Self { base }
     }
 
     /// Every suffix this type appends to a base path.
     ///
-    /// The one list a caller needs to delete a collection or to tell a data file apart from a
-    /// sidecar. Adding a sidecar means adding it here, so nothing outside this file has to know
-    /// the set.
+    /// Deleting a collection and telling a data file apart from a sidecar both read this list.
     pub const SUFFIXES: [&'static str; 6] = [
         ".wal.db",
         ".wal.meta",
@@ -74,7 +71,7 @@ impl<'a> SidecarManager<'a> {
         format!("{}.manifest.db", self.base)
     }
 
-    /// Path of the ANN index sidecar. `piramid-retrieval` owns its format; this owns its place.
+    /// Path of the ANN index sidecar. The index owns its format, and this owns its place.
     pub fn vector_index_path(&self) -> String {
         format!("{}.vecindex.db", self.base)
     }
@@ -89,7 +86,7 @@ impl<'a> SidecarManager<'a> {
         Self::write_bincode(&self.offsets_path(), index)
     }
 
-    /// Load the offset index; a missing sidecar is an empty collection.
+    /// Load the offset index. A missing sidecar is an empty collection.
     pub fn load_offsets(&self) -> Result<HashMap<Uuid, EntryPointer>> {
         let path = self.offsets_path();
         let Some(data) = Self::read_optional(&path)? else {
@@ -137,7 +134,7 @@ impl<'a> SidecarManager<'a> {
         Ok(())
     }
 
-    /// Last checkpointed WAL sequence; 0 when no checkpoint has ever happened.
+    /// Last checkpointed WAL sequence, 0 when no checkpoint has happened.
     pub fn load_wal_meta(&self) -> Result<u64> {
         let Some(data) = Self::read_optional(&self.wal_meta_path())? else {
             return Ok(0);
@@ -146,13 +143,13 @@ impl<'a> SidecarManager<'a> {
         Ok(meta.last_checkpoint_seq)
     }
 
-    /// Serializes `value` with bincode and writes it to `path`.
+    /// Serializes a value with bincode and writes it to a path.
     fn write_bincode<T: Serialize>(path: &str, value: &T) -> Result<()> {
         fs::write(path, bincode::serialize(value)?)?;
         Ok(())
     }
 
-    /// Reads `path`, treating a missing file as absent rather than an error.
+    /// Reads a path, treating a missing file as absent rather than an error.
     fn read_optional(path: &str) -> Result<Option<Vec<u8>>> {
         match fs::read(path) {
             Ok(data) => Ok(Some(data)),

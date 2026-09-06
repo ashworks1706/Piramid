@@ -8,7 +8,7 @@ use super::search::{default_k, SearchTuning};
 pub struct EmbedRequest {
     pub texts: Vec<String>,
     /// One map per text. Empty means no metadata on any of them; otherwise it must be the same
-    /// length as `texts`.
+    /// length as the text list.
     #[serde(default)]
     pub metadata: Vec<HashMap<String, serde_json::Value>>,
 }
@@ -20,7 +20,7 @@ pub struct EmbedResponse {
     pub total_tokens: Option<u32>,
 }
 
-/// Embed `query` and search with the result.
+/// Embed the query text and search with the resulting vector.
 #[derive(Deserialize)]
 pub struct TextSearchRequest {
     pub query: String,
@@ -28,7 +28,7 @@ pub struct TextSearchRequest {
     pub k: usize,
     #[serde(default)]
     pub metric: Option<String>,
-    /// Metadata predicate, as `{"field": {"op": value}}`.
+    /// Metadata predicate, mapping a field name to an operator and value.
     #[serde(default)]
     pub filter: Option<HashMap<String, HashMap<String, serde_json::Value>>>,
     #[serde(flatten)]

@@ -3,8 +3,7 @@
     clippy::expect_used,
     reason = "assertions in tests"
 )]
-//! `config.example.yaml` is the documentation for the configuration surface, so it is tested
-//! rather than trusted: every key must exist, and every value must be the real default.
+//! Checks that config.example.yaml carries every configuration key with its real default value.
 
 use piramid_core::config::Config;
 

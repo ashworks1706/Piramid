@@ -17,16 +17,15 @@ pub struct Wal {
     file: Option<BufWriter<File>>,
     path: PathBuf,
     pub next_seq: u64,
-    /// `fsync` after every entry. Without it a write reaches the kernel and no further, so a
-    /// power loss can drop it.
+    /// Calls fsync after every entry. Without it a write reaches the kernel and no further.
     sync_on_write: bool,
 }
 
 impl Wal {
     /// Create a WAL writer starting at the provided sequence.
     ///
-    /// `sync_on_write` decides whether an entry is durable when `log` returns: with it off the
-    /// entry is in the kernel's buffer and a power loss can still lose it.
+    /// The sync_on_write flag decides whether an entry is durable when log returns. With it off
+    /// the entry sits in the kernel buffer.
     pub fn new(path: PathBuf, next_seq: u64, sync_on_write: bool) -> Result<Self> {
         let file = OpenOptions::new().create(true).append(true).open(&path)?;
         let mut wal = Wal {
@@ -39,7 +38,7 @@ impl Wal {
         Ok(wal)
     }
 
-    /// A WAL that writes nothing, for `wal.enabled: false`.
+    /// A WAL that writes nothing, for a disabled wal.
     pub fn disabled(path: PathBuf, next_seq: u64) -> Result<Self> {
         Ok(Wal {
             file: None,
@@ -49,13 +48,13 @@ impl Wal {
         })
     }
 
-    /// Bytes currently on disk, or `None` when logging is disabled.
+    /// Bytes currently on disk, or None when logging is disabled.
     pub fn size_bytes(&self) -> Option<u64> {
         self.file.as_ref()?;
         std::fs::metadata(&self.path).ok().map(|meta| meta.len())
     }
 
-    /// Replay entries with seq greater than `min_seq`.
+    /// Replay entries with a seq greater than min_seq.
     pub fn replay(&self, min_seq: u64) -> Result<Vec<WalEntry>> {
         if self.file.is_none() {
             return Ok(Vec::new());
@@ -110,8 +109,7 @@ impl Wal {
             writeln!(file, "{json}")?;
             file.flush()?;
             if self.sync_on_write {
-                // flush() only drains the BufWriter into the kernel. Reaching the device is what
-                // makes the entry survive power loss, and it is what this setting promises.
+                // flush only drains the BufWriter into the kernel, so sync_all follows it.
                 file.get_ref().sync_all()?;
             }
         }
@@ -125,7 +123,7 @@ impl Wal {
         Ok(())
     }
 
-    /// Truncates the log and starts again; safe only after a checkpoint.
+    /// Truncates the log and starts again. Safe only after a checkpoint.
     pub fn rotate(&mut self) -> Result<()> {
         if self.file.is_none() {
             return Ok(());

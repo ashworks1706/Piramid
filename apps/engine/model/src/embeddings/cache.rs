@@ -1,4 +1,4 @@
-//! An `Embedder` wrapper that caches by text, evicting least-recently-used entries.
+//! An Embedder wrapper that caches by text, evicting least-recently-used entries.
 
 use async_trait::async_trait;
 use lru::LruCache;

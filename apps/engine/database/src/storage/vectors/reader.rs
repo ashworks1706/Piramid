@@ -4,12 +4,31 @@ use std::collections::HashMap;
 
 use uuid::Uuid;
 
-/// Read-only access to a collection's vectors.
+/// Every vector as one contiguous buffer, with the id of each row.
+///
+/// The data is row-major at dim floats per row, and entry i of ids names row i.
+pub struct VectorSlab<'a> {
+    /// Row-major floats, rows() * dim long.
+    pub data: &'a [f32],
+    /// Row width.
+    pub dim: usize,
+    /// Id of each row, in row order.
+    pub ids: &'a [Uuid],
+}
+
+impl VectorSlab<'_> {
+    /// Number of rows.
+    pub fn rows(&self) -> usize {
+        self.ids.len()
+    }
+}
+
+/// Read-only access to the vectors of a collection.
 pub trait VectorReader: Sync {
-    /// Vector for `id`, if present.
+    /// Vector for an id, if present.
     fn get(&self, id: &Uuid) -> Option<&[f32]>;
 
-    /// Iterate every `(id, vector)` pair.
+    /// Iterate every id and vector pair.
     fn iter<'a>(&'a self) -> Box<dyn Iterator<Item = (Uuid, &'a [f32])> + 'a>;
 
     /// Number of vectors available.
@@ -25,20 +44,18 @@ pub trait VectorReader: Sync {
         self.iter().next().map(|(_, vector)| vector.len())
     }
 
-    /// The whole vector set as one contiguous row-major `(data, dim)` slice, if stored that way.
+    /// The whole vector set as one contiguous row-major buffer, if it is stored that way.
     ///
-    /// The device-upload seam: a reader that is already contiguous returns its buffer and a batch
-    /// kernel or `cudaMemcpy` takes it in one copy. [`VectorStore`](crate::VectorStore) is stored
-    /// that way; a reader over scattered allocations returns `None` rather than silently copying,
-    /// because hiding that cost would make the host/device choice unmeasurable.
+    /// A contiguous reader returns its buffer, which a batch kernel or a device copy takes in one
+    /// go. [VectorStore](crate::VectorStore) is stored that way. A reader over scattered
+    /// allocations returns None rather than copying.
     ///
-    /// A wrapper forwarding this trait must forward this method too. Leaving it to the default
-    /// withdraws the fast path from every caller while the reader underneath still has it.
-    fn as_slab(&self) -> Option<(&[f32], usize)> {
+    /// A wrapper forwarding this trait forwards this method too.
+    fn as_slab(&self) -> Option<VectorSlab<'_>> {
         None
     }
 
-    /// Copies the vectors for `ids` into `out`, row-major; `out` must be `ids.len() * dim` long.
+    /// Copies the vectors for ids into out, row-major. out is ids.len() * dim long.
     fn gather_into(&self, ids: &[Uuid], out: &mut [f32]) -> Option<()> {
         let dim = self.dim()?;
         if out.len() != ids.len() * dim {
@@ -51,7 +68,7 @@ pub trait VectorReader: Sync {
     }
 }
 
-/// A [`VectorReader`] over a scattered `HashMap` of owned vectors.
+/// A [VectorReader] over a scattered HashMap of owned vectors.
 pub struct HashMapVectorReader<'a> {
     vectors: &'a HashMap<Uuid, Vec<f32>>,
 }

@@ -45,7 +45,7 @@ impl Collection {
         self.index.len()
     }
 
-    /// Approximate resident size: mmap + offset index + caches + ANN structure.
+    /// Approximate resident size: mmap plus offset index plus caches plus ANN structure.
     pub fn memory_usage_bytes(&self) -> Result<usize> {
         let index_size = self.index.capacity() * std::mem::size_of::<(Uuid, EntryPointer)>();
 

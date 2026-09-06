@@ -136,9 +136,7 @@ fn a_bad_bind_address_is_rejected() {
     assert!(cfg.validate().unwrap_err().contains("address:port"));
 }
 
-// The config surface is scaffolded ahead of the code, which only works if a setting the build
-// cannot honour is a startup error. Five settings once shipped with no reader at all — one of
-// them the WAL's durability switch — so this is the rule the tree has broken most often.
+// Every setting whose subsystem is unimplemented is refused at startup.
 #[test]
 fn every_unimplemented_subsystem_refuses_to_start() {
     for (name, mutate) in [

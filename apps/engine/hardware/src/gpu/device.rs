@@ -4,30 +4,31 @@ use std::sync::Arc;
 
 use crate::gpu::error::GpuResult;
 
-/// What a device can do, probed once at startup and consulted before selecting a kernel variant.
+/// What a device can do, probed once at startup and consulted before a kernel variant is selected.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DeviceCapabilities {
     /// Human-readable device name.
     pub name: String,
     /// Zero-based device ordinal.
     pub ordinal: usize,
-    /// CUDA compute capability as `(major, minor)`.
+    /// CUDA compute capability as a major and minor pair.
     pub compute_capability: (u32, u32),
     /// Total device memory in bytes.
     pub total_memory_bytes: u64,
-    /// Multiprocessor count, for occupancy and launch-geometry decisions.
+    /// Multiprocessor count, used for occupancy and launch geometry.
     pub multiprocessor_count: u32,
 }
 
-/// The contract a device runtime must satisfy, implemented per vendor backend under [`crate::gpu::backends`].
+/// The contract a device runtime must satisfy, implemented per vendor backend under
+/// [crate::gpu::backends].
 pub trait DeviceRuntime: Send + Sync + std::fmt::Debug {
-    /// Backend name, e.g. `"cudarc"`.
+    /// Backend name, such as cudarc.
     fn name(&self) -> &'static str;
 
     /// Capabilities of the selected device.
     fn capabilities(&self) -> &DeviceCapabilities;
 
-    /// Free device memory in bytes, for admission control and batch sizing.
+    /// Free device memory in bytes.
     fn available_memory_bytes(&self) -> GpuResult<u64>;
 
     /// Block until all queued work on this device completes.

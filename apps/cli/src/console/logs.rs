@@ -1,4 +1,4 @@
-//! Bounded per-unit log buffer, and the file each unit's full output is appended to.
+//! Bounded per-unit log buffer, and the file that holds the full output of each unit.
 
 use std::collections::{HashMap, VecDeque};
 use std::fs::{File, OpenOptions};
@@ -9,8 +9,7 @@ use crate::console::types::{LogLine, Stream};
 
 /// Persists console output in one file per unit.
 ///
-/// The in-memory buffer is bounded, so a build that scrolls past its cap is gone from the pane.
-/// The file is not: it is where you go when the interesting line was 6000 lines ago.
+/// The file is unbounded, unlike the in-memory buffer.
 #[derive(Debug)]
 pub struct LogWriter {
     dir: PathBuf,
@@ -28,7 +27,7 @@ impl LogWriter {
         })
     }
 
-    /// Appends and flushes one line to the unit's log file.
+    /// Appends and flushes one line to the log file of the unit.
     pub fn append(&mut self, unit: &str, line: &LogLine) -> std::io::Result<()> {
         let name = log_name(unit);
         if !self.files.contains_key(&name) {
@@ -56,7 +55,7 @@ impl LogWriter {
     }
 }
 
-/// A unit id turned into a filename: an ad-hoc task's id is a whole command line.
+/// A unit id turned into a filename. The id of an ad-hoc task is a whole command line.
 fn log_name(unit: &str) -> String {
     let stem: String = unit
         .chars()
@@ -71,7 +70,7 @@ fn log_name(unit: &str) -> String {
     format!("{}.log", stem.trim_matches('-'))
 }
 
-/// Keeps the newest `cap` lines of one unit.
+/// Keeps the newest cap lines of one unit.
 #[derive(Debug)]
 pub struct LogBuffer {
     lines: VecDeque<LogLine>,
@@ -79,7 +78,7 @@ pub struct LogBuffer {
 }
 
 impl LogBuffer {
-    /// An empty buffer holding at most `cap` lines.
+    /// An empty buffer holding at most cap lines.
     pub fn new(cap: usize) -> Self {
         Self {
             lines: VecDeque::with_capacity(cap.min(1024)),
@@ -115,8 +114,8 @@ impl LogBuffer {
         self.lines.clear();
     }
 
-    /// Index of the next line containing `needle`, case-insensitively, after `from` and wrapping
-    /// around; `backwards` searches toward older lines.
+    /// Index of the next line containing needle, case-insensitively, after from and wrapping
+    /// around. Setting backwards searches toward older lines.
     pub fn find(&self, needle: &str, from: usize, backwards: bool) -> Option<usize> {
         if needle.is_empty() || self.lines.is_empty() {
             return None;

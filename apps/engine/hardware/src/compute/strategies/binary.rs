@@ -1,7 +1,7 @@
 //! 1-bit quantized strategy: sign-bit reduction scored by Hamming agreement, a lossy pre-filter.
 //!
-//! Not an execution strategy like its siblings — it returns a *different, approximate* answer
-//! rather than the same one faster; it belongs in the search pre-filter path.
+//! Returns an approximate answer rather than the same answer faster. It serves the search
+//! pre-filter path.
 
 use crate::compute::kernels::DistanceKernels;
 use crate::compute::mode::ExecutionMode;
@@ -36,7 +36,7 @@ impl DistanceKernels for BinaryStrategy {
         if a.is_empty() {
             return 0.0;
         }
-        // Map agreement fraction from [0, 1] onto cosine's [-1, 1] range.
+        // Map the agreement fraction from 0 to 1 onto the cosine range of -1 to 1.
         let agreement = 1.0 - (hamming(a, b) as f32 / a.len() as f32);
         2.0 * agreement - 1.0
     }

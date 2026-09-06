@@ -1,12 +1,8 @@
 //! The developer console: run every unit in the repo, stream its output, and watch the server,
 //! from one modal terminal UI.
 //!
-//! Contributor tooling that happens to ship in the binary. It drives `just` recipes and
-//! `docker compose`, so it only means anything inside a checkout — an installed `piramid` run
-//! from somewhere else finds no justfile and prints help instead.
-//!
-//! Nothing here reimplements a recipe. Starting the server runs `just serve`, exactly what you
-//! would type, so the console cannot drift from the justfile.
+//! It drives just recipes and docker compose, so it runs only inside a checkout. Outside one it
+//! prints help instead. Each action shells out to the recipe rather than reimplementing it.
 
 mod app;
 mod health;

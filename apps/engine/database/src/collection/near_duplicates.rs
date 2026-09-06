@@ -8,10 +8,10 @@ use super::Collection;
 
 /// Neighbours examined per document when the caller does not say.
 ///
-/// Includes each document's own hit, so this compares against 48 others.
+/// Counts the hit of each document itself, so this compares against 48 others.
 const DEFAULT_NEIGHBORS: usize = 49;
 
-/// Scan `collection` for near-identical pairs, filling unset knobs from its configuration.
+/// Scan a collection for near-identical pairs, filling unset knobs from its configuration.
 #[allow(clippy::too_many_arguments)]
 pub fn find_duplicates(
     collection: &Collection,

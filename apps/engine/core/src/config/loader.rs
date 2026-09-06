@@ -9,12 +9,12 @@ use serde_yaml::{Mapping, Value};
 use crate::config::Config;
 use crate::error::ConfigError;
 
-/// Prefix and separator for overrides. `PIRAMID__RUNTIME__CACHE__MAX_BYTES=1024` sets
-/// `runtime.cache.max_bytes`, so the variable name is derivable from the file and needs no table.
+/// Prefix and separator for overrides. PIRAMID__RUNTIME__CACHE__MAX_BYTES=1024 sets
+/// runtime.cache.max_bytes.
 const ENV_PREFIX: &str = "PIRAMID__";
 const ENV_SEPARATOR: &str = "__";
 
-/// Read `CONFIG_FILE`, apply `PIRAMID__*` overrides, then validate.
+/// Read CONFIG_FILE, apply PIRAMID__ overrides, then validate.
 pub fn load() -> Result<Config, ConfigError> {
     let mut document = load_file()?;
     apply_env_overrides(&mut document)?;
@@ -30,7 +30,7 @@ pub fn load() -> Result<Config, ConfigError> {
     Ok(config)
 }
 
-/// Parse `CONFIG_FILE` into an untyped document, or an empty one when it is unset.
+/// Parse CONFIG_FILE into an untyped document, or an empty one when it is unset.
 fn load_file() -> Result<Value, ConfigError> {
     let Ok(path) = env::var("CONFIG_FILE") else {
         return Ok(Value::Mapping(Mapping::new()));
@@ -50,19 +50,19 @@ fn load_file() -> Result<Value, ConfigError> {
         )));
     };
 
-    // An empty file parses as null, which is a valid document meaning "all defaults".
+    // An empty file parses as null, which is a valid document taking every default.
     Ok(match parsed {
         Value::Null => Value::Mapping(Mapping::new()),
         other => other,
     })
 }
 
-/// Merge every `PIRAMID__*` variable into the document at the path its name spells out.
+/// Merge every PIRAMID__ variable into the document at the path its name spells out.
 fn apply_env_overrides(document: &mut Value) -> Result<(), ConfigError> {
     let mut overrides: Vec<(String, String)> = env::vars()
         .filter(|(name, _)| name.starts_with(ENV_PREFIX))
         .collect();
-    // Deterministic order, so a shorter path never clobbers a longer one by accident.
+    // Overrides are applied in sorted order.
     overrides.sort();
 
     for (name, raw) in overrides {
@@ -76,15 +76,14 @@ fn apply_env_overrides(document: &mut Value) -> Result<(), ConfigError> {
                 reason: "empty path segment".to_string(),
             });
         }
-        // Values are parsed as YAML scalars, so `8`, `true`, `null` and `[a, b]` all mean what
-        // they would in the file. Anything else stays a string.
+        // Values are parsed as YAML scalars. Anything that does not parse stays a string.
         let value = serde_yaml::from_str::<Value>(&raw).unwrap_or_else(|_| Value::String(raw));
         insert_at(document, &path, value).map_err(|reason| ConfigError::Env { name, reason })?;
     }
     Ok(())
 }
 
-/// The API key is the one setting that is env-only, so it never lands in a file that gets shared.
+/// Read the API key from the environment. It has no place in the configuration file.
 fn apply_secret_env(document: &mut Value) {
     if let Ok(key) = env::var("OPENAI_API_KEY") {
         let path = ["startup", "embedding", "api_key"].map(str::to_string);
@@ -92,7 +91,7 @@ fn apply_secret_env(document: &mut Value) {
     }
 }
 
-/// Write `value` at `path`, creating intermediate mappings.
+/// Write the value at the given path, creating intermediate mappings.
 fn insert_at(document: &mut Value, path: &[String], value: Value) -> Result<(), String> {
     let Some((leaf, parents)) = path.split_last() else {
         return Err("no path".to_string());
@@ -114,7 +113,7 @@ fn insert_at(document: &mut Value, path: &[String], value: Value) -> Result<(), 
     Ok(())
 }
 
-/// Default data directory: `~/.piramid`. Errors rather than falling back to the working directory.
+/// Default data directory: ~/.piramid. An unset HOME is an error.
 pub fn default_data_dir() -> Result<String, ConfigError> {
     let home = env::var("HOME").map_err(|_| ConfigError::Env {
         name: "HOME".to_string(),

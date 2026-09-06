@@ -1,9 +1,8 @@
-//! The dashboard's view of a running server.
+//! The view the dashboard takes of a running server.
 //!
-//! Deserialization mirrors of the wire shapes in `serving::services::api`, holding only the
-//! fields the dashboard draws. They are `#[serde(default)]` throughout so a server one version
-//! ahead or behind still renders: a field the dashboard has not heard of is ignored, and one the
-//! server stopped sending reads as absent rather than failing the whole poll.
+//! Deserialization mirrors of the wire shapes in serving::services::api, holding only the fields
+//! the dashboard draws. Every field defaults, so an unknown field is ignored and a missing one
+//! reads as absent rather than failing the poll.
 
 use std::time::Duration;
 
@@ -12,13 +11,13 @@ use serde::Deserialize;
 /// Everything one refresh collects.
 #[derive(Debug, Clone, Default)]
 pub struct Snapshot {
-    /// `/api/metrics`.
+    /// The metrics response.
     pub metrics: Metrics,
-    /// `/api/readyz`.
+    /// The readiness response.
     pub ready: Readyz,
 }
 
-/// `/api/version`, read once at startup.
+/// The version response, read once at startup.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Version {
@@ -26,7 +25,7 @@ pub struct Version {
     pub git_commit: Option<String>,
 }
 
-/// `/api/metrics`.
+/// The metrics response.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Metrics {
@@ -37,7 +36,7 @@ pub struct Metrics {
     pub embedding: EmbeddingMetrics,
 }
 
-/// One collection's counters.
+/// The counters of one collection.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct CollectionMetrics {
@@ -54,7 +53,7 @@ pub struct CollectionMetrics {
     pub ivf_nprobe: Option<usize>,
 }
 
-/// One collection's durability state.
+/// The durability state of one collection.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct WalStats {
@@ -73,7 +72,7 @@ pub struct EmbeddingMetrics {
     pub avg_latency_ms: Option<f32>,
 }
 
-/// `/api/readyz`.
+/// The readiness response.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct Readyz {
@@ -96,7 +95,7 @@ pub struct CollectionHealth {
     pub error: Option<String>,
 }
 
-/// Where a rebuild is, from `/index/rebuild/status`.
+/// Where a rebuild is, from the rebuild status endpoint.
 #[derive(Debug, Clone, Default, Deserialize)]
 #[serde(default)]
 pub struct RebuildStatus {
@@ -130,7 +129,7 @@ pub struct Client {
 }
 
 impl Client {
-    /// A client for `base`, with timeouts short enough that a hung server does not freeze the UI.
+    /// A client for base, with a request timeout so a hung server does not freeze the UI.
     pub fn new(base: &str, timeout: Duration) -> Result<Self, ClientError> {
         let http = reqwest::Client::builder()
             .connect_timeout(Duration::from_secs(2))
@@ -153,10 +152,7 @@ impl Client {
         self.get("/api/version").await
     }
 
-    /// One refresh.
-    ///
-    /// Readiness opens every collection on disk and can be slow on a large data directory, so it
-    /// runs beside metrics rather than after it.
+    /// One refresh. Metrics and readiness are requested concurrently.
     pub async fn snapshot(&self) -> Result<Snapshot, ClientError> {
         let (metrics, ready) = tokio::join!(self.get("/api/metrics"), self.get("/api/readyz"));
         Ok(Snapshot {
@@ -227,10 +223,7 @@ impl Client {
     }
 }
 
-/// The innermost reason a request failed.
-///
-/// `reqwest`'s own message stops at "error sending request for url (…)", which names the URL the
-/// operator already typed and not the refused connection or timeout they need to see.
+/// The innermost reason a request failed, such as the refused connection or the timeout.
 fn root_cause(error: &reqwest::Error) -> String {
     let mut source: &dyn std::error::Error = error;
     while let Some(inner) = source.source() {

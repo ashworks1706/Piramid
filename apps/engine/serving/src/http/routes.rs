@@ -76,7 +76,7 @@ fn api_router(state: SharedState) -> Router<SharedState> {
             "/collections/{collection}/upsert",
             post(handlers::upsert_vector),
         )
-        // POST rather than GET: the query vector goes in the body.
+        // The query vector goes in the request body.
         .route(
             "/collections/{collection}/search",
             post(handlers::search_vectors),
@@ -96,18 +96,17 @@ fn api_router(state: SharedState) -> Router<SharedState> {
         .with_state(state)
 }
 
-/// Build the router: API routes under `/api`, the Prometheus endpoint, and middleware.
+/// Build the router: API routes under /api, the Prometheus endpoint, and middleware.
 pub fn create_router(state: SharedState) -> Router {
     let cors = CorsLayer::new()
         .allow_origin(Any)
         .allow_methods(Any)
         .allow_headers(Any);
 
-    // One mount point. `/api/v1` was a second name for the same routes that nothing referenced,
-    // and a version prefix that never changes is not versioning.
+    // The API is mounted at one prefix, with no version segment.
     Router::<SharedState>::new()
         .nest("/api", api_router(state.clone()))
-        // Prometheus scrapes `/metrics` by convention, outside the API prefix.
+        // The Prometheus endpoint sits outside the API prefix.
         .route("/metrics", get(handlers::prometheus_metrics))
         .layer(DefaultBodyLimit::max(100 * 1024 * 1024)) // 100MB for batch operations
         .layer(cors)

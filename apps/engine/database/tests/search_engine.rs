@@ -64,9 +64,7 @@ fn search_respects_filter() {
     cleanup(test_db);
 }
 
-// Flat sorts by the index's configured metric, but the engine rescores with the metric the
-// request asked for. Ranking used to run only when a filter was present, so a query using a
-// different metric than the collection was built with came back ordered by the wrong one.
+// The engine rescores with the metric the request asked for, not the index's configured metric.
 #[test]
 fn results_are_ranked_by_the_requested_metric_not_the_index_metric() {
     let path = concat!(
@@ -105,9 +103,8 @@ fn results_are_ranked_by_the_requested_metric_not_the_index_metric() {
     );
 }
 
-// A range query asks "everything scoring at least this", not "of the top k, those that qualify".
-// The threshold reaches the engine now, so it narrows the candidate set before `k` truncates
-// rather than after — which is what lets an approximate index surface enough qualifying hits.
+// A range query narrows the candidate set by threshold before k truncates it, so it returns every
+// qualifying hit up to k.
 #[test]
 fn a_range_query_fills_k_from_the_whole_qualifying_set() {
     let path = concat!(env!("CARGO_TARGET_TMPDIR"), "/test_range_threshold.db");

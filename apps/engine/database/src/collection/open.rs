@@ -26,12 +26,11 @@ use crate::storage::SidecarManager;
 use piramid_core::error::{Result, StorageError};
 use piramid_core::Document;
 
-/// Open the collection at `path`, replaying the WAL and rebuilding sidecars as needed.
+/// Open the collection at path, replaying the WAL and rebuilding sidecars as needed.
 pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
     let config = options.config;
 
-    // Naming it "unknown" would put a collection on disk under a name that matches nothing
-    // the caller asked for, and every later lookup by name would miss.
+    // A path with no usable file stem is an error rather than a placeholder name.
     let collection_name = std::path::Path::new(path)
         .file_stem()
         .and_then(|stem| stem.to_str())
@@ -84,8 +83,8 @@ pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
         Vec::new()
     };
 
-    // Records exist but the ANN sidecar does not — rebuild it from the record store. Skipped
-    // when the WAL is about to replay, since replay reinserts every vector anyway.
+    // Records exist but the ANN sidecar does not, so it is rebuilt from the record store.
+    // Skipped when the WAL is about to replay, since replay reinserts every vector.
     if wal_entries.is_empty() && !index.is_empty() && vector_index_missing {
         rebuild_vector_index(&mut vector_index, &index, &record_store)?;
     }
@@ -101,8 +100,7 @@ pub fn open(path: &str, options: CollectionOpenOptions) -> Result<Collection> {
         checkpoint,
     };
 
-    // The WAL is only safe to clear once the replayed state is durable, so the checkpoint
-    // has to succeed first.
+    // The WAL is cleared only once the checkpoint has made the replayed state durable.
     if !wal_entries.is_empty() {
         replay_wal(&mut collection, wal_entries)?;
         collection.rebuild_vector_cache()?;
@@ -132,7 +130,7 @@ fn replay_wal(collection: &mut Collection, entries: Vec<WalEntry>) -> Result<()>
                 };
                 crate::document::insert_internal(collection, document)?;
             }
-            // An update is a delete followed by an insert so the ANN index sees the change.
+            // An update is a delete followed by an insert, so the ANN index sees the change.
             WalEntry::Update {
                 id,
                 vector,
@@ -163,8 +161,7 @@ fn rebuild_vector_index(
     index: &HashMap<Uuid, crate::storage::sidecars::EntryPointer>,
     record_store: &RecordStore,
 ) -> Result<()> {
-    // Read every live record through the offset index and re-insert it, which is what makes
-    // the ANN index disposable: it can always be reconstructed from the record store.
+    // Read every live record through the offset index and re-insert it.
     let mut vectors: HashMap<Uuid, Vec<f32>> = HashMap::new();
     for (id, idx_entry) in index {
         let entry = record_store.read_document(idx_entry)?;

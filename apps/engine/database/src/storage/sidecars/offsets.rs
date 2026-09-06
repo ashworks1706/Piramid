@@ -2,7 +2,7 @@
 
 use serde::{Deserialize, Serialize};
 
-/// Where one document's bytes live in the record file.
+/// Where the bytes of one document live in the record file.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct EntryPointer {
     /// Byte offset from the start of the record file.
@@ -12,7 +12,7 @@ pub struct EntryPointer {
 }
 
 impl EntryPointer {
-    /// Point at `length` bytes starting at `offset`.
+    /// Point at length bytes starting at offset.
     pub fn new(offset: u64, length: u32) -> Self {
         Self { offset, length }
     }

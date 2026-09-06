@@ -34,7 +34,6 @@ pub(crate) fn warm_mmap(mmap: &MmapMut) {
     const PAGE: usize = 4096;
     let mut offset: usize = 0;
     while offset < len {
-        // SAFETY: offset is within bounds and we only read.
         let byte = mmap[offset];
         std::hint::black_box(byte);
         offset = offset.saturating_add(PAGE);

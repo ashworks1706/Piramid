@@ -3,8 +3,7 @@
 use crate::fusion::{NoopRetrievalHook, RetrievalHook};
 
 /// Owns the model runtime once one exists: weights, KV cache, batch queue, and the retrieval
-/// hook the forward pass calls into. Scaffolded ahead of the code so drivers are written against
-/// this surface rather than growing their own.
+/// hook the forward pass calls into.
 pub struct InferenceManager {
     hook: Box<dyn RetrievalHook>,
 }
@@ -17,7 +16,7 @@ impl InferenceManager {
         }
     }
 
-    /// A manager whose forward pass calls `hook` at the points it asks for.
+    /// A manager whose forward pass calls the given hook at the points it asks for.
     pub fn with_hook(hook: Box<dyn RetrievalHook>) -> Self {
         Self { hook }
     }

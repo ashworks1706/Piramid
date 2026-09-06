@@ -44,8 +44,7 @@ const REPORTED_PREFIXES: &[&str] = &[
     "PARALLEL_SEARCH",
 ];
 
-/// The bundle is written to be pasted into a public issue tracker, so the one secret the config
-/// can hold never reaches it.
+/// Clone the config with the embedding API key replaced by a redaction marker.
 fn redacted(config: &Config) -> Config {
     let mut config = config.clone();
     if let Some(embedding) = config.startup.embedding.as_mut() {
@@ -219,7 +218,7 @@ pub fn render(config: &Config, state: &Arc<AppState>) -> String {
     out
 }
 
-/// Write the bundle to `path`, defaulting to `piramid-support-bundle.md` in the working directory.
+/// Write the bundle to path, defaulting to piramid-support-bundle.md in the working directory.
 pub fn write(
     config: &Config,
     state: &Arc<AppState>,

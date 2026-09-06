@@ -1,11 +1,11 @@
 //! HTTP transport, use-case orchestration, and shared runtime state.
 //!
-//! - [`http`] — axum routes, handlers, request ids. Handlers stay thin: parse, call a service,
-//!   serialize.
-//! - [`services`] — everything true because a server exists: admission checks, lock acquisition,
-//!   metrics, and the canonical API DTOs. Durability belongs to `collections`, not here.
-//! - [`state`] — [`AppState`], the process-wide shared state, and [`disk`] the pressure watcher.
-//! - [`cluster`] — node identity and routing. Local-only today.
+//! - [http] holds axum routes, handlers and request ids. Handlers parse the request, call a
+//!   service, and serialize the result.
+//! - [services] holds admission checks, lock acquisition, metrics, and the canonical API DTOs.
+//!   Durability belongs to the collection layer, not here.
+//! - [state] holds [AppState], the process-wide shared state, and [disk] the pressure watcher.
+//! - [cluster] holds node identity and routing. Local-only today.
 
 pub mod cluster;
 pub mod disk;

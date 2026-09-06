@@ -6,7 +6,7 @@ use std::time::Duration;
 
 #[derive(Debug, Clone, Default)]
 pub struct LatencyTracker {
-    // Microseconds, so the atomics stay integral.
+    // Microseconds, held as integers.
     insert_latency_us: Arc<AtomicU64>,
     search_latency_us: Arc<AtomicU64>,
     delete_latency_us: Arc<AtomicU64>,
@@ -79,7 +79,7 @@ impl LatencyTracker {
         Self::avg_ms(&self.lock_write_latency_us)
     }
 
-    /// `None` until at least one sample has landed.
+    /// None until at least one sample has landed.
     fn avg_ms(latency_us: &AtomicU64) -> Option<f32> {
         let us = latency_us.load(Ordering::Relaxed);
         (us > 0).then(|| us as f32 / 1000.0)
@@ -90,7 +90,7 @@ impl LatencyTracker {
         let current = avg.load(Ordering::Relaxed);
         let cnt = count.load(Ordering::Relaxed);
 
-        // A plain mean until there are enough samples for the EMA to mean anything.
+        // A plain mean for the first five samples, then an exponential moving average.
         if cnt <= 5 {
             let new_avg = ((current * (cnt - 1)) + new_value) / cnt;
             avg.store(new_avg, Ordering::Relaxed);

@@ -1,4 +1,4 @@
-//! Metadata predicates: a [`Filter`] narrows results by document metadata.
+//! Metadata predicates: a [Filter] narrows results by document metadata.
 
 use crate::metadata::value::{Metadata, MetadataValue};
 
@@ -63,13 +63,10 @@ impl Filter {
         self.conditions.is_empty()
     }
 
-    /// Whether `metadata` *could* satisfy this filter, when it may be incomplete.
+    /// Whether metadata that may be incomplete still leaves the document a candidate.
     ///
-    /// [`Filter::matches`] answers "does this document satisfy the filter" and needs the whole
-    /// document. This answers "is it still a candidate", for callers holding a lossy view — an
-    /// index traversing against a bounded cache cannot tell a document with no metadata from one
-    /// whose metadata was evicted, and excluding on that would drop a true match permanently. So
-    /// absent metadata is admitted here and settled later against the resolved document.
+    /// [Filter::matches] needs the whole document. This admits absent metadata, leaving the
+    /// decision to be settled against the resolved document.
     pub fn may_match(&self, metadata: Option<&Metadata>) -> bool {
         metadata.is_none_or(|metadata| self.matches(metadata))
     }
@@ -81,7 +78,7 @@ impl Default for Filter {
     }
 }
 
-/// One condition within a [`Filter`].
+/// One condition within a [Filter].
 #[derive(Debug, Clone)]
 pub enum FilterCondition {
     Eq(String, MetadataValue),

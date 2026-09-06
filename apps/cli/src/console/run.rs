@@ -13,10 +13,10 @@ use crate::console::settings::Settings;
 use crate::console::types::Event;
 use crate::console::{health, ui};
 
-/// How often `docker compose ps` is re-read.
+/// How often docker compose ps is re-read.
 const SERVICES_INTERVAL: Duration = Duration::from_secs(3);
 
-/// Runs the console over the repo at `root`.
+/// Runs the console over the repo at root.
 pub fn run(root: PathBuf) -> std::io::Result<()> {
     let settings = Settings::from_env().map_err(std::io::Error::other)?;
     let runtime = tokio::runtime::Runtime::new()?;
@@ -32,8 +32,7 @@ pub fn run(root: PathBuf) -> std::io::Result<()> {
         tokio::spawn(ticker(tx.clone()));
         tokio::spawn(keys(tx));
 
-        // Without this, a panic leaves the terminal in raw mode with no echo and the message
-        // scrolled off, which looks like a hung shell rather than a crash.
+        // The terminal is restored before a panic message is printed.
         let original_hook = std::panic::take_hook();
         std::panic::set_hook(Box::new(move |info| {
             ratatui::restore();
@@ -55,8 +54,7 @@ async fn drive(
     terminal.draw(|frame| ui::draw(frame, app))?;
     while let Some(event) = rx.recv().await {
         app.handle(event);
-        // Drain whatever else is queued, so a build emitting a thousand lines costs one redraw
-        // rather than a thousand.
+        // Everything else already queued is drained into one redraw.
         while let Ok(more) = rx.try_recv() {
             app.handle(more);
         }
@@ -78,7 +76,7 @@ async fn services(root: PathBuf, tx: UnboundedSender<Event>) {
     }
 }
 
-/// Redraws on a timer, so the "running for Ns" counters advance while nothing else happens.
+/// Redraws on a timer, advancing the elapsed-time counters while nothing else happens.
 async fn ticker(tx: UnboundedSender<Event>) {
     let mut interval = tokio::time::interval(Duration::from_millis(500));
     loop {
@@ -96,8 +94,7 @@ async fn keys(tx: UnboundedSender<Event>) {
             Ok(TermEvent::Key(key)) if key.kind == KeyEventKind::Press => Event::Key(key),
             Ok(TermEvent::Resize(_, _)) => Event::Resize,
             Ok(_) => continue,
-            // Losing the keyboard leaves a console that redraws but cannot be quit, so it says
-            // why and shuts down rather than sitting there.
+            // A lost keyboard is reported and shuts the console down.
             Err(e) => Event::InputLost(e.to_string()),
         };
         if tx.send(mapped).is_err() {

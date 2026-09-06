@@ -4,12 +4,12 @@ use crate::compute::kernels::DistanceKernels;
 use crate::compute::mode::ExecutionMode;
 use crate::compute::strategies::scalar::ScalarStrategy;
 
-/// GPU kernels dispatched through `hardware::gpu`.
+/// GPU kernels dispatched through the gpu module.
 #[derive(Debug, Default, Clone, Copy)]
 pub struct CudaStrategy;
 
 impl CudaStrategy {
-    /// Single-pair work always runs on the CPU; a launch never pays off for one vector.
+    /// Single-pair work runs on the CPU.
     const PAIRWISE: ScalarStrategy = ScalarStrategy;
 }
 
@@ -23,7 +23,7 @@ impl DistanceKernels for CudaStrategy {
     }
 
     fn is_available(&self) -> bool {
-        // No kernels are wired yet; this stays false until a real device probe lands.
+        // No kernels are wired yet.
         false
     }
 

@@ -74,8 +74,7 @@ impl CollectionManager {
 
     /// Collection names present in the data directory, loaded or not.
     ///
-    /// A collection is the base `{name}.db`; every other `.db` beside it is a sidecar this crate
-    /// wrote. Callers that scan the directory themselves invent collections named after sidecars.
+    /// A collection is the base {name}.db file. Every other .db file beside it is a sidecar.
     pub fn discover_on_disk(&self) -> Vec<String> {
         let Ok(entries) = std::fs::read_dir(&self.data_dir) else {
             return Vec::new();
@@ -128,7 +127,7 @@ impl CollectionManager {
     }
 }
 
-/// The collection a data file belongs to, or `None` if it is a sidecar or not ours.
+/// The collection a data file belongs to, or None if it is a sidecar or unrelated.
 fn collection_name_of(file_name: &str) -> Option<String> {
     if SidecarManager::SUFFIXES
         .iter()

@@ -19,8 +19,7 @@ pub struct OpenAIEmbedder {
 }
 
 impl OpenAIEmbedder {
-    // The key reaches config from OPENAI_API_KEY in the loader. Reading the variable again here
-    // would mean two answers to "where did this key come from".
+    // The key reaches config from OPENAI_API_KEY in the loader.
     pub fn new(config: &EmbeddingConfig) -> EmbeddingResult<Self> {
         let base_url = config
             .base_url

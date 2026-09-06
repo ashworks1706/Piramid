@@ -82,9 +82,7 @@ fn unknown_filter_operators_are_rejected() {
     assert!(piramid_serving::services::convert::parse_filter(Some(raw)).is_err());
 }
 
-// The request field and the config field it writes into must spell the knob the same way. They
-// did not: the wire said `overfetch` while the YAML said `filter_overfetch`, and the validation
-// error named a field that did not exist in the user's file.
+// Each search tuning field on the wire overrides the config field of the same name.
 #[test]
 fn tuning_fields_match_the_config_fields_they_override() {
     let json = serde_json::json!({ "ef": 5, "nprobe": 6, "filter_overfetch": 7 });

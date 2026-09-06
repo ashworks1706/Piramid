@@ -1,10 +1,10 @@
-//! Filesystem capacity probing, the one `unsafe` site in `piramid-serving`.
+//! Filesystem capacity probing, the one unsafe site in piramid-serving.
 
 use piramid_core::error::{Result, ServerError};
 
-/// Total and available bytes on the filesystem backing `path`.
+/// Total and available bytes on the filesystem backing path.
 ///
-/// Returns `(None, None)` on non-Unix targets, where `statvfs` does not exist.
+/// Returns (None, None) on non-Unix targets, where statvfs does not exist.
 #[cfg_attr(not(target_family = "unix"), allow(unused_variables))]
 pub fn stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
     #[cfg(target_family = "unix")]
@@ -14,9 +14,10 @@ pub fn stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
         let c_path = CString::new(path)
             .map_err(|_| ServerError::Internal("data_dir contains an interior NUL byte".into()))?;
 
-        // SAFETY: statvfs is a struct of integers, so all-zero is a valid bit pattern, and
-        // statvfs(3) overwrites every field before we read it. The pointer comes from a CString
-        // that outlives the call. A non-zero return takes the error path without reading.
+        // SAFETY: statvfs is a struct of integers, for which all-zero is a valid bit pattern.
+        // statvfs(3) overwrites every field before any field is read. The pointer comes from a
+        // CString that outlives the call. A non-zero return takes the error path without
+        // reading the struct.
         #[allow(unsafe_code)]
         let (rc, stat) = unsafe {
             let mut stat: libc::statvfs = std::mem::zeroed();
@@ -25,8 +26,8 @@ pub fn stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
         };
 
         if rc == 0 {
-            // `fsblkcnt_t` and `f_frsize` are u64 on Linux but narrower on some targets
-            // (32-bit musl, macOS). The casts are redundant here and load-bearing elsewhere.
+            // fsblkcnt_t and f_frsize are u64 on Linux and narrower on other targets
+            // (32-bit musl, macOS).
             #[allow(clippy::unnecessary_cast)]
             let (total, available) = {
                 let frsize = stat.f_frsize as u64;
@@ -45,7 +46,7 @@ pub fn stats(path: &str) -> Result<(Option<u64>, Option<u64>)> {
     }
 }
 
-/// Available bytes on the filesystem backing `path`.
+/// Available bytes on the filesystem backing path.
 pub fn free_bytes(path: &str) -> Result<Option<u64>> {
     stats(path).map(|(_, available)| available)
 }

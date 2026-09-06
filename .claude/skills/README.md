@@ -7,6 +7,7 @@
 | `adr` | Write a decision record in `docs/decisions/` | ours |
 | `roadmap` | Progress against `docs/ROADMAP.md` | ours |
 | `code-quality` | Refactor pass: naming, reuse, registries, dead code. User-invoked. | ours (adapted) |
+| `comment-style` | What a comment may say and which characters it may use | ours |
 | `rust-skills` | 265 Rust rules across 26 categories — the style reference | [leonardomso/rust-skills](https://github.com/leonardomso/rust-skills), MIT |
 | `test-driven-development` | red → green → refactor; test-quality anti-patterns | [obra/superpowers](https://github.com/obra/superpowers), MIT |
 | `systematic-debugging` | Root cause before fixes | [obra/superpowers](https://github.com/obra/superpowers), MIT |

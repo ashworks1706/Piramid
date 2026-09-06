@@ -31,9 +31,7 @@ fn filter_numeric_comparisons_work() {
     assert!(!Filter::new().gt("score", 80i64).matches(&meta));
 }
 
-// `matches` and `may_match` deliberately disagree on absent metadata. An index traversing a
-// bounded cache cannot tell "no metadata" from "evicted", so it asks the optimistic question and
-// the search engine settles it against the resolved document.
+// matches rejects absent metadata, may_match keeps it as a candidate.
 #[test]
 fn may_match_admits_absent_metadata_where_matches_rejects_it() {
     let filter = Filter::new().eq("lang", "rust");

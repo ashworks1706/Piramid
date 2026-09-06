@@ -15,11 +15,10 @@ const COMPARED: [ExecutionMode; 3] = [
 /// Dimensions real embedding models emit: MiniLM, OpenAI small/ada, OpenAI large.
 const DIMS: [usize; 4] = [384, 768, 1536, 3072];
 
-/// Candidate counts spanning one HNSW `ef` list up to a small flat collection.
+/// Candidate counts spanning one HNSW ef list up to a small flat collection.
 const ROWS: [usize; 3] = [128, 1024, 8192];
 
-/// Deterministic filler. A fixed LCG rather than `rand`, so runs are comparable across machines
-/// and the bench needs no extra dependency.
+/// Deterministic filler from a fixed LCG.
 fn vectors(count: usize, dim: usize) -> Vec<f32> {
     let mut state = 0x2545_F491_4F6C_DD1Du64;
     (0..count * dim)
@@ -33,7 +32,7 @@ fn vectors(count: usize, dim: usize) -> Vec<f32> {
         .collect()
 }
 
-/// Available strategies, resolved once. `Auto` resolves to one of these, so it is not listed twice.
+/// Available strategies, resolved once. Auto resolves to one of these and is not listed twice.
 fn available() -> Vec<(&'static str, &'static dyn DistanceKernels)> {
     COMPARED
         .iter()
@@ -60,9 +59,8 @@ fn pairwise(c: &mut Criterion) {
     group.finish();
 }
 
-/// This is the shape that uploads to a device in one copy. On CPU the default implementation just
-/// loops over the pairwise kernel, so the gap between this and `pairwise` is dispatch overhead —
-/// which is the thing worth knowing before anything is rewired through it.
+/// One query against many candidates in a single batch call. On CPU the default implementation
+/// loops over the pairwise kernel, so the gap between this and pairwise is dispatch overhead.
 fn batch(c: &mut Criterion) {
     let mut group = c.benchmark_group("batch/cosine");
     // Held at a mid-range embedding size so the axis being varied is candidate count alone.

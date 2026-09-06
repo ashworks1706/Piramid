@@ -23,10 +23,7 @@ impl CheckpointManager {
 
     /// Whether this operation should be followed by a checkpoint.
     ///
-    /// Three independent triggers: operation count, elapsed time, and log size. The size trigger
-    /// matters because `rotate` truncates the log, so an un-checkpointed WAL is the only thing
-    /// standing between a crash and lost writes — letting it grow without bound makes recovery
-    /// slower and the loss window larger.
+    /// Three independent triggers: operation count, elapsed time, and log size.
     pub fn should_checkpoint(&mut self, cfg: &piramid_core::config::WalConfig, now: u64) -> bool {
         if !cfg.enabled {
             return false;
@@ -76,8 +73,7 @@ pub fn save_manifest(collection: &Collection) -> Result<()> {
 pub fn checkpoint(collection: &mut Collection) -> Result<()> {
     let timestamp = piramid_core::clock::unix_secs();
 
-    // All three sidecars land before the WAL is cleared below, so a crash mid-checkpoint replays
-    // rather than loses.
+    // All three sidecars land before the WAL is cleared below.
     save_index(collection)?;
     save_vector_index(collection)?;
     save_manifest(collection)?;

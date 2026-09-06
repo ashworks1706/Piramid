@@ -27,7 +27,7 @@ pub fn open_default() -> GpuResult<Device> {
     }
 }
 
-/// Allocate `size_bytes` of device memory.
+/// Allocate the given number of bytes of device memory.
 pub fn allocate(_device: &Device, _size_bytes: usize) -> GpuResult<DeviceAllocation> {
     Err(no_backend())
 }
@@ -62,7 +62,7 @@ pub fn create_stream(_device: &Device) -> GpuResult<u64> {
     Err(no_backend())
 }
 
-/// Block until all work queued on `stream_id` completes.
+/// Block until all work queued on the given stream completes.
 pub fn synchronize_stream(_device: &Device, _stream_id: u64) -> GpuResult<()> {
     Err(no_backend())
 }

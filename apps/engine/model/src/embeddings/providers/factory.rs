@@ -1,4 +1,4 @@
-//! Provider selection: turn an `EmbeddingConfig` into an `Embedder`.
+//! Provider selection: turn an EmbeddingConfig into an Embedder.
 
 use std::num::NonZeroUsize;
 use std::str::FromStr;
@@ -12,7 +12,7 @@ use piramid_core::config::EmbeddingConfig;
 use piramid_core::error::embedding::EmbeddingError;
 
 /// Entries kept per embedder.
-// The unwrap is const-evaluated: a zero literal here fails the build, not a request.
+// The unwrap is evaluated in a const context.
 #[allow(clippy::unwrap_used, reason = "const context; checked at compile time")]
 const CACHE_CAPACITY: NonZeroUsize = NonZeroUsize::new(10_000).unwrap();
 
@@ -36,7 +36,7 @@ impl FromStr for EmbeddingProvider {
     }
 }
 
-/// Build the embedder named by `config`, wrapped in the response cache.
+/// Build the embedder named by config, wrapped in the response cache.
 pub fn create_embedder(config: &EmbeddingConfig) -> EmbeddingResult<Arc<dyn Embedder>> {
     let provider = config.provider.parse::<EmbeddingProvider>().map_err(|_| {
         EmbeddingError::ConfigError(format!(

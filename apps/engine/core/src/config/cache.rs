@@ -1,9 +1,6 @@
 //! What is held in memory, and what gives when the budget is reached.
 //!
-//! Piramid keeps several caches with different jobs, and they are configured separately because
-//! the right answer differs for each: dropping a metadata entry costs a disk read, dropping a
-//! resident vector breaks search until it is rebuilt, and dropping a KV page costs a recompute of
-//! the tokens behind it.
+//! Vectors, metadata and embeddings are each configured separately.
 
 use serde::{Deserialize, Serialize};
 
@@ -15,14 +12,13 @@ pub struct CacheConfig {
     pub metadata: MetadataCacheConfig,
     pub embeddings: EmbeddingCacheConfig,
 
-    /// Byte budget for resident vectors, shared across every loaded collection. `None` is
+    /// Byte budget for resident vectors, shared across every loaded collection. None is
     /// unbounded.
     pub max_bytes: Option<u64>,
 }
 
 impl CacheConfig {
-    /// A metadata cache of `size` entries, everything else default. Used by tests and by callers
-    /// that only care about the metadata bound.
+    /// A metadata cache of the given entry count, every other field default.
     pub fn with_size(size: usize) -> Self {
         CacheConfig {
             metadata: MetadataCacheConfig {
@@ -43,15 +39,14 @@ impl CacheConfig {
 
 /// Vectors held resident for search.
 ///
-/// Not a cache in the usual sense: an evicted vector is not a slower read, it is a document search
-/// cannot score until the store is rebuilt. That is why eviction is off by default.
+/// An evicted vector cannot be scored until the store is rebuilt. Eviction is off by default.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct VectorCacheConfig {
-    /// Entry ceiling. `None` keeps every vector of every loaded collection resident.
+    /// Entry ceiling. None keeps every vector of every loaded collection resident.
     pub entries: Option<usize>,
 
-    /// Byte ceiling per collection. `None` is unbounded.
+    /// Byte ceiling per collection. None is unbounded.
     pub max_bytes_per_collection: Option<u64>,
 
     /// What to drop when a bound is reached.
@@ -93,7 +88,7 @@ pub struct MetadataCacheConfig {
     /// Entry ceiling.
     pub entries: usize,
 
-    /// Entry lifetime in seconds. `None` never expires.
+    /// Entry lifetime in seconds. None never expires.
     pub ttl_seconds: Option<u64>,
 
     /// What to drop when the ceiling is reached.
@@ -129,8 +124,7 @@ impl MetadataCacheConfig {
 pub struct EmbeddingCacheConfig {
     pub enabled: bool,
 
-    /// Entry ceiling. A fixed corpus wants this above its document count, or the tail is
-    /// re-embedded on every pass.
+    /// Entry ceiling.
     pub entries: usize,
 }
 

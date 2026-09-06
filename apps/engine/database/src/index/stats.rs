@@ -44,11 +44,11 @@ pub enum IndexDetails {
 /// Supported index families.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 pub enum IndexType {
-    /// Brute-force linear scan. `O(N)`; best under ~10k vectors.
+    /// Brute-force linear scan, O(N). Best under 10k vectors.
     Flat,
-    /// Hierarchical Navigable Small World graph. `O(log N)`; best above ~100k vectors.
+    /// Hierarchical Navigable Small World graph, O(log N). Best above 100k vectors.
     Hnsw,
-    /// Inverted file index. `O(sqrt N)`; best between ~10k and ~1M vectors.
+    /// Inverted file index, O(sqrt N). Best between 10k and 1M vectors.
     Ivf,
 }
 

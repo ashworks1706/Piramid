@@ -1,8 +1,7 @@
 //! The catalog: every unit the repo can run, in sidebar order.
 //!
-//! One entry per `just` recipe or compose service worth driving from here. The console never
-//! reimplements a recipe — it runs `just`, so the console and the terminal do the same thing and
-//! a recipe changed in the justfile is changed here too.
+//! One entry per just recipe or compose service driven from here. Each entry shells out to the
+//! recipe rather than reimplementing it.
 
 use crate::console::types::{Group, Kind, Unit};
 
@@ -103,8 +102,7 @@ fn deploys() -> Vec<Unit> {
     ]
 }
 
-/// A one-shot recipe; the id is the recipe line itself, so `:bench --save-baseline x` is its own
-/// unit rather than colliding with a plain `bench`.
+/// A one-shot recipe. The id is the recipe line itself, arguments included.
 pub fn task(args: &[String], hint: &str) -> Unit {
     Unit {
         id: args.join(" "),
@@ -123,8 +121,7 @@ fn task_static(args: &[&str], hint: &str) -> Unit {
 
 /// A task whose name is not its command line.
 ///
-/// `just piramid show config` is how it runs; `config` is what it is. The sidebar and `:start`
-/// take the name, so a subcommand's spelling stays in one place.
+/// The sidebar and the start command take the name; args carries the recipe line.
 fn named(id: &str, args: &[&str], hint: &str) -> Unit {
     Unit {
         id: id.into(),
@@ -157,7 +154,7 @@ fn service(id: &str, profile: Option<&str>, hint: &str, url: Option<&str>) -> Un
     }
 }
 
-/// A recipe in the deploy section; `follows` marks the ones that stream until stopped.
+/// A recipe in the deploy section. Setting follows marks the ones that stream until stopped.
 fn deploy(args: &[&str], hint: &str, follows: bool) -> Unit {
     let mut unit = task_static(args, hint);
     unit.group = Group::Deploy;

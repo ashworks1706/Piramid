@@ -16,7 +16,7 @@ pub enum IndexKind {
     Ivf,
 }
 
-/// Thresholds used by [`IndexConfig::Auto`] to pick a family by collection size.
+/// Thresholds used by [IndexConfig::Auto] to pick a family by collection size.
 #[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields, default)]
 pub struct AutoIndexConfig {
@@ -64,7 +64,7 @@ pub enum IndexConfig {
         #[serde(default)]
         auto: AutoIndexConfig,
     },
-    /// Brute-force scan. `params` is flattened, so the wire format is unchanged.
+    /// Brute-force scan. The parameters are flattened into the enclosing map.
     Flat {
         /// Scan parameters.
         #[serde(flatten)]
@@ -94,7 +94,7 @@ impl Default for IndexConfig {
 }
 
 impl IndexConfig {
-    /// Pick a family for a collection of `num_vectors`.
+    /// Pick a family for a collection of the given vector count.
     pub fn select_type(&self, num_vectors: usize) -> IndexKind {
         match self {
             IndexConfig::Auto { auto, .. } => {
@@ -191,7 +191,7 @@ impl IndexConfig {
                         "runtime.index: hnsw ef_construction and ef_search must be > 0".into(),
                     );
                 }
-                // NaN fails this too, which is the point: it would poison every layer draw.
+                // NaN fails this check as well.
                 if !params.ml.is_finite() || params.ml <= 0.0 {
                     return Err("runtime.index: hnsw ml must be a finite number > 0".into());
                 }

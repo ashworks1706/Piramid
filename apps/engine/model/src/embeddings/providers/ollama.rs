@@ -77,7 +77,7 @@ impl Embedder for OllamaEmbedder {
 
         Ok(EmbeddingResponse {
             embedding: api_response.embedding,
-            tokens: None, // Ollama doesn't report token usage
+            tokens: None, // Ollama does not report token usage
             model: self.model.clone(),
         })
     }

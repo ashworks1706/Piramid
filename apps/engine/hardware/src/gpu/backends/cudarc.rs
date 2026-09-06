@@ -1,4 +1,4 @@
-//! NVIDIA CUDA backend, built on `cudarc`; compiled only under `gpu-cuda`. `cudarc` types must
+//! NVIDIA CUDA backend, built on cudarc; compiled only under the gpu-cuda feature. cudarc types
 //! never escape this file.
 
 use std::sync::Arc;

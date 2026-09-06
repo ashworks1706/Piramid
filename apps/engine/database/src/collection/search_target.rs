@@ -16,7 +16,7 @@ pub(crate) fn target(collection: &Collection) -> SearchTarget<'_> {
     }
 }
 
-/// Search one query, filling unset params from the collection's configuration.
+/// Search one query, filling unset params from the configuration of the collection.
 pub fn search(
     collection: &Collection,
     query: &[f32],
@@ -35,7 +35,7 @@ pub fn search(
     })
 }
 
-/// Search many queries, in parallel when the collection's parallelism config allows.
+/// Search many queries, in parallel when the parallelism config of the collection allows.
 pub fn search_batch(
     collection: &Collection,
     queries: &[Vec<f32>],

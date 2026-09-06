@@ -1,4 +1,5 @@
-//! Execution streams: a [`Stream`] is an ordered queue of device work, and separate streams overlap.
+//! Execution streams: a [Stream] is an ordered queue of device work, and separate streams
+//! overlap.
 
 use crate::gpu::device::Device;
 use crate::gpu::error::GpuResult;
@@ -7,12 +8,12 @@ use crate::gpu::error::GpuResult;
 #[derive(Debug, Clone)]
 pub struct Stream {
     device: Device,
-    /// Backend stream identifier; `0` is the default stream.
+    /// Backend stream identifier; 0 is the default stream.
     id: u64,
 }
 
 impl Stream {
-    /// The device's default (synchronizing) stream.
+    /// The default synchronizing stream for the device.
     pub fn default_for(device: &Device) -> Self {
         Self {
             device: device.clone(),

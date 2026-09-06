@@ -13,7 +13,7 @@ use crate::compute::error::{ComputeError, ComputeResult};
 pub enum QuantizationKind {
     /// One min/max pair for the whole vector.
     Scalar,
-    /// A code per block; see [`ProductQuantizedVector`].
+    /// A code per block; see [ProductQuantizedVector].
     Pq,
 }
 
@@ -101,7 +101,7 @@ pub struct ProductQuantizedVector {
 }
 
 impl ProductQuantizedVector {
-    /// Quantize block-by-block into `subquantizers` blocks with per-block ranges.
+    /// Quantize block-by-block into the requested number of blocks with per-block ranges.
     pub fn from_f32(vector: &[f32], subquantizers: usize) -> Self {
         if vector.is_empty() {
             return ProductQuantizedVector {
@@ -219,14 +219,15 @@ pub struct QuantizedVector {
     pub min: f32,
     /// Scalar range maximum.
     pub max: f32,
-    /// The PQ payload, when `kind` is [`QuantizationKind::Pq`].
+    /// The PQ payload, when kind is [QuantizationKind::Pq].
     pub pq: Option<ProductQuantizedVector>,
-    /// Which encoding `values`/`pq` actually holds.
+    /// Which encoding the values and pq fields actually hold.
     pub kind: QuantizationKind,
 }
 
 impl QuantizedVector {
-    /// Quantizes `vector` according to `cfg`; errors on `Int4`/`Float16`, which have no encoder.
+    /// Quantizes a vector according to the config; errors on Int4 and Float16, which have no
+    /// encoder.
     pub fn from_f32(vector: &[f32], cfg: &QuantizationConfig) -> ComputeResult<Self> {
         match cfg.level {
             QuantizationLevel::None | QuantizationLevel::Int8 => Ok(Self::from_scalar(vector)),
@@ -281,7 +282,7 @@ impl QuantizedVector {
         }
     }
 
-    /// Width of the vector this encodes, or `None` if the encoding is inconsistent.
+    /// Width of the vector this encodes, or None if the encoding is inconsistent.
     pub fn dim(&self) -> Option<usize> {
         match self.kind {
             QuantizationKind::Scalar => Some(self.values.len()),

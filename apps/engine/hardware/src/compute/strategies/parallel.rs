@@ -1,4 +1,4 @@
-//! Rayon-parallel CPU strategy; chunks operands across cores, worthwhile only at high dimensionality.
+//! Rayon-parallel CPU strategy; chunks operands across cores.
 
 use rayon::prelude::*;
 
@@ -9,7 +9,7 @@ use crate::compute::mode::ExecutionMode;
 #[derive(Debug, Default, Clone, Copy)]
 pub struct ParallelStrategy;
 
-/// Chunk width that balances thread fan-out against per-chunk overhead.
+/// Chunk width used to split an operand of the given length across threads.
 fn chunk_size(len: usize) -> usize {
     (len / num_cpus::get()).max(1024)
 }

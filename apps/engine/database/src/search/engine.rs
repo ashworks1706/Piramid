@@ -9,20 +9,18 @@ use piramid_core::Hit;
 use piramid_hardware::compute::{strategies::for_mode, ExecutionMode, Metric};
 use uuid::Uuid;
 
-/// Per-query overrides layered on top of a collection's configured defaults.
+/// Per-query overrides layered on top of the configured defaults of a collection.
 #[derive(Debug, Clone, Copy)]
 pub struct SearchParams<'a> {
-    /// Backend to score with. `Auto` defers to the collection's configured mode.
+    /// Backend to score with. Auto defers to the configured mode of the collection.
     pub mode: ExecutionMode,
     /// Metadata predicate. When present, the planner overfetches and post-filters.
     pub filter: Option<&'a Filter>,
-    /// Multiplier applied to `k` when a filter is present, overriding the configured value.
+    /// Multiplier applied to k when a filter is present, overriding the configured value.
     pub filter_overfetch_override: Option<usize>,
-    /// Recall/speed knobs for this query, overriding the configured value.
+    /// Recall and speed knobs for this query, overriding the configured value.
     pub search_config_override: Option<SearchConfig>,
-    /// Drop hits scoring below this. Asks a range question rather than a top-k one, so it must be
-    /// applied before `k` truncates — otherwise a qualifying document loses its place to a
-    /// higher-ranked one that does not qualify, and the caller sees fewer results than exist.
+    /// Drop hits scoring below this. Applied before k truncates the result set.
     pub min_score: Option<f32>,
 }
 
@@ -38,7 +36,7 @@ impl Default for SearchParams<'_> {
     }
 }
 
-/// What a search runs against. Borrowed views only; the caller owns everything.
+/// What a search runs against. Borrowed views only, and the caller owns everything.
 pub struct SearchTarget<'a> {
     /// The ANN index to query.
     pub index: &'a dyn VectorIndex,
@@ -46,11 +44,11 @@ pub struct SearchTarget<'a> {
     pub vectors: &'a dyn VectorReader,
     /// Access to per-document metadata, for filter evaluation.
     pub metadata: &'a dyn MetadataReader,
-    /// Recall/speed defaults, used unless [`SearchParams::search_config_override`] is set.
+    /// Recall and speed defaults, used unless [SearchParams::search_config_override] is set.
     pub default_config: SearchConfig,
 }
 
-/// Run one query against `target`.
+/// Run one query against a target.
 pub fn search(
     target: &SearchTarget<'_>,
     query: &[f32],
@@ -63,9 +61,8 @@ pub fn search(
         .search_config_override
         .unwrap_or(target.default_config);
 
-    // Anything applied after the index returns is a post-filter, so ask for more than `k` and
-    // let the survivors compete. A score threshold narrows the set exactly like a metadata
-    // predicate does.
+    // Anything applied after the index returns is a post-filter, so more than k candidates are
+    // requested. A score threshold narrows the set the same way a metadata predicate does.
     let post_filtered = params.filter.is_some() || params.min_score.is_some();
     let base_overfetch = effective_search.filter_overfetch.max(1);
     let expansion = params
@@ -90,17 +87,7 @@ pub fn search(
         .with_filter(params.filter),
     )?;
 
-    let mut results = Vec::with_capacity(neighbor_ids.len());
-    for id in neighbor_ids {
-        let entry = resolve(&id)?.ok_or_else(|| {
-            IndexError::SearchFailed(format!("index returned missing document {id}"))
-        })?;
-        let score = metric.calculate(query, entry.vector(), kernels);
-        results.push(Hit {
-            score,
-            document: entry,
-        });
-    }
+    let mut results = rescore(query, neighbor_ids, metric, kernels, resolve)?;
 
     if let Some(min_score) = params.min_score {
         results.retain(|hit| hit.score >= min_score);
@@ -108,12 +95,56 @@ pub fn search(
     if let Some(filter) = params.filter {
         results.retain(|hit| filter.matches(&hit.document.metadata));
     }
-    // Unconditional: the index orders by its own traversal, and `score` is recomputed here.
+    // The index orders by its own traversal, and score is recomputed here.
     rank_top_k(&mut results, k);
     Ok(results)
 }
 
-/// Run several queries against `target`, optionally in parallel.
+/// Resolve the candidates of the index and score them against the query in one batch call.
+///
+/// The score is recomputed here against the stored vector, whatever the index returned.
+/// Scoring runs once over a gathered block rather than once per candidate.
+fn rescore(
+    query: &[f32],
+    ids: Vec<Uuid>,
+    metric: Metric,
+    kernels: &dyn piramid_hardware::compute::DistanceKernels,
+    resolve: &dyn Fn(&Uuid) -> Result<Option<Document>>,
+) -> Result<Vec<Hit>> {
+    let mut documents = Vec::with_capacity(ids.len());
+    for id in ids {
+        documents.push(resolve(&id)?.ok_or_else(|| {
+            IndexError::SearchFailed(format!("index returned missing document {id}"))
+        })?);
+    }
+    let Some(dim) = documents.first().map(|document| document.vector().len()) else {
+        return Ok(Vec::new());
+    };
+    // A collection is one width, so a candidate of another width is an error.
+    let mut block = Vec::with_capacity(documents.len() * dim);
+    for document in &documents {
+        if document.vector().len() != dim {
+            return Err(IndexError::SearchFailed(format!(
+                "document {} is {} dimensions where the collection is {dim}",
+                document.id,
+                document.vector().len()
+            ))
+            .into());
+        }
+        block.extend_from_slice(document.vector());
+    }
+    let mut scores = vec![0.0; documents.len()];
+    metric
+        .calculate_batch(query, &block, dim, &mut scores, kernels)
+        .map_err(|e| IndexError::SearchFailed(e.to_string()))?;
+    Ok(documents
+        .into_iter()
+        .zip(scores)
+        .map(|(document, score)| Hit { score, document })
+        .collect())
+}
+
+/// Run several queries against a target, optionally in parallel.
 pub fn search_batch(
     target: &SearchTarget<'_>,
     queries: &[Vec<f32>],
@@ -137,7 +168,7 @@ pub fn search_batch(
     }
 }
 
-/// Sort by score descending and keep the top `k`.
+/// Sort by score descending and keep the top k.
 fn rank_top_k(results: &mut Vec<Hit>, k: usize) {
     results.sort_by(|a, b| {
         b.score

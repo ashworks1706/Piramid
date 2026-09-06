@@ -10,11 +10,11 @@ use uuid::Uuid;
 use super::serialize::SerializableIndex;
 use super::stats::{IndexStats, IndexType};
 
-pub use crate::storage::vectors::{HashMapVectorReader, VectorReader};
+pub use crate::storage::vectors::{HashMapVectorReader, VectorReader, VectorSlab};
 
 /// Read-only access to per-document metadata during a search.
 pub trait MetadataReader: Sync {
-    /// Metadata for `id`, if present.
+    /// Metadata for id, if present.
     fn get(&self, id: &Uuid) -> Option<&Metadata>;
 }
 
@@ -30,13 +30,13 @@ pub struct IndexSearchRequest<'a> {
     pub query: &'a [f32],
     /// Number of neighbors to return.
     pub k: usize,
-    /// Access to the collection's vectors.
+    /// Access to the vectors of the collection.
     pub vectors: &'a dyn VectorReader,
-    /// Recall/speed knobs for this query.
+    /// Recall and speed knobs for this query.
     pub config: SearchConfig,
     /// Optional metadata predicate, applied during traversal where the index supports it.
     pub filter: Option<&'a Filter>,
-    /// Access to per-document metadata, for evaluating `filter`.
+    /// Access to per-document metadata, for evaluating the filter.
     pub metadata: &'a dyn MetadataReader,
 }
 
@@ -66,15 +66,15 @@ impl<'a> IndexSearchRequest<'a> {
     }
 }
 
-/// An approximate-nearest-neighbor index over a collection's vectors.
+/// An approximate-nearest-neighbor index over the vectors of a collection.
 pub trait VectorIndex: Send + Sync {
-    /// Add `vector` under `id`.
+    /// Add a vector under an id.
     fn insert(&mut self, id: Uuid, vector: &[f32], vectors: &dyn VectorReader) -> Result<()>;
 
-    /// Return up to `request.k` neighbor ids, nearest first.
+    /// Return up to request.k neighbor ids, nearest first.
     fn search(&self, request: IndexSearchRequest<'_>) -> Result<Vec<Uuid>>;
 
-    /// Remove `id` from the index.
+    /// Remove an id from the index.
     fn remove(&mut self, id: &Uuid);
 
     /// Current index statistics.

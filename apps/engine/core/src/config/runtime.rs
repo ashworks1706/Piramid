@@ -1,4 +1,4 @@
-//! Settings re-read after `POST /config/reload`.
+//! Settings re-read after POST /config/reload.
 //!
 //! A reload takes effect for collections opened after it, and for each request that reads these
 //! values on its way through. It does not reopen collections already in memory.
@@ -30,7 +30,7 @@ pub struct RuntimeConfig {
 
 impl RuntimeConfig {
     pub fn validate(&self) -> Result<(), String> {
-        // Ask compute, so the feature flag stays owned by the crate that defines it.
+        // compute owns the feature flag and answers for it.
         if matches!(self.execution, ExecutionMode::Gpu)
             && piramid_hardware::compute::strategies::for_mode(ExecutionMode::Gpu).is_err()
         {

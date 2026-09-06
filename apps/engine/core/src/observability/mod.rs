@@ -14,7 +14,7 @@ pub use crate::config::{LogLevel, LoggingConfig, OtlpConfig, TelemetryConfig};
 /// Holds exporters alive; dropping this flushes pending telemetry.
 #[must_use = "dropping the guard shuts down telemetry export"]
 pub struct ObservabilityGuard {
-    // Held here (not dropped immediately) because shutdown is what flushes the last batch.
+    // Shutting the provider down on drop flushes the last batch.
     #[cfg(feature = "otel")]
     otel: Option<opentelemetry_sdk::trace::SdkTracerProvider>,
 }
@@ -34,11 +34,9 @@ impl Drop for ObservabilityGuard {
     }
 }
 
-/// Installs telemetry from configuration; call once, early in `main`.
+/// Installs telemetry from configuration. Call once, early in main.
 ///
-/// Returns `None` when logging is disabled or a subscriber is already installed. The binary owns
-/// *when* this happens; which directives a [`LoggingConfig`] implies is decided here, beside the
-/// config that names them.
+/// Returns None when logging is disabled or a subscriber is already installed.
 pub fn install(logging: LoggingConfig, telemetry: &TelemetryConfig) -> Option<ObservabilityGuard> {
     static INSTALLED: OnceLock<()> = OnceLock::new();
     if INSTALLED.get().is_some() {
@@ -51,17 +49,14 @@ pub fn install(logging: LoggingConfig, telemetry: &TelemetryConfig) -> Option<Ob
     Some(init(telemetry, filter_for(logging), logging.json))
 }
 
-/// Turn a [`LoggingConfig`] into a filter. `RUST_LOG` replaces the level but not the per-target
-/// switches, so turning one subsystem off stays possible alongside a custom level.
+/// Turn a [LoggingConfig] into a filter. RUST_LOG replaces the level but not the per-target
+/// switches.
 fn filter_for(logging: LoggingConfig) -> EnvFilter {
     let base = std::env::var("RUST_LOG").unwrap_or_else(|_| level_directive(logging.level).into());
     EnvFilter::new(directives(&base, logging))
 }
 
-/// Build the filter string: a base level, then one `=off` per subsystem switched off.
-///
-/// One string rather than directive-by-directive parsing, because every piece is a literal from
-/// this file and there is no partial-failure case worth reporting.
+/// Build the filter string: a base level, then one off directive per subsystem switched off.
 fn directives(base: &str, logging: LoggingConfig) -> String {
     let mut out = vec![base.to_string()];
     for (enabled, target) in [
@@ -92,7 +87,7 @@ fn level_directive(level: LogLevel) -> &'static str {
 
 /// Installs the tracing subscriber and any configured exporters.
 fn init(config: &TelemetryConfig, filter: EnvFilter, json: bool) -> ObservabilityGuard {
-    // One line per finished operation, so spans are visible without a collector.
+    // One line per finished operation.
     let span_events = if config.span_events {
         FmtSpan::CLOSE
     } else {
@@ -148,7 +143,7 @@ fn init(config: &TelemetryConfig, filter: EnvFilter, json: bool) -> Observabilit
         }
     }
 
-    // Report what resolved, so a variable that did not take effect is visible at startup.
+    // Report what resolved.
     tracing::info!(
         target: "piramid::observability",
         otlp = config.otlp.as_ref().map_or("off", |c| c.endpoint.as_str()),

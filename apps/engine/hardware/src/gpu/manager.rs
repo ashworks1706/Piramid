@@ -6,9 +6,8 @@ use crate::gpu::stream::Stream;
 
 /// Owns device acquisition for the process.
 ///
-/// Callers go through this to get a [`Device`]; the resources it hands out — [`Device`],
-/// [`crate::gpu::DeviceBuffer`], [`Stream`] — keep their own names. Multi-device policy (which
-/// ordinal, memory admission) lands here when a real backend does.
+/// Callers go through this to get a [Device]. The resources it hands out, [Device],
+/// [crate::gpu::DeviceBuffer] and [Stream], keep their own names.
 #[derive(Debug)]
 pub struct GpuManager {
     device: Device,
