@@ -55,8 +55,9 @@ apps/engine/core            errors (every one the app wraps), config (the whole 
 apps/engine/hardware        compute (distance kernels, strategy registry, quantization) and
                             gpu (device, buffer, stream, module, kernels)
 apps/engine/database        storage (records, WAL, sidecars, mmap), index (flat, hnsw, ivf),
-                            search (planning, filtering, ranking, near-duplicates), and the
-                            Collection that composes them with its caches and checkpoint policy
+                            search (planning, filtering, ranking, near-duplicates), cache,
+                            document (what is done to one), and collection (the object composing
+                            them: state, open, checkpoint, compact, limits, manager)
 apps/engine/model           inference (forward pass, kv_cache, batching, sampling), fusion (the
                             RetrievalHook seam), embeddings (openai wire format; ollama)
 apps/engine/serving         http (axum only, handlers and routes), services (operations, wire

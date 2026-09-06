@@ -2,7 +2,7 @@ use uuid::Uuid;
 
 use super::super::collection::Collection;
 use super::read::get;
-use crate::limits;
+use crate::collection::limits;
 use crate::storage::record_store::RecordStore;
 use crate::storage::wal::WalEntry;
 use piramid_core::error::Result;

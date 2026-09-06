@@ -14,21 +14,12 @@ pub mod index;
 pub mod search;
 pub mod storage;
 
-mod checkpoint;
 mod collection;
-mod compact;
 mod document;
-mod limits;
-mod manager;
-mod near_duplicates;
-mod open;
-mod search_target;
 
 pub use cache::{CacheManager, MetadataCache, VectorStore};
-pub use checkpoint::CheckpointManager;
-pub use collection::Collection;
-pub use compact::{compact, CompactStats};
-pub use manager::{CollectionHandle, CollectionManager};
-pub use near_duplicates::find_duplicates;
-pub use open::CollectionOpenOptions;
+pub use collection::{
+    compact, find_duplicates, CheckpointManager, Collection, CollectionHandle, CollectionManager,
+    CollectionOpenOptions, CompactStats,
+};
 pub use search::DuplicatePair;

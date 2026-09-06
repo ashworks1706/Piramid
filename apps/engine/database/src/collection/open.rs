@@ -15,7 +15,7 @@ use std::collections::HashMap;
 use uuid::Uuid;
 
 use super::checkpoint::CheckpointManager;
-use super::collection::Collection;
+use super::Collection;
 use crate::cache::CacheManager;
 use crate::index::load_vector_index;
 use crate::index::HashMapVectorReader;

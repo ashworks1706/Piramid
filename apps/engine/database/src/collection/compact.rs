@@ -2,7 +2,7 @@
 
 use std::collections::HashMap;
 
-use super::collection::Collection;
+use super::Collection;
 use crate::index::save_vector_index;
 use crate::index::HashMapVectorReader;
 use crate::storage::record_store::RecordStore;

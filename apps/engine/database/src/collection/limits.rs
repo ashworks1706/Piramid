@@ -1,7 +1,7 @@
-use crate::collection::Collection;
+use super::Collection;
 use piramid_core::error::{Result, ServerError};
 
-pub(super) fn enforce_single(collection: &Collection, entry_bytes: usize) -> Result<()> {
+pub(crate) fn enforce_single(collection: &Collection, entry_bytes: usize) -> Result<()> {
     let limits = collection.config.limits;
 
     if let Some(max_vecs) = limits.max_vectors {
@@ -31,7 +31,7 @@ pub(super) fn enforce_single(collection: &Collection, entry_bytes: usize) -> Res
     Ok(())
 }
 
-pub(super) fn enforce_batch(
+pub(crate) fn enforce_batch(
     collection: &Collection,
     total_entries: usize,
     total_bytes: u64,

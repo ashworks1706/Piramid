@@ -21,7 +21,7 @@ apps/                     everything we author
   engine/                 the library crates, one folder each
     core/                 errors, config, document, metadata, validation, stats, observability
     hardware/             compute, gpu, quantization
-    database/             storage, index, search, and the Collection over them
+    database/             storage, index, search, cache, document, collection
     model/                inference, fusion, embeddings
     serving/              how the outside world reaches it
   cli/                    the piramid binary, which links the engine into one artifact
@@ -42,9 +42,11 @@ Each cut is a real one:
   over. It is a leaf, so kernels can be benchmarked on their own and `model` can get a device
   without reaching through retrieval math.
 - **`database`** is where vectors live and how they are found: records, WAL, mmap and sidecars; the
-  ANN indexes; query planning and scoring; and the `Collection` that composes a store, a cache, a
-  checkpoint policy and an index. `search` takes a `SearchTarget` rather than a `Collection`, which
-  is what keeps scoring below collection lifecycle instead of circular with it.
+  ANN indexes; query planning and scoring; and `collection`, the object composing a store, a cache,
+  a checkpoint policy and an index. Inside it, `state.rs` holds what a collection owns and every
+  file beside it is one thing done to that state — opening, checkpointing, compaction, write
+  limits. `search` takes a `SearchTarget` rather than a `Collection`, which is what keeps scoring
+  below collection lifecycle instead of circular with it.
 - **`model`** is the forward pass, the `fusion` seam retrieval enters it through, and the
   `embeddings` providers that turn text into a vector. It depends on nothing in the retrieval
   stack, which is what keeps a collection queryable with no model loaded.

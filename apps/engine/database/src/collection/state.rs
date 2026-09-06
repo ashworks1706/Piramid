@@ -17,10 +17,10 @@ use crate::storage::SidecarManager;
 use piramid_core::error::Result;
 
 pub struct Collection {
-    pub(super) record_store: RecordStore,
-    pub(super) index: HashMap<Uuid, EntryPointer>,
-    pub(super) vector_index: Box<dyn VectorIndex>,
-    pub(super) cache: CacheManager,
+    pub(crate) record_store: RecordStore,
+    pub(crate) index: HashMap<Uuid, EntryPointer>,
+    pub(crate) vector_index: Box<dyn VectorIndex>,
+    pub(crate) cache: CacheManager,
     pub config: piramid_core::config::CollectionConfig,
     pub manifest: CollectionMetadata,
     pub path: String,
@@ -28,7 +28,7 @@ pub struct Collection {
 }
 
 impl Collection {
-    pub(super) fn track_operation(&mut self) -> Result<()> {
+    pub(crate) fn track_operation(&mut self) -> Result<()> {
         let now = piramid_core::clock::unix_secs();
         if self.checkpoint.should_checkpoint(&self.config.wal, now) {
             super::checkpoint::checkpoint(self)?;
@@ -121,7 +121,7 @@ impl Collection {
         Ok(all_entries)
     }
 
-    pub(super) fn rebuild_vector_cache(&mut self) -> Result<()> {
+    pub(crate) fn rebuild_vector_cache(&mut self) -> Result<()> {
         let mut cache = CacheManager::new(self.config.cache);
         for id in self.index.keys() {
             if let Some(entry) = crate::document::get(self, id)? {
@@ -158,11 +158,11 @@ impl Collection {
 
 impl Collection {
     pub fn open(path: &str) -> Result<Self> {
-        crate::open::open(path, CollectionOpenOptions::default())
+        super::open::open(path, CollectionOpenOptions::default())
     }
 
     pub fn open_with_options(path: &str, options: CollectionOpenOptions) -> Result<Self> {
-        crate::open::open(path, options)
+        super::open::open(path, options)
     }
 
     pub fn get(&self, id: &Uuid) -> Result<Option<Document>> {
@@ -204,7 +204,7 @@ impl Collection {
         metric: Metric,
         params: crate::search::SearchParams,
     ) -> Result<Vec<Hit>> {
-        crate::search_target::search(self, query, k, metric, params)
+        super::search_target::search(self, query, k, metric, params)
     }
 
     pub fn search_batch_with(
@@ -214,7 +214,7 @@ impl Collection {
         metric: Metric,
         params: crate::search::SearchParams,
     ) -> Result<Vec<Vec<Hit>>> {
-        crate::search_target::search_batch(self, queries, k, metric, params)
+        super::search_target::search_batch(self, queries, k, metric, params)
     }
 
     pub fn get_vectors(&self) -> &HashMap<Uuid, Vec<f32>> {
@@ -222,10 +222,10 @@ impl Collection {
     }
 
     pub fn checkpoint(&mut self) -> Result<()> {
-        crate::checkpoint::checkpoint(self)
+        super::checkpoint::checkpoint(self)
     }
 
     pub fn flush(&mut self) -> Result<()> {
-        crate::checkpoint::flush(self)
+        super::checkpoint::flush(self)
     }
 }

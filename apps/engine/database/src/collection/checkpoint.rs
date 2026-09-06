@@ -1,6 +1,6 @@
 //! Checkpoint bookkeeping: when to flush sidecars, and clearing the WAL once they are durable.
 
-use super::collection::Collection;
+use super::Collection;
 use crate::index::save_vector_index as save_vec_idx;
 use crate::storage::wal::Wal;
 use crate::storage::SidecarManager;
