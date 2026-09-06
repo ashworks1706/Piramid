@@ -2,14 +2,15 @@
 
 ## v0.3.0 — a retrieval path worth measuring
 
-- [ ] make the batch kernels reachable from search, instead of per-vector loops
+- [ ] route the IVF posting-list scan through the batch kernels, as the flat scan and the
+      rerank already are
 - [ ] settle the execution modes against the bench: keep what wins, drop what doesn't
 - [ ] a real CUDA device — allocate, upload, run a batch kernel, take the top-k on the device
 - [ ] keep the candidate set device-resident across queries, and measure it against per-call upload
 - [ ] quantize on the device, with recall reported alongside the speedup
 - [ ] choose the index family per device: IVF where a device runs it, HNSW on the host
-- [ ] make `serve` safe to expose — graceful shutdown, authentication, rate limiting, and tests
-      that actually start the server and the CLI
+- [ ] make `serve` safe to expose — graceful shutdown, authentication, rate limiting, and a test
+      that actually starts the server
 - [ ] clear the dependency debt: bincode 2.x with a read path for existing data, off the archived
       YAML parser, and either implement the unimplemented quantization levels or drop them
 
@@ -57,7 +58,6 @@ Co-located RAG with unmodified models. Also the baseline v0.6 is measured agains
 - [ ] backfill doc comments so `missing_docs` can move from `allow` to `warn`
 - [ ] make `runtime:` reload reach a running collection, or document that it doesn't
 - [ ] test config reload against a running server, not just the loader
-- [ ] untrack the committed SDK build artifacts
 
 ## Out of scope
 
