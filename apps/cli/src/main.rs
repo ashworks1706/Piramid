@@ -7,6 +7,7 @@ use std::time::Duration;
 use clap::{Args, CommandFactory, Parser, Subcommand, ValueEnum};
 mod animation;
 mod support;
+mod top;
 use piramid::config::{self, Config, StartupConfig};
 use piramid::observability;
 use piramid::state::AppState;
@@ -43,6 +44,16 @@ enum Commands {
         /// Output format (yaml or json)
         #[arg(long, value_enum, default_value_t = OutputFormat::Yaml)]
         format: OutputFormat,
+    },
+
+    /// Watch a running server: collections, index state, latency, WAL and disk
+    Top {
+        /// Base URL of the server to watch
+        #[arg(long, env = "PIRAMID_URL", default_value = "http://localhost:6333")]
+        url: String,
+        /// Seconds between refreshes
+        #[arg(long, default_value_t = 2, value_parser = clap::value_parser!(u64).range(1..=3600))]
+        interval: u64,
     },
 
     /// Show runtime/configuration information
@@ -126,6 +137,12 @@ fn main() {
             run_or_exit(
                 || support_bundle(output, config, data_dir),
                 "Failed to write support bundle",
+            );
+        }
+        Some(Commands::Top { url, interval }) => {
+            run_or_exit(
+                || top::run(&url, Duration::from_secs(interval)),
+                "Failed to start the dashboard",
             );
         }
         Some(Commands::Show { command }) => {

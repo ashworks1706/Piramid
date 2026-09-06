@@ -116,6 +116,36 @@ curl -X POST http://localhost:6333/api/collections/docs/search \
 Operational endpoints: `/api/health`, `/api/readyz`, `/api/version`, `/api/metrics` for the JSON
 view and `/metrics` for Prometheus.
 
+### Watching a running server
+
+```bash
+piramid top                                   # or --url http://host:6333, or PIRAMID_URL
+```
+
+A live view of the server: every collection on disk, whether it is open, its index and tuning, how
+much memory it holds, search and lock latency as a running sparkline, WAL size and checkpoint age,
+and disk headroom. `r` rebuilds the selected collection's index and `c` compacts it, each after a
+`y`/`n`; `?` lists the keys. It reads the HTTP API rather than the data directory, so it watches
+the process actually serving traffic and never contends with it for a collection.
+
+```
+ piramid  v0.2.0  ● live ● ready  http://localhost:6333  updated 0s ago
+╭ collections · 2 ─────────────────╮╭ docs · hnsw · 12,430 vectors ─────────────╮
+│ ● docs                   12,430  ││  index                                    │
+│ ○ notes                     902  ││  type              hnsw                   │
+│                                  ││  ef_search         64                     │
+│                                  ││  memory            41.2 MB                │
+│                                  ││                                           │
+│                                  ││  latency                                  │
+│                                  ││  search            0.41 ms                │
+│                                  ││  lock read         0.01 ms                │
+│                                  ││                                           │
+│                                  ││  durability                               │
+│                                  ││  last checkpoint   5s ago                 │
+╰──────────────────────────────────╯╰───────────────────────────────────────────╯
+ j/k move r rebuild index c compact R refresh now ? help q quit
+```
+
 ## Where this is going
 
 Knowledge does not have to live in a model's weights, and it does not have to live in the prompt

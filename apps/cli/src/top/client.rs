@@ -1,0 +1,253 @@
+//! The dashboard's view of a running server.
+//!
+//! Deserialization mirrors of the wire shapes in `serving::services::api`, holding only the
+//! fields the dashboard draws. They are `#[serde(default)]` throughout so a server one version
+//! ahead or behind still renders: a field the dashboard has not heard of is ignored, and one the
+//! server stopped sending reads as absent rather than failing the whole poll.
+
+use std::time::Duration;
+
+use serde::Deserialize;
+
+/// Everything one refresh collects.
+#[derive(Debug, Clone, Default)]
+pub struct Snapshot {
+    /// `/api/metrics`.
+    pub metrics: Metrics,
+    /// `/api/readyz`.
+    pub ready: Readyz,
+}
+
+/// `/api/version`, read once at startup.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Version {
+    pub version: String,
+    pub git_commit: Option<String>,
+}
+
+/// `/api/metrics`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Metrics {
+    pub total_collections: usize,
+    pub total_vectors: usize,
+    pub collections: Vec<CollectionMetrics>,
+    pub wal_stats: Vec<WalStats>,
+    pub embedding: EmbeddingMetrics,
+}
+
+/// One collection's counters.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CollectionMetrics {
+    pub name: String,
+    pub vector_count: usize,
+    pub index_type: String,
+    pub memory_usage_bytes: usize,
+    pub insert_latency_ms: Option<f32>,
+    pub search_latency_ms: Option<f32>,
+    pub lock_read_ms: Option<f32>,
+    pub lock_write_ms: Option<f32>,
+    pub filter_overfetch: Option<usize>,
+    pub hnsw_ef_search: Option<usize>,
+    pub ivf_nprobe: Option<usize>,
+}
+
+/// One collection's durability state.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct WalStats {
+    pub collection: String,
+    pub checkpoint_age_secs: Option<u64>,
+    pub wal_size_bytes: Option<u64>,
+}
+
+/// Embedding provider counters, server-wide.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct EmbeddingMetrics {
+    pub requests: u64,
+    pub texts: u64,
+    pub total_tokens: u64,
+    pub avg_latency_ms: Option<f32>,
+}
+
+/// `/api/readyz`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct Readyz {
+    pub ok: bool,
+    pub data_dir: String,
+    pub loaded_collections: usize,
+    pub disk_total_bytes: Option<u64>,
+    pub disk_available_bytes: Option<u64>,
+    pub collections: Vec<CollectionHealth>,
+}
+
+/// One collection as readiness sees it.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct CollectionHealth {
+    pub name: String,
+    pub loaded: bool,
+    pub integrity_ok: bool,
+    pub schema_version: Option<u32>,
+    pub error: Option<String>,
+}
+
+/// Where a rebuild is, from `/index/rebuild/status`.
+#[derive(Debug, Clone, Default, Deserialize)]
+#[serde(default)]
+pub struct RebuildStatus {
+    pub status: String,
+    pub elapsed_ms: Option<f32>,
+    pub error: Option<String>,
+}
+
+/// Anything that stopped a request from answering.
+#[derive(Debug, thiserror::Error)]
+pub enum ClientError {
+    /// The server could not be reached, or did not answer in time.
+    #[error("{0} unreachable: {1}")]
+    Unreachable(String, String),
+    /// The server answered with a status other than 2xx.
+    #[error("{0} returned {1}: {2}")]
+    Status(String, u16, String),
+    /// The body did not match the shape the dashboard expects.
+    #[error("{0}: {1}")]
+    Decode(String, String),
+    /// The HTTP client itself could not be built.
+    #[error("http client: {0}")]
+    Build(String),
+}
+
+/// An HTTP client bound to one server.
+#[derive(Debug, Clone)]
+pub struct Client {
+    http: reqwest::Client,
+    base: String,
+}
+
+impl Client {
+    /// A client for `base`, with timeouts short enough that a hung server does not freeze the UI.
+    pub fn new(base: &str, timeout: Duration) -> Result<Self, ClientError> {
+        let http = reqwest::Client::builder()
+            .connect_timeout(Duration::from_secs(2))
+            .timeout(timeout)
+            .build()
+            .map_err(|e| ClientError::Build(e.to_string()))?;
+        Ok(Self {
+            http,
+            base: base.trim_end_matches('/').to_owned(),
+        })
+    }
+
+    /// The server this client talks to.
+    pub fn base(&self) -> &str {
+        &self.base
+    }
+
+    /// Build identity, read once.
+    pub async fn version(&self) -> Result<Version, ClientError> {
+        self.get("/api/version").await
+    }
+
+    /// One refresh.
+    ///
+    /// Readiness opens every collection on disk and can be slow on a large data directory, so it
+    /// runs beside metrics rather than after it.
+    pub async fn snapshot(&self) -> Result<Snapshot, ClientError> {
+        let (metrics, ready) = tokio::join!(self.get("/api/metrics"), self.get("/api/readyz"));
+        Ok(Snapshot {
+            metrics: metrics?,
+            ready: ready?,
+        })
+    }
+
+    /// Asks for an index rebuild and returns once the server accepts it.
+    pub async fn rebuild(&self, collection: &str) -> Result<(), ClientError> {
+        self.post_empty(&format!("/api/collections/{collection}/index/rebuild"))
+            .await
+    }
+
+    /// Where a rebuild started earlier has got to.
+    pub async fn rebuild_status(&self, collection: &str) -> Result<RebuildStatus, ClientError> {
+        self.get(&format!(
+            "/api/collections/{collection}/index/rebuild/status"
+        ))
+        .await
+    }
+
+    /// Compacts a collection, reclaiming space held by deleted records.
+    pub async fn compact(&self, collection: &str) -> Result<(), ClientError> {
+        self.post_empty(&format!("/api/collections/{collection}/compact"))
+            .await
+    }
+
+    async fn get<T: serde::de::DeserializeOwned>(&self, path: &str) -> Result<T, ClientError> {
+        let response = self
+            .http
+            .get(format!("{}{path}", self.base))
+            .send()
+            .await
+            .map_err(|e| ClientError::Unreachable(path.to_owned(), root_cause(&e)))?;
+        Self::decode(path, response).await
+    }
+
+    async fn post_empty(&self, path: &str) -> Result<(), ClientError> {
+        let response = self
+            .http
+            .post(format!("{}{path}", self.base))
+            .json(&serde_json::json!({}))
+            .send()
+            .await
+            .map_err(|e| ClientError::Unreachable(path.to_owned(), root_cause(&e)))?;
+        let _: serde_json::Value = Self::decode(path, response).await?;
+        Ok(())
+    }
+
+    async fn decode<T: serde::de::DeserializeOwned>(
+        path: &str,
+        response: reqwest::Response,
+    ) -> Result<T, ClientError> {
+        let status = response.status();
+        let body = response
+            .text()
+            .await
+            .map_err(|e| ClientError::Unreachable(path.to_owned(), root_cause(&e)))?;
+        if !status.is_success() {
+            return Err(ClientError::Status(
+                path.to_owned(),
+                status.as_u16(),
+                summarize(&body),
+            ));
+        }
+        serde_json::from_str(&body).map_err(|e| ClientError::Decode(path.to_owned(), e.to_string()))
+    }
+}
+
+/// The innermost reason a request failed.
+///
+/// `reqwest`'s own message stops at "error sending request for url (…)", which names the URL the
+/// operator already typed and not the refused connection or timeout they need to see.
+fn root_cause(error: &reqwest::Error) -> String {
+    let mut source: &dyn std::error::Error = error;
+    while let Some(inner) = source.source() {
+        source = inner;
+    }
+    source.to_string()
+}
+
+/// An error body trimmed to something that fits on the status line.
+fn summarize(body: &str) -> String {
+    let text = serde_json::from_str::<serde_json::Value>(body)
+        .ok()
+        .and_then(|v| {
+            v.get("error")
+                .or_else(|| v.get("message"))
+                .and_then(|m| m.as_str().map(str::to_owned))
+        })
+        .unwrap_or_else(|| body.trim().to_owned());
+    text.chars().take(140).collect()
+}

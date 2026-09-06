@@ -41,6 +41,11 @@ serde_json.workspace = true
 serde_yaml.workspace = true
 tokio.workspace = true
 tracing.workspace = true
+thiserror.workspace = true
+reqwest.workspace = true
+ratatui.workspace = true
+crossterm.workspace = true
+futures.workspace = true
 
 # Restates the workspace lints (Cargo forbids partial overrides) with one change: the CLI is the
 # one place that talks to a terminal, so `println!`/`eprintln!` are allowed here.

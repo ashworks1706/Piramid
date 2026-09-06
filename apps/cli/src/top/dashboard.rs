@@ -1,0 +1,300 @@
+//! Dashboard state and the key map. Drawing is in `ui`; HTTP is in `client`.
+
+use std::collections::{HashMap, VecDeque};
+use std::time::{Duration, Instant};
+
+use crossterm::event::{KeyCode, KeyEvent, KeyModifiers};
+
+use super::client::{Client, ClientError, CollectionHealth, CollectionMetrics, Snapshot, WalStats};
+
+/// How many samples the latency sparkline keeps per collection.
+const HISTORY: usize = 240;
+
+/// One collection, as every endpoint together describes it.
+#[derive(Debug, Clone, Default)]
+pub struct Row {
+    /// Collection name.
+    pub name: String,
+    /// Counters from `/api/metrics`, absent for a collection on disk that has never been opened.
+    pub metrics: Option<CollectionMetrics>,
+    /// Durability, from the same response.
+    pub wal: Option<WalStats>,
+    /// What readiness says about it.
+    pub health: Option<CollectionHealth>,
+}
+
+impl Row {
+    /// Vectors held, or zero for a collection that has not been opened.
+    pub fn vectors(&self) -> usize {
+        self.metrics.as_ref().map_or(0, |m| m.vector_count)
+    }
+
+    /// Whether the server has this collection open.
+    pub fn loaded(&self) -> bool {
+        self.health.as_ref().is_some_and(|h| h.loaded) || self.metrics.is_some()
+    }
+
+    /// The problem readiness reported, if any.
+    pub fn problem(&self) -> Option<&str> {
+        let health = self.health.as_ref()?;
+        if let Some(error) = health.error.as_deref() {
+            return Some(error);
+        }
+        (!health.integrity_ok).then_some("integrity check failed")
+    }
+}
+
+/// An action that changes the server, held until it is confirmed.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum Pending {
+    /// Rebuild the collection's index from its stored records.
+    Rebuild(String),
+    /// Compact the collection, reclaiming space held by deleted records.
+    Compact(String),
+}
+
+impl Pending {
+    /// The question to put on the confirmation line.
+    pub fn question(&self) -> String {
+        match self {
+            Self::Rebuild(name) => {
+                format!("rebuild the index for {name}? it re-reads every record  [y/n]")
+            }
+            Self::Compact(name) => {
+                format!("compact {name}? it rewrites the record store  [y/n]")
+            }
+        }
+    }
+}
+
+/// Everything that can wake the dashboard.
+#[derive(Debug)]
+pub enum Event {
+    /// A key press.
+    Key(KeyEvent),
+    /// Redraw timer.
+    Tick,
+    /// Terminal resized.
+    Resize,
+    /// A refresh finished.
+    Snapshot(Box<Result<Snapshot, ClientError>>),
+    /// A rebuild or compact finished, with the line to show for it.
+    Action(Result<String, String>),
+    /// The terminal stopped delivering input; the dashboard cannot be driven any more.
+    InputLost(String),
+}
+
+/// All dashboard state.
+pub struct Dashboard {
+    /// The server this dashboard talks to.
+    pub client: Client,
+    /// Version string for the status bar, empty until `/api/version` answers.
+    pub version: String,
+    /// Rows in display order.
+    pub rows: Vec<Row>,
+    /// Index into `rows`.
+    pub selected: usize,
+    /// Server-wide totals from the last successful refresh.
+    pub snapshot: Option<Snapshot>,
+    /// Why the last refresh failed, if it did.
+    pub error: Option<String>,
+    /// Search latency history in microseconds, by collection.
+    pub history: HashMap<String, VecDeque<u64>>,
+    /// One-line notice on the status bar.
+    pub notice: Option<String>,
+    /// An action waiting on y/n.
+    pub pending: Option<Pending>,
+    /// The help overlay is open.
+    pub help: bool,
+    /// Set by `q`.
+    pub should_quit: bool,
+    /// When the last refresh landed, for the "updated Ns ago" indicator.
+    pub last_refresh: Option<Instant>,
+    /// A refresh is in flight; a second one is not started on top of it.
+    pub refreshing: bool,
+    /// Time between refreshes.
+    pub interval: Duration,
+    /// First half of a two-key chord such as `gg`.
+    pending_key: Option<char>,
+}
+
+impl Dashboard {
+    /// A dashboard over `client`, refreshing every `interval`.
+    pub fn new(client: Client, interval: Duration) -> Self {
+        Self {
+            client,
+            version: String::new(),
+            rows: Vec::new(),
+            selected: 0,
+            snapshot: None,
+            error: None,
+            history: HashMap::new(),
+            notice: None,
+            pending: None,
+            help: false,
+            should_quit: false,
+            last_refresh: None,
+            refreshing: false,
+            interval,
+            pending_key: None,
+        }
+    }
+
+    /// The selected collection, if there is one.
+    pub fn current(&self) -> Option<&Row> {
+        self.rows.get(self.selected)
+    }
+
+    /// Whether a refresh is due.
+    pub fn refresh_due(&self) -> bool {
+        !self.refreshing
+            && self
+                .last_refresh
+                .is_none_or(|at| at.elapsed() >= self.interval)
+    }
+
+    /// Applies one event, and reports whether an action should be dispatched.
+    pub fn handle(&mut self, event: Event) -> Option<Pending> {
+        match event {
+            Event::Key(key) => return self.key(key),
+            Event::Tick | Event::Resize => {}
+            Event::Snapshot(result) => self.snapshot(*result),
+            Event::Action(Ok(note)) => self.notice = Some(note),
+            Event::Action(Err(why)) => self.notice = Some(why),
+            Event::InputLost(why) => {
+                self.notice = Some(format!("terminal input ended ({why}); quitting"));
+                self.should_quit = true;
+            }
+        }
+        None
+    }
+
+    fn snapshot(&mut self, result: Result<Snapshot, ClientError>) {
+        self.refreshing = false;
+        self.last_refresh = Some(Instant::now());
+        match result {
+            Ok(snapshot) => {
+                self.error = None;
+                self.rebuild_rows(&snapshot);
+                self.snapshot = Some(snapshot);
+            }
+            // The last good snapshot stays on screen. A dashboard that blanks the moment a poll
+            // times out loses exactly the numbers you were reading when the server got slow.
+            Err(e) => self.error = Some(e.to_string()),
+        }
+    }
+
+    /// Folds metrics, WAL stats and readiness into one row per collection.
+    ///
+    /// Readiness is the authority on which collections exist, because it walks the data directory
+    /// and metrics only reports the ones the server has opened.
+    fn rebuild_rows(&mut self, snapshot: &Snapshot) {
+        let selected = self.current().map(|r| r.name.clone());
+        let mut rows: HashMap<String, Row> = HashMap::new();
+        for health in &snapshot.ready.collections {
+            rows.entry(health.name.clone()).or_default().health = Some(health.clone());
+        }
+        for metrics in &snapshot.metrics.collections {
+            let row = rows.entry(metrics.name.clone()).or_default();
+            if let Some(micros) = metrics.search_latency_ms.map(|ms| (ms * 1000.0) as u64) {
+                let history = self.history.entry(metrics.name.clone()).or_default();
+                if history.len() == HISTORY {
+                    history.pop_front();
+                }
+                history.push_back(micros);
+            }
+            row.metrics = Some(metrics.clone());
+        }
+        // Attached to a row, never creating one. Readiness and metrics both answer "which
+        // collections exist"; a durability stat keyed by something else is a server bug, and the
+        // dashboard should show two collections and drop the stat rather than invent a third.
+        for wal in &snapshot.metrics.wal_stats {
+            if let Some(row) = rows.get_mut(&wal.collection) {
+                row.wal = Some(wal.clone());
+            }
+        }
+        let mut rows: Vec<Row> = rows
+            .into_iter()
+            .map(|(name, mut row)| {
+                row.name = name;
+                row
+            })
+            .collect();
+        rows.sort_by(|a, b| a.name.cmp(&b.name));
+        // Keep the cursor on the collection it was on, so a refresh cannot move an action from
+        // the collection you were looking at to the one that took its place in the list.
+        self.selected = selected
+            .and_then(|name| rows.iter().position(|r| r.name == name))
+            .unwrap_or(self.selected)
+            .min(rows.len().saturating_sub(1));
+        self.rows = rows;
+    }
+
+    fn key(&mut self, key: KeyEvent) -> Option<Pending> {
+        if self.help {
+            self.help = false;
+            return None;
+        }
+        if let Some(pending) = self.pending.clone() {
+            return self.confirm(key, pending);
+        }
+        self.notice = None;
+        let chord = self.pending_key.take() == Some('g');
+        match key.code {
+            KeyCode::Char('q') => self.should_quit = true,
+            KeyCode::Char('c') if key.modifiers.contains(KeyModifiers::CONTROL) => {
+                self.should_quit = true;
+            }
+            KeyCode::Char('?') => self.help = true,
+            KeyCode::Esc => self.notice = None,
+            KeyCode::Char('j') | KeyCode::Down => self.move_by(1),
+            KeyCode::Char('k') | KeyCode::Up => self.move_by(-1),
+            KeyCode::Char('g') if chord => self.selected = 0,
+            KeyCode::Char('g') => self.pending_key = Some('g'),
+            KeyCode::Char('G') => self.selected = self.rows.len().saturating_sub(1),
+            KeyCode::Char('R') => self.last_refresh = None,
+            KeyCode::Char('r') => self.ask(Pending::Rebuild),
+            KeyCode::Char('c') => self.ask(Pending::Compact),
+            _ => {}
+        }
+        None
+    }
+
+    fn confirm(&mut self, key: KeyEvent, pending: Pending) -> Option<Pending> {
+        match key.code {
+            KeyCode::Char('y' | 'Y') => {
+                self.pending = None;
+                self.notice = Some(format!("{} running…", verb(&pending)));
+                Some(pending)
+            }
+            _ => {
+                self.pending = None;
+                self.notice = Some("cancelled".into());
+                None
+            }
+        }
+    }
+
+    fn ask(&mut self, make: fn(String) -> Pending) {
+        match self.current() {
+            Some(row) => self.pending = Some(make(row.name.clone())),
+            None => self.notice = Some("no collection selected".into()),
+        }
+    }
+
+    fn move_by(&mut self, delta: isize) {
+        if self.rows.is_empty() {
+            return;
+        }
+        let last = self.rows.len() - 1;
+        self.selected = self.selected.saturating_add_signed(delta).min(last);
+    }
+}
+
+/// What to call an action while it runs.
+pub fn verb(pending: &Pending) -> String {
+    match pending {
+        Pending::Rebuild(name) => format!("rebuild of {name}"),
+        Pending::Compact(name) => format!("compaction of {name}"),
+    }
+}

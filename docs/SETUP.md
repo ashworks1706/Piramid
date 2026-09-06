@@ -39,6 +39,7 @@ just doctor       # checks every tool above
 
 ```bash
 just serve                    # server on http://0.0.0.0:6333
+just cli top                  # live dashboard over a running server
 just cli show config          # print the resolved configuration
 just cli show metrics         # print metrics without starting the server
 just cli support-bundle       # diagnostics for a bug report
